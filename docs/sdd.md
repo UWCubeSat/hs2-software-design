@@ -26,12 +26,12 @@ All algorithms are included as external C++ libraries via CMake. Science results
 | aGNSS Receiver | UART | DataCollectionApplication (synchronized capture), AdcsApplication (position/timing), SatStateMachine (orbital state) |
 | IMU | SPI/I2C | AdcsApplication |
 | Sun Sensors | I2C/GPIO | AdcsApplication, SatStateMachine (sun/eclipse detection) |
-| Magnetorquers | GPIO/I2C | AdcsApplication |
+| Magnetorquers | PWM | AdcsApplication |
 | EPS Board | I2C/UART | EPSApplication, MpptIcManager, SatStateMachine |
 | EnduroSat S-band Radio | UART | CommsApplication |
 | External Flash | SPI | FileHandling subtopology |
-| Temperature Sensors | I2C | ThermalManager |
-| Heater | GPIO | ThermalManager |
+| Temperature Sensors | I2C | ThermalApplication (via TemperatureSensorManager) |
+| Heater | PWM | ThermalApplication (via HeaterManager) |
 
 ---
 
@@ -46,7 +46,7 @@ The satellite operates in two main modes managed by `SatStateMachine`. Uplink co
 
 ### Safe Mode
 
-The satellite enters Safe mode on: deploy/reboot, EPS `FATAL` low-power event, or ground command `SAFE_MODE`. Exits to Standby on ground command `SAFE_EXIT` (only after checkout has been completed).
+The satellite enters Safe mode on: deploy/reboot, critical battery condition reported by `EPSApplication` via `powerState` (vbatt below `CRITICAL_THRESHOLD`), or ground command `SAFE_MODE`. Exits to Standby on ground command `SAFE_EXIT` (only after checkout has been completed).
 
 `AdcsApplication` runs detumble (magnetometer B-dot algorithm) when power allows. All other application components are inactive.
 
@@ -96,14 +96,14 @@ Layer 4 — Mission Orchestration
 
 Layer 3 — Application components (*Application)
     DataCollectionApplication | ScienceInferenceApplication
-    AdcsApplication | CommsApplication | EPSApplication
+    AdcsApplication | CommsApplication | EPSApplication | ThermalApplication
     + pre-built subtopologies: ComCcsds | FileHandling | DataProducts
 
 Layer 2 — Hardware Managers (*Manager)
     Camera1Manager | Camera2Manager | StarTrackerManager | GnssManager
     ImuManager | SunSensorManager | MagnetorquerManager
     MpptIcManager | WatchdogPinger | DeployPanelsManager
-    ThermalManager | TemperatureSensorManager | HeaterManager
+    TemperatureSensorManager | HeaterManager
     EnduroSatManager
 
 Layer 1 — F' Native Bus Drivers (*Driver)
@@ -231,7 +231,7 @@ Top-level `switchMode` signal inherited by all leaf states — mode switch valid
 | `AdcsApplication` | Active (high priority) | Hierarchical SM; receives mode from `SatStateMachine`; runs attitude control loop |
 | `ImuManager` | Queued (worker) | State machine: RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN / error→RESET |
 | `SunSensorManager` | Queued (worker) | State machine: RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN / error→RESET |
-| `MagnetorquerManager` | Queued (worker) | State machine: RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN / error→RESET |
+| `MagnetorquerManager` | Queued (worker) | State machine: RESET → WAIT_RESET → CONFIGURE → RUN / error→RESET; drives six `LinuxPwmDriver` channels (two per axis) |
 
 **AdcsApplication modes (received via `Sat.AdcsModePort`):**
 
@@ -300,24 +300,22 @@ Top-level `switchMode: Adcs.Mode` signal inherited by all leaf states.
 
 | Component | Type | Purpose |
 |-----------|------|---------|
-| `EPSApplication` | Active | Command-driven orchestrator; reads battery state from `MpptIcManager`; publishes `powerStateOut` to `SatStateMachine`; forwards `SET_IC_REGISTER` commands to `MpptIcManager` via `setRegister` port; forwards deploy command to `DeployPanelsManager`. No mode interface. |
-| `MpptIcManager` | Active (worker) | Sole owner of BQ25756 IC over I2C; custom two-state SM: UNINITIALIZED → RUNNING; reads measurements each tick; per-rail consecutive-fault counter emits WARNING_HI each bad reading and FATAL after N consecutive bad readings; handles IC fault recovery via INT interrupt |
+| `EPSApplication` | Active | Command-driven orchestrator; reads battery state from `MpptIcManager`; exposes `powerStateGet` synchronous get port read by `SatStateMachine`; forwards `SET_IC_REGISTER` commands to `MpptIcManager` via `setRegister` port; forwards deploy command to `DeployPanelsManager`. No mode interface. |
+| `MpptIcManager` | Active (worker) | Sole owner of BQ25756 IC over I2C; custom two-state SM: UNINITIALIZED → RUNNING; reads measurements each tick; handles IC fault recovery via INT interrupt |
 | `WatchdogPinger` | Passive | Toggles hardware watchdog GPIO pin on each rate group tick |
 | `DeployPanelsManager` | Active | Two-state SM: NOT_DEPLOYED → DEPLOYED; executes burn wire sequence in both states; emits WARNING_HI on re-attempt in DEPLOYED state |
 
-`EPSApplication.powerStateOut` is consumed by `SatStateMachine` for submode activation decisions.
+`SatStateMachine` retrieves the latest power state from `EPSApplication` each 1 Hz tick by invoking the `powerStateGet` synchronous get port; the returned struct drives submode activation decisions.
 
 **Health monitoring:** `EPSApplication` is health-monitored. Hardware managers excluded.
 
-### 5.8 Thermal (Hardware Manager Only)
-
-No application-level component. Hardware managers run continuously independent of satellite mode.
+### 5.8 Thermal Subtopology
 
 | Component | Type | Purpose |
 |-----------|------|---------|
-| `ThermalManager` | Active | Polls temperature sensors; commands heater based on configurable thresholds; raises events on out-of-range readings |
-| `TemperatureSensorManager` | Queued (worker) | State machine: RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN / error→RESET |
-| `HeaterManager` | Queued (worker) | State machine: RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN / error→RESET |
+| `ThermalApplication` | Active | Hierarchical SM (NoHeating / ActiveHeating); receives mode from `SatStateMachine`; reads all temperature sensor data each tick; runs PID control loop in ActiveHeating; commands duty cycle to `HeaterManager` |
+| `TemperatureSensorManager` | Queued (worker) | State machine: RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN / error→RESET; owns all temperature sensors via `LinuxI2cDriver` |
+| `HeaterManager` | Queued (worker) | State machine: RESET → CONFIGURE → RUN / error→RESET; owns the PWM heater channel via `LinuxPwmDriver` |
 
 ---
 
@@ -336,7 +334,7 @@ No application-level component. Hardware managers run continuously independent o
 | `LinuxI2cDriver` (×N) | 1 | Passive | One instance per I2C bus |
 | `LinuxSpiDriver` (×N) | 1 | Passive | One instance per SPI bus |
 | `LinuxUartDriver` (×N) | 1 | Passive | One instance per UART (star tracker, GNSS, radio) |
-| `LinuxGpioDriver` (×N) | 1 | Passive | One instance per GPIO group (magnetorquers, heater) |
+| `LinuxGpioDriver` (×N) | 1 | Passive | One instance per GPIO group (watchdog, deploy panels) |
 
 ---
 
@@ -345,7 +343,7 @@ No application-level component. Hardware managers run continuously independent o
 | Rate Group | Frequency | Scheduled Components |
 |------------|-----------|---------------------|
 | `RateGroup1` | 10 Hz | `AdcsApplication`, `ImuManager`, `SunSensorManager`, `MagnetorquerManager`, `WatchdogPinger` |
-| `RateGroup2` | 1 Hz | `SatStateMachine`, `EPSApplication`, `MpptIcManager`, `ThermalManager`, `DataCollectionApplication` (availability check), `Health` |
+| `RateGroup2` | 1 Hz | `SatStateMachine`, `EPSApplication`, `MpptIcManager`, `ThermalApplication`, `TemperatureSensorManager`, `HeaterManager`, `DataCollectionApplication` (availability check), `Health` |
 | `RateGroup3` | 0.1 Hz | `StarTrackerManager`, `GnssManager`, `ScienceInferenceApplication`, `SystemResources`, `FileDownlink` |
 
 ---
@@ -371,12 +369,12 @@ Application components have no knowledge of `Sat::Mode` or `Sat::StandbySubmode`
 
 ### Condition Inputs
 
-| Port | Source | Data |
-|------|--------|------|
-| `powerStateIn` | `EPSApplication` | State of charge + above/below threshold |
-| `sunEclipseIn` | Sun sensors + `GnssManager` | In sun / in eclipse |
-| `orbitStateIn` | `GnssManager` | Over ground station flag |
-| `downlinkQueueDepthIn` | `ComQueue` | Current queue depth (bytes) |
+| Port | Direction | Source | Data |
+|------|-----------|--------|------|
+| `powerStateGet` | Output (sync get into `EPSApplication`) | `EPSApplication` | State of charge + above/below threshold (returned struct) |
+| `sunEclipseIn` | Input | Sun sensors + `GnssManager` | In sun / in eclipse |
+| `orbitStateIn` | Input | `GnssManager` | Over ground station flag |
+| `downlinkQueueDepthIn` | Input | `ComQueue` | Current queue depth (bytes) |
 
 ### Translation Table
 
@@ -393,7 +391,7 @@ Application components have no knowledge of `Sat::Mode` or `Sat::StandbySubmode`
 | From | To | Trigger |
 |------|----|---------|
 | Safe | Standby | Ground command `SAFE_EXIT` (only after checkout completed) |
-| Any | Safe | Ground command `SAFE_MODE`; `EPSApplication` `FATAL` event (critical battery); or `MpptIcManager` `FATAL` event (N consecutive bad rail voltage readings) — all FATAL events route through `EventManager.FatalAnnounce → fatalHandler`; system reboots into Safe mode |
+| Any | Safe | Ground command `SAFE_MODE`; vbatt below `CRITICAL_THRESHOLD` in `powerState` from `EPSApplication` evaluated by `SatStateMachine` each 1 Hz tick. `EPSApplication` does not emit `FATAL`; the transition is a normal `SatStateMachine` mode change, not a `fatalHandler` reboot. Any `FATAL` from elsewhere (e.g. `AssertFatalAdapter`, health timeout) still routes through `EventManager.FatalAnnounce → fatalHandler` and reboots into Safe. |
 | Standby | submode | Condition evaluation each 1 Hz tick |
 
 **Events emitted:** mode and submode entry/exit events for every transition.
@@ -449,7 +447,7 @@ Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fpr
 | `GnssManager` | `AdcsApplication` | Position + timing reference |
 | `GnssManager` | `SatStateMachine` | Orbital state (over ground station, sun/eclipse) |
 | `GnssManager` | Time services | PPS timing signal |
-| `EPSApplication.powerStateOut` | `SatStateMachine` | Battery state of charge |
+| `EPSApplication.powerStateGet` (sync get) | `SatStateMachine` | Battery state of charge (pulled by `SatStateMachine` each 1 Hz tick) |
 | `SatStateMachine.adcsModeOut` | `AdcsApplication` | Mode command (`Adcs.Mode`) |
 | `SatStateMachine.dataColModeOut` | `DataCollectionApplication` | Mode command (`DataCollection.Mode`) |
 | `SatStateMachine.scienceInferenceModeOut` | `ScienceInferenceApplication` | Mode command (`ScienceInference.Mode`) |
@@ -470,7 +468,7 @@ Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fpr
 | `AdcsApplication` | ADCS |
 | `CommsApplication` | Comms |
 | `EPSApplication` | EPS |
-| `ThermalManager` | Top-level |
+| `ThermalApplication` | Thermal |
 | `cmdDisp` | CdhCore |
 | `events` | CdhCore |
 

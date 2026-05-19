@@ -63,7 +63,6 @@ Port types use F' framework types (`Svc.Sched`, `Fw.Cmd`, `Fw.Dp`, `Fw.Log`, `Fw
 ### Open Questions
 
 - **EPS:** `EpsManager` as standalone Layer 2, or introduce a Layer 3 `EpsApplication` for mode-aware power/fault logic?
-- **Thermal:** `ThermalManager`-only, or add a Layer 3 `ThermalApplication` if control logic needs mode awareness?
 - **CDH decomposition:** Map command handling, storage, parameters, health, and downlink from the PDF into F' pre-built components and any required custom pieces.
 - **Ground software docs:** Translate ground-software chapter from the PDF into markdown, or mark out of scope.
 - **Mode-switch behavior:** Define mid-operation mode-change handling for `DataCollectionApplication` and `AdcsApplication`.

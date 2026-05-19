@@ -9,17 +9,12 @@
 ## 2. Requirements
 
 | ID | Requirement | Verification |
-|----|-------------|-------------|
-| HS2-ADC-001 | AdcsApplication shall detumble the spacecraft using IMU and magnetometer data | Inspection |
-| HS2-ADC-002 | AdcsApplication shall point solar panels at the sun using sun sensors and IMU | Inspection |
-| HS2-ADC-003 | AdcsApplication shall point the antenna at the ground station using GNSS and IMU | Inspection |
-| HS2-ADC-004 | AdcsApplication shall point the FOUND camera at the lit Earth limb while optimizing solar panel position | Inspection |
-| HS2-ADC-005 | AdcsApplication shall hold attitude using IMU during eclipse when no active pointing is required | Inspection |
-| HS2-ADC-006 | AdcsApplication shall switch operating mode on command from SatStateMachine without interrupting safe hardware state | Inspection |
-| HS2-ADC-007 | AdcsApplication shall provide current attitude estimate as a telemetry channel | Inspection |
-| HS2-ADC-008 | AdcsApplication shall assert WARNING_HI if IMU health check fails | Inspection |
-| HS2-ADC-009 | AdcsApplication shall assert WARNING_HI if magnetorquer actuation fails | Inspection |
-| HS2-ADC-010 | AdcsApplication shall respond to health ping within the required deadline | Inspection |
+|----|-------------|--------------|
+| HS2-ADC-001 | AdcsApplication shall detumble the spacecraft | Inspection |
+| HS2-ADC-002 | AdcsApplication shall point the spacecraft at a commanded target quaternion | Inspection |
+| HS2-ADC-003 | AdcsApplication shall maintain a slew rate under 0.04 degrees per second upon command | Inspection |
+| HS2-ADC-004 | AdcsApplication shall respond to health pings within the required deadline | Inspection |
+| HS2-ADC-005 | AdcsApplication shall assert WARNING_HI events followed by a FATAL if hardware is unable to recover from errors | Inspection |
 
 ---
 
@@ -53,10 +48,19 @@ If the incoming mode matches the current mode, the handler returns immediately (
 |------|-----------|------|---------|
 | `modeIn` | Input | `Sat.AdcsModePort` | Mode command from SatStateMachine |
 | `schedIn` | Input | `Svc.Sched` | Rate group tick (10 Hz) |
-| `imuRequest` | Output | `Fw.Cmd` | Request IMU sample from ImuManager |
-| `sunSensorRequest` | Output | `Fw.Cmd` | Request sun sensor sample |
-| `magnetorquerCmd` | Output | `Fw.Cmd` | Actuator command to MagnetorquerManager |
-| `attitudeGet` | Output | `Fw.Dp` | Request attitude from StarTrackerManager |
+| `imuControl` | Output | `Adcs.ManagerControlPort` | ON/OFF command to ImuManager |
+| `sunSensorControl` | Output | `Adcs.ManagerControlPort` | ON/OFF command to SunSensorManager |
+| `magnetorquerControl` | Output | `Adcs.ManagerControlPort` | ON/OFF command to MagnetorquerManager |
+| `filterAttitudeGet` | Output | `Adcs.AttitudePort` | Query AttitudeFilter for estimated attitude quaternion |
+| `filterAngularRateGet` | Output | `Adcs.AngularRatePort` | Query AttitudeFilter for estimated angular rate |
+| `filterBFieldGet` | Output | `Adcs.BFieldPort` | Query AttitudeFilter for previous B-field measurement |
+| `filterImuTimestampGet` | Output | `Adcs.TimestampPort` | Query AttitudeFilter for IMU data staleness |
+| `filterSunTimestampGet` | Output | `Adcs.TimestampPort` | Query AttitudeFilter for sun vector staleness |
+| `filterStarTimestampGet` | Output | `Adcs.TimestampPort` | Query AttitudeFilter for star tracker staleness |
+| `bDotCompute` | Output | `Adcs.BDotInputPort` | Call BDotAlgorithm |
+| `quaternionPdCompute` | Output | `Adcs.QuaternionPdInputPort` | Call QuaternionPdAlgorithm |
+| `slewRateCompute` | Output | `Adcs.SlewRateInputPort` | Call SlewRateAlgorithm |
+| `momentVectorOut` | Output | `Adcs.MomentVectorPort` | Send computed moment vector to MagnetorquerManager |
 | `positionGet` | Output | `Fw.Dp` | Request position/timing from GnssManager |
 | `pingIn` / `pingOut` | In/Out | `Svc.Ping` | Health monitoring |
 | `logOut` | Output | `Fw.Log` | Event logging |
@@ -78,24 +82,45 @@ Entry/exit actions follow the FPP Least Common Ancestor rule. Every mode re-entr
 
 ```
 OFF
+  entry: send ManagerControl.OFF via imuControl, sunSensorControl, magnetorquerControl
+  exit:  send ManagerControl.ON  via imuControl, sunSensorControl, magnetorquerControl
 
 DETUMBLE
-  └─ RUNNING         (on tick: run B-dot algorithm, command magnetorquers)
+  └─ RUNNING
+       on tick: query filterAngularRateGet, filterBFieldGet, filterImuTimestampGet
+                call bDotCompute(currentBField, previousBField, angularRate) → momentVector
+                send momentVectorOut
 
 SUN_POINTING
-  ├─ ACQUIRING       (on tick: search for sun vector via sun sensors)
-  └─ TRACKING        (on tick: maintain sun-pointing, command magnetorquers)
+  ├─ ACQUIRING       (on tick: check filterSunTimestampGet; wait for valid sun vector)
+  └─ TRACKING
+       on tick: query filterAttitudeGet, filterAngularRateGet, filterSunTimestampGet
+                call slewRateCompute(attitude, angularRate, targetQuaternion, 0.04°/s) → momentVector
+                call quaternionPdCompute(attitude, angularRate, targetQuaternion) → momentVector
+                send momentVectorOut
 
 ANTENNA_POINTING
-  ├─ ACQUIRING       (on tick: compute ground station vector via GNSS ephemeris)
-  └─ TRACKING        (on tick: maintain antenna pointing throughout pass)
+  ├─ ACQUIRING       (on tick: compute ground station quaternion via GNSS ephemeris)
+  └─ TRACKING
+       on tick: query filterAttitudeGet, filterAngularRateGet
+                call slewRateCompute(attitude, angularRate, targetQuaternion, 0.04°/s) → momentVector
+                call quaternionPdCompute(attitude, angularRate, targetQuaternion) → momentVector
+                send momentVectorOut
 
 EARTH_LIMB_POINTING
   ├─ ACQUIRING       (on tick: acquire lit Earth limb target + solar optimization)
-  └─ TRACKING        (on tick: maintain Earth limb pointing, optimize panels)
+  └─ TRACKING
+       on tick: query filterAttitudeGet, filterAngularRateGet, filterStarTimestampGet
+                call slewRateCompute(attitude, angularRate, targetQuaternion, 0.04°/s) → momentVector
+                call quaternionPdCompute(attitude, angularRate, targetQuaternion) → momentVector
+                send momentVectorOut
 
 ATTITUDE_HOLD
-  └─ HOLDING         (on tick: hold current attitude using IMU, command magnetorquers)
+  └─ HOLDING
+       on tick: query filterAttitudeGet, filterAngularRateGet
+                call slewRateCompute(attitude, angularRate, targetQuaternion, 0.04°/s) → momentVector
+                call quaternionPdCompute(attitude, angularRate, targetQuaternion) → momentVector
+                send momentVectorOut
 
 # Inherited by all leaf states:
 on switchMode(Adcs.Mode.Off)               enter OFF
@@ -113,6 +138,8 @@ Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/doc
 ## 5. Notes
 
 - `StarTrackerManager` and `GnssManager` are top-level components shared with `DataCollectionApplication`; connections are wired at the top-level topology.
-- Hardware managers (`ImuManager`, `SunSensorManager`, `MagnetorquerManager`) are instantiated inside the ADCS subtopology.
-- `EarthLimbPointing` uses star tracker for precision attitude knowledge — `StarTrackerManager` must be operational.
+- Hardware managers (`ImuManager`, `SunSensorManager`, `MagnetorquerManager`) and Layer 2.5 components (`AttitudeFilter`, `BDotAlgorithm`, `QuaternionPdAlgorithm`, `SlewRateAlgorithm`) are all instantiated inside the ADCS subtopology.
+- `AdcsApplication` controls which hardware managers are active via `ManagerControlPort` output ports. Managers that are off do not push data to `AttitudeFilter`.
+- `EarthLimbPointing` uses star tracker for precision attitude knowledge — `StarTrackerManager` must be operational and `filterStarTimestampGet` must return a fresh timestamp.
 - Mid-operation mode switch behavior (e.g., mode switch arriving mid-maneuver) to be defined during detailed design.
+- B-field source for `BDotAlgorithm` is deferred: if the IMU is 9-axis, B-field arrives via `imuDataIn` on `AttitudeFilter`. If not, a separate magnetometer manager is required.

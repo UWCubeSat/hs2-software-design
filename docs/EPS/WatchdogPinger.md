@@ -8,7 +8,9 @@
 
 ## 2. Requirements
 
-TODO
+| ID | Requirement | Verification |
+|----|-------------|--------------|
+| HS2-WDP-001 | WatchdogPinger shall pulse the watchdog GPIO on each rate group tick. | Test |
 
 ---
 
@@ -39,5 +41,6 @@ On each `schedIn` tick, `WatchdogPinger` asserts then deasserts `watchdogPing` t
 
 ## 5. Notes
 
+- The watchdog timer we plan on using (TI product number TPS3431SDRBR) requires a minimum pulse width of only 50 ns to reset the timer. Thus, it is not required to have any OS-created delay within this component. We can instead simply call the GPIO driver to pull WDI high and then low sequentially.
 - Tick rate and GPIO pulse timing to be confirmed with the hardware team against the specific watchdog IC's timeout and minimum pulse width specifications.
 - `WatchdogPinger` is scheduled via the standard F' rate group mechanism. The rate group must be selected such that its period is comfortably within the watchdog timeout window including any rate group slip margin.

@@ -11,6 +11,7 @@
 | ID | Requirement | Verification |
 |----|-------------|--------------|
 | HS2-DPM-001 | `DeployPanelsManager` shall activate the burn wire sequence upon receipt of a deploy command originating from ground. | Test |
+| HS2-DPM-002 | `DeployPanelsManager` shall emit events upon beginning and ending the burn sequence. | Test |
 
 ---
 
@@ -60,7 +61,7 @@ DEPLOYED
 
 ## 5. Notes
 
-- Burn wire active duration is a hardcoded constant in the component. Value TBD pending hardware team specification.
-- Burn wire timing implementation (timer port vs. OS sleep within the component thread) TBD during detailed design.
+- Burn wire active duration is a hardcoded constant in the component. Value TBD pending hardware team specification. This MAY eventually become a parameter stored in `PrmDb`, but we see no compelling reason for this right now.
+- Burn wire duration is timed via `Os::Task::delay()` called from the deploy handler on the Active component's thread. The handler asserts the burn wire GPIO, calls `Os::Task::delay(BURN_DURATION)`, then deasserts the GPIO. No `schedIn` or timer port is required — `Os::Task::delay()` is a direct call into F''s OS abstraction layer and blocks only the component's own thread, leaving all other components unaffected. Tradeoff: the burn cannot be cancelled mid-sequence.
+- NOTE: If it turns out that our deployment has performance issues caused by having too many active threads, we can make `DeployPanelsManager` into a Queued/Passive component with a rate group for timing the burn duration.
 - The `DEPLOYED` state re-executes the burn sequence to support the case where the panel did not fully deploy on the first attempt. The `WARNING_HI` event alerts the operator that this is a re-attempt.
-- `DeployPanelsManager` owns deployment state. `EPSApplication` does not track or gate the `DEPLOY_PANELS` command — it forwards it unconditionally.
