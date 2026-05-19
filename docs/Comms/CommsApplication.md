@@ -16,6 +16,8 @@
 | HS2-COM-004 | CommsApplication shall switch operating mode on command from SatStateMachine | Inspection |
 | HS2-COM-005 | CommsApplication shall respond to health ping within the required deadline | Inspection |
 
+TBD on what commands related to S-Band Transceiver will be
+
 ---
 
 ## 3. Design

@@ -14,8 +14,6 @@
 | HS2-ESM-004 | EnduroSatManager shall validate all uplinked commands against the CCSDS Space Packet Protocol | Inspection/Unit tests |
 | HS2-ESM-005 | EnduroSatManager shall deframe all uplinked commands that were validated against the CCSDS Space Packet Protocol | Inspection/Unit tests |
 
-TBD with commands regarding S-Band transceiver
-
 ---
 
 ## 3. Design
