@@ -1,7 +1,7 @@
 # EnduroSatManager SDD
 
 ## 1. Overview
-`EnduroSatManager` is the layer 2 active component for the Comms subtopology. It directly interacts with the Endurosat S-band radio using a UART interface. The `CommsApplication` component will forward commands and data to the `EnduroSatManager` to be fed into the Endurosat S-band radio. The `EnduroSatManager` is one of many layer 2 hardware managers as described in `sdd.md`.
+`EnduroSatManager` is the layer 2 active component for the Comms subtopology. It directly interacts with the Endurosat S-band transceiver through a UART interface. `The `EnduroSatManager` is one of many layer 2 hardware managers as described in `sdd.md`.
 
 ---
 
@@ -13,6 +13,8 @@
 | HS2-ESM-003 | EnduroSatManager shall frame all telemetry packets inside of CCSDS Space Packet headers | Inspection/Unit tests |
 | HS2-ESM-004 | EnduroSatManager shall validate all uplinked commands against the CCSDS Space Packet Protocol | Inspection/Unit tests |
 | HS2-ESM-005 | EnduroSatManager shall deframe all uplinked commands that were validated against the CCSDS Space Packet Protocol | Inspection/Unit tests |
+
+TBD with commands regarding S-Band transceiver
 
 ---
 
@@ -37,7 +39,7 @@ The communication adapter interface is composed of five ports. These ports are u
 |`dataReturnOut`| Output | `Svc.ComDataWithContext`| Port returning ownership of data that came in on dataIn|
 |`dataReturnIn` | Input | `Svc.ComDataWithContext` | Port receiving back ownership of buffer sent out on dataOut|
 
-Additionally, the `EnduroSatManager` uses the ByteStreamDriverClient port interface to communicate over UART with the S-Band transciever as described in the table below:
+Additionally, the `EnduroSatManager` uses the `ByteStreamDriverClient` port interface to communicate over UART with the S-Band transciever as described in the table below:
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
