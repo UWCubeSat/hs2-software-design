@@ -2,11 +2,11 @@
 
 ## 1. Overview
 
-`MagnetorquerManager` is the Layer 2 hardware manager for the magnetorquer coils within the ADCS subtopology. It is an **actuator manager** — unlike the sensor managers, its primary data flow is *inbound* from `AdcsApplication`. It receives a target magnetic dipole command, and on each rate-group tick drives the corresponding current through the X, Y, and Z magnetorquer coils.
+`MagnetorquerManager` is the Layer 2 hardware manager for the magnetorquer coils within the ADCS subtopology. It is an **actuator manager** — it receives a magnetic moment vector from `AdcsApplication`, converts it to per-axis PWM duty cycles, and drives the H-bridge current driver via six PWM signals (two per axis: one signal per current direction).
 
-`MagnetorquerManager` is a **Queued** component driven by `RateGroup1` (10 Hz). It has no satellite mode awareness. It stores the most recently received dipole command and re-applies it on every tick while in `RUN`, ensuring continuous actuation without requiring `AdcsApplication` to retransmit each cycle. `AdcsApplication` (Layer 3) is responsible for computing dipole commands and, if `MagnetorquerManager` reports repeated failures, commanding a power cut via EPS.
+`MagnetorquerManager` is a **Queued** component driven by `RateGroup1` (10 Hz). It has no satellite mode awareness and performs no control law computation. On receiving a moment vector, it computes the corresponding duty cycles and applies them as a burst over N ticks; after the burst completes it idles (zero current on all axes) until the next moment vector arrives. This burst-then-idle pattern allows the magnetometer to read an uncontaminated B-field between actuation pulses.
 
-The magnetorquer coils are driven through a GPIO or I2C H-bridge current driver (bus assignment fixed at integration time). All bus access goes through the Layer 1 `LinuxGpioDriver` or `LinuxI2cDriver`.
+Each H-bridge axis requires two PWM inputs for bidirectional current control: driving the positive-direction channel to the desired duty cycle while holding the negative-direction channel at zero produces current in one direction; swapping which channel is non-zero reverses the current. No GPIO pins are required. All bus access goes through six `LinuxPwmDriver` instances (one per PWM channel).
 
 ---
 
@@ -16,16 +16,21 @@ The magnetorquer coils are driven through a GPIO or I2C H-bridge current driver 
 |----|-------------|--------------|
 | HS2-MTQ-001 | MagnetorquerManager shall reset the coil driver to a known safe state (zero current on all axes) before any configuration is applied | Inspection |
 | HS2-MTQ-002 | MagnetorquerManager shall wait for the driver reset stabilization period before proceeding to enable | Inspection |
-| HS2-MTQ-003 | MagnetorquerManager shall enable the H-bridge driver for all three coil axes before entering the run loop | Inspection |
-| HS2-MTQ-004 | MagnetorquerManager shall configure maximum dipole moment limits and PWM frequency from F' parameters before entering the run loop | Inspection |
-| HS2-MTQ-005 | MagnetorquerManager shall zero all coil currents on entry to RESET to ensure safe actuator state during recovery | Inspection |
-| HS2-MTQ-006 | MagnetorquerManager shall accept dipole commands from AdcsApplication via an async input port while in RUN | Inspection |
-| HS2-MTQ-007 | MagnetorquerManager shall apply the most recently received dipole command to the coil driver each rate-group tick while in RUN | Inspection |
-| HS2-MTQ-008 | MagnetorquerManager shall clamp commanded dipole moment to the MAX_DIPOLE_MOMENT parameter before writing to the driver | Inspection |
+| HS2-MTQ-003 | MagnetorquerManager shall set the PWM period and enable all six PWM channels before entering the run loop | Inspection |
+| HS2-MTQ-004 | MagnetorquerManager shall configure PWM frequency from F' parameters before entering the run loop | Inspection |
+| HS2-MTQ-005 | MagnetorquerManager shall zero all coil currents on entry to RESET | Inspection |
+| HS2-MTQ-006 | MagnetorquerManager shall accept a magnetic moment vector from AdcsApplication via a sync input port while in RUN | Inspection |
+| HS2-MTQ-007 | MagnetorquerManager shall convert the received magnetic moment vector to per-axis PWM duty cycles | Inspection |
+| HS2-MTQ-008 | MagnetorquerManager shall apply the computed duty cycles for BURST_TICKS ticks, then idle (zero current) until the next moment vector | Inspection |
 | HS2-MTQ-009 | MagnetorquerManager shall log a WARNING_HI event and transition to RESET on any bus write failure | Inspection |
 | HS2-MTQ-010 | MagnetorquerManager shall track consecutive failure count and report it as a telemetry channel | Inspection |
 | HS2-MTQ-011 | MagnetorquerManager shall apply updated F' parameter values by transitioning from RUN to CONFIGURE without a full reset | Inspection |
 | HS2-MTQ-012 | MagnetorquerManager shall not perform any bus operations while in WAIT_RESET | Inspection |
+| HS2-MTQ-013 | MagnetorquerManager shall transition to OFF from any state on receipt of an OFF command via controlIn | Inspection |
+| HS2-MTQ-014 | MagnetorquerManager shall write zero current to all three coil axes on OFF entry | Inspection |
+| HS2-MTQ-015 | MagnetorquerManager shall perform no bus operations while in OFF | Inspection |
+| HS2-MTQ-016 | MagnetorquerManager shall re-enter RESET on receipt of an ON command via controlIn while in OFF | Inspection |
+| HS2-MTQ-017 | MagnetorquerManager OFF entry hardware shutdown sequence beyond coil zeroing is TBD pending H-bridge hardware selection | Deferred |
 
 ---
 
@@ -33,32 +38,29 @@ The magnetorquer coils are driven through a GPIO or I2C H-bridge current driver 
 
 ### 3.1 Component Type
 
-Queued component with internal flat F' state machine (`Fw::Sm`). Has a message queue but no dedicated thread — executes on the `RateGroup1` caller thread each 10 Hz tick. The `dipoleCmdIn` async input port queues incoming commands for dispatch on the component's next execution window.
+Queued component with internal flat F' state machine (`Fw::Sm`). Has a message queue but no dedicated thread — executes on the `RateGroup1` caller thread each 10 Hz tick.
 
 ### 3.2 Parameters
 
-`MagnetorquerManager` is not satellite-mode-aware and receives no mode commands from `SatStateMachine`. All coil driver configuration is parameter-driven. Parameters are loaded from `Svc::PrmDb` in the `CONFIGURE` state. A parameter update at runtime sends a `reconfigure` signal, causing `MagnetorquerManager` to re-enter `CONFIGURE` from `RUN` without a full reset; coil current is zeroed during the transition.
-
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `MAX_DIPOLE_MOMENT` | `F32` | Maximum allowable dipole moment magnitude per axis (A·m²) — commands are clamped to this |
 | `PWM_FREQUENCY` | `U32` | PWM carrier frequency for the H-bridge driver (Hz) |
-| `AXIS_POLARITY[3]` | `I8[3]` | Per-axis polarity sign (+1 or -1) to account for physical coil winding direction |
+| `BURST_TICKS` | `U32` | Number of ticks to apply duty cycles after receiving a moment vector |
 | `RESET_WAIT_TICKS` | `U32` | Number of rate-group ticks to wait after reset before proceeding |
 
 ### 3.3 Ports
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
-| `schedIn` | Input | `Svc.Sched` | 10 Hz rate group tick — drives the SM step and applies stored dipole command |
-| `dipoleCmdIn` | Input (async) | `Adcs.DipoleCmdPort` | Receives target dipole vector (X, Y, Z in A·m²) from AdcsApplication |
-| `busWrite` | Output | `Drv.GpioWrite` | Write PWM duty cycle and direction signals to H-bridge driver |
-| `busWriteI2c` | Output | `Drv.I2cWrite` | Write to I2C current driver (if coil driver uses I2C rather than GPIO) |
+| `schedIn` | Input | `Svc.Sched` | 10 Hz rate group tick — drives SM step and burst countdown |
+| `momentVectorIn` | Input (sync) | `Adcs.MomentVectorPort` | Magnetic moment vector from AdcsApplication; converted to duty cycles |
+| `controlIn` | Input (async) | `Adcs.ManagerControlPort` | ON/OFF command from AdcsApplication |
+| `pwmSetPeriodOut[6]` | Output | `Drv.PwmSetPeriod` | Set PWM period on all six channels during CONFIGURE |
+| `pwmSetDutyCycleOut[6]` | Output | `Drv.PwmSetDutyCycle` | Duty cycle control — channels 0–1: X-axis (±), 2–3: Y-axis (±), 4–5: Z-axis (±) |
+| `pwmEnableOut[6]` | Output | `Drv.PwmEnable` | Enable all six channels on CONFIGURE entry; disable on error before → RESET |
 | `prmGet` | Output | `Fw.PrmGet` | Load parameters from PrmDb during CONFIGURE |
-| `logOut` | Output | `Fw.Log` | Event logging (state transitions, clamping events, errors) |
-| `tlmOut` | Output | `Fw.Tlm` | Telemetry (SM state, consecutive failure count, applied dipole per axis) |
-
-> **Bus type:** If the H-bridge uses GPIO PWM signals, `busWrite` maps to `LinuxGpioDriver`. If the driver uses an I2C current controller, `busWriteI2c` maps to `LinuxI2cDriver`. Only one of the two output ports is connected at topology assembly depending on the physical interface. The unused port is left unconnected.
+| `logOut` | Output | `Fw.Log` | Event logging (state transitions, errors) |
+| `tlmOut` | Output | `Fw.Tlm` | Telemetry (SM state, applied duty cycles per axis, consecutive failure count) |
 
 ### 3.4 Commands
 
@@ -68,65 +70,68 @@ Queued component with internal flat F' state machine (`Fw::Sm`). Has a message q
 
 ## 4. State Machine
 
-`MagnetorquerManager` uses a single flat F' state machine following the `fprime-community/fprime-sensors` `ImuManager` reference pattern. All states are peers — no nesting. The SM is stepped by `schedIn` each tick. Dipole commands may arrive via `dipoleCmdIn` at any time and are buffered in the component's internal queue; they are processed and stored during the next `schedIn` dispatch.
+`MagnetorquerManager` uses a single flat F' state machine. All states are peers — no nesting. The SM is stepped by `schedIn` each tick.
 
 ```
+OFF
+  entry: call pwmSetDutyCycleOut(0) on all six channels
+         [further shutdown protocol TBD]
+  on tick: no action
+  on controlIn(ON) → RESET
+
 RESET
-  entry: write zero current to all three coil axes (safe actuator state)
+  entry: call pwmSetDutyCycleOut(0) on all six channels
          reset consecutive-failure counter
          reset wait-tick counter
-         clear stored dipole command (zero vector)
+         reset burst tick counter
   on tick → WAIT_RESET
 
 WAIT_RESET
   on tick: increment wait-tick counter
-           if counter >= RESET_WAIT_TICKS → ENABLE
-           (no bus operations performed in this state)
-           (dipole commands received in this state are accepted into queue
-            but not applied — stored for use once RUN is reached)
-
-ENABLE
-  entry: write enable command to H-bridge driver (enable all axes, set PWM frequency)
-  on tick:
-    if busWrite OK → CONFIGURE
-    if busWrite error → log WARNING_HI, increment failure count → RESET
+           if counter >= RESET_WAIT_TICKS → CONFIGURE
+           (no bus operations)
 
 CONFIGURE
-  entry: zero coil currents
-         load MAX_DIPOLE_MOMENT, PWM_FREQUENCY, AXIS_POLARITY from PrmDb
-         write PWM frequency configuration register to driver
-         write axis polarity configuration
+  entry: call pwmSetDutyCycleOut(0) on all six channels
+         load PWM_FREQUENCY, BURST_TICKS from PrmDb
+         call pwmSetPeriodOut(periodNs) on all six channels
+         call pwmEnableOut(HIGH) on all six channels
   on tick:
     if all writes OK → RUN
-    if any write error → log WARNING_HI, increment failure count → RESET
+    if any write error → log WARNING_HI, increment failure count,
+                         call pwmEnableOut(LOW) on all six channels → RESET
 
 RUN
-  on dipoleCmdIn: clamp each axis to ± MAX_DIPOLE_MOMENT
-                  apply AXIS_POLARITY sign per axis
-                  store as current command
-  on tick: write stored dipole command to coil driver (all three axes)
-           if busWrite OK:
-             emit applied dipole as telemetry
-             reset consecutive-failure counter
-           if busWrite error:
+  on momentVectorIn: compute per-axis PWM duty cycles from moment vector
+                     set burst counter to BURST_TICKS
+  on tick: if burst counter > 0:
+             for each axis, write computed duty cycle to the positive-direction
+             channel and zero to the negative-direction channel (or vice versa
+             for negative moment); zero both channels if moment component is zero
+             decrement burst counter
+             emit applied duty cycles as telemetry
+             reset consecutive-failure counter on success
+           if burst counter == 0:
+             call pwmSetDutyCycleOut(0) on all six channels (coils idle)
+           on any write error:
              log WARNING_HI (throttled), increment failure count → RESET
 
-# From any state:
-on error signal → RESET        # self-healing fallback
-on reconfigure signal → CONFIGURE   # parameter update path from RUN
+# Global signals — reachable from any state:
+on error signal       → RESET
+on controlIn(OFF)     → OFF
+on controlIn(ON)      → RESET   # no-op from non-OFF states
+on reconfigure signal → CONFIGURE
 ```
 
-**Safe zero-current on RESET:** Every entry to `RESET` immediately zeroes all coil axes before doing anything else. This ensures the magnetorquers are not left producing uncontrolled torque during the recovery cycle, even if the reset was triggered mid-actuation.
+**Burst-then-idle:** After each moment vector is received, duty cycles are applied for exactly `BURST_TICKS` ticks. The coils then idle at zero current until the next `momentVectorIn`. This ensures the magnetometer can sample an uncontaminated B-field between actuation pulses.
 
-**Dipole command buffering:** `dipoleCmdIn` is an async input port. Commands may arrive between ticks and are queued. During `RUN`, each `dipoleCmdIn` dispatch updates the stored command; the stored value is applied to hardware on the next `schedIn` tick. If multiple commands arrive between ticks, only the most recently dispatched value is applied (prior queued commands are processed and overwrite each other in order).
+**Safe zero-current on RESET and OFF:** Every entry to `RESET` or `OFF` immediately calls `pwmSetDutyCycleOut(0)` on all six channels before doing anything else.
 
-**Clamping:** `AdcsApplication` is the authority on dipole magnitude, but `MagnetorquerManager` enforces the hardware-safe `MAX_DIPOLE_MOMENT` clamp as a protective backstop. Clamping events are logged at `DIAGNOSTIC` severity.
+**Error self-healing:** Any bus write failure emits a throttled `WARNING_HI` event, increments `consecutiveFailures`, zeroes coil currents, and re-enters `RESET`.
 
-**Error self-healing:** Any bus write failure from `ENABLE`, `CONFIGURE`, or `RUN` emits a throttled `WARNING_HI` event, increments `consecutiveFailures`, zeros coil currents, and re-enters `RESET`. The SM retries the full startup sequence automatically.
+**Repeated failure escalation:** `MagnetorquerManager` does not cut power to itself. If `consecutiveFailures` exceeds a threshold observable by `AdcsApplication` via telemetry, `AdcsApplication` is responsible for commanding an EPS power rail cut.
 
-**Repeated failure escalation:** `MagnetorquerManager` does not cut power to itself. If `consecutiveFailures` exceeds a threshold observable by `AdcsApplication` via telemetry, `AdcsApplication` is responsible for commanding an EPS power rail cut. `MagnetorquerManager` continues attempting self-healing until then.
-
-**Parameter reconfiguration:** When `parameterUpdated()` is called, `MagnetorquerManager` sends a `reconfigure` signal. If currently in `RUN`, this transitions directly to `CONFIGURE` — coil currents are zeroed first, new parameters loaded, then `RUN` is re-entered. From any other state the signal is ignored.
+**Parameter reconfiguration:** When `parameterUpdated()` is called, `MagnetorquerManager` sends a `reconfigure` signal. If currently in `RUN`, this transitions directly to `CONFIGURE`. From any other state the signal is ignored.
 
 Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fprime-community/fprime-sensors/tree/devel/fprime-sensors/MpuImu/Components/ImuManager), [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc)
 
@@ -134,10 +139,9 @@ Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fpr
 
 ## 5. Notes
 
-- `MagnetorquerManager` is instantiated inside the ADCS subtopology. Its `busWrite` / `busWriteI2c` port connects to a `LinuxGpioDriver` or `LinuxI2cDriver` instance at the top-level topology, depending on the H-bridge interface.
-- `dipoleCmdIn` is connected from `AdcsApplication` within the ADCS subtopology. `AdcsApplication` sends commands at its own control loop rate (10 Hz); `MagnetorquerManager` re-applies the stored command each tick regardless of whether a new one arrived.
+- `MagnetorquerManager` is instantiated inside the ADCS subtopology. Its `pwmSetDutyCycleOut[6]`, `pwmSetPeriodOut[6]`, and `pwmEnableOut[6]` port arrays connect to six `LinuxPwmDriver` instances at the top-level topology.
+- `momentVectorIn` is connected from `AdcsApplication` within the ADCS subtopology.
 - `MagnetorquerManager` is **excluded from health monitoring** (`Svc::Health`). Only `AdcsApplication` is health-checked.
-- The `Adcs.DipoleCmdPort` type (carrying a three-axis dipole vector in A·m² and a timestamp) is defined in the ADCS module and shared with `AdcsApplication`.
-- Physical coil drive details (PWM duty cycle mapping to current, H-bridge register layout) are implementation details for the component's C++ source, not specified here.
-- `MagnetorquerManager` produces torque-related telemetry (applied dipole per axis) but does **not** measure actual coil current. Current sensing, if available on the hardware, would be a separate driver concern.
+- Moment-vector to duty-cycle conversion (mapping A·m² to PWM duty cycle percentage) is an implementation detail for the component's C++ source.
 - Deferred: exact `consecutiveFailures` threshold that triggers `AdcsApplication` to cut magnetorquer power is a system-level parameter to be defined during detailed design.
+- Deferred: OFF entry hardware shutdown sequence beyond coil zeroing depends on H-bridge hardware selection.
