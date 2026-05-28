@@ -16,6 +16,8 @@
 | HS2-COM-004 | CommsApplication shall switch operating mode on command from SatStateMachine | Inspection |
 | HS2-COM-005 | CommsApplication shall respond to health ping within the required deadline | Inspection |
 
+TBD on what commands related to S-Band Transceiver will be
+
 ---
 
 ## 3. Design
@@ -49,10 +51,9 @@ If the incoming mode matches the current mode, the handler returns immediately (
 | `modeIn` | Input | `Sat.CommsModePort` | Mode command from SatStateMachine |
 | `schedIn` | Input | `Svc.Sched` | Rate group tick |
 | `radioCmd` | Output | `Fw.Cmd` | Configure EnduroSatManager operating mode |
-| `pingIn` / `pingOut` | In/Out | `Svc.Ping` | Health monitoring |
+| `pingIn` | `pingOut` | In/Out | `Svc.Ping` | Health monitoring |
 | `logOut` | Output | `Fw.Log` | Event logging |
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry (current mode, link state) |
-
 ---
 
 ## 4. State Machine
