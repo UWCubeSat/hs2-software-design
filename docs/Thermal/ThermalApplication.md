@@ -69,6 +69,7 @@ If the incoming mode matches the current mode, the handler returns immediately (
 | Mnemonic | Args | Description |
 |----------|------|-------------|
 | `SET_HEATER_OVERRIDE` | `dutyPercent: F32` | Force heater to a fixed duty cycle regardless of PID output |
+| `CLEAR_HEATER_OVERRIDE` | `-` | Revoke heater override |
 
 ---
 
