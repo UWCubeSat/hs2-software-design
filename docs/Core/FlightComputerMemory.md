@@ -14,14 +14,15 @@ This document is informational and does not contain formal requirements. It desc
 
 ```mermaid
 graph LR
-    T0["T0: Volatile, fast R/W"] --> RAM[RAM]
-    T1["T1: Static Configs (Persistent, infrequent R/W)"] --> EEPROM[EEPROM]
-    T2["T2: Mission Critical Persistent State"] --> NOR0[Nor Flash 0]
-    T2 --> NOR1[Nor Flash 1]
-    T2 --> NOR2[Nor Flash 2]
-    T2 --> NOR3[Nor Flash 3]
-    T3["T3: Mass Storage (Persistent)"] --> eMMC_microSD[eMMC + microSD]
-    T4["T4: Reboot Images"] --> BB_eMMC[BB eMMC]
+    T0["T0: Volatile, fast R/W"] --> RAM[RAM (512 MB)]
+    T1["T1: Static Configs"] --> EEPROM[EEPROM (32 KB)]
+    T2["T2: Mission Critical Persistent State"] --> NOR0[Nor Flash 0 (512 MB)]
+    T2 --> NOR1[Nor Flash 1 (512 MB)]
+    T2 --> NOR2[Nor Flash 2 (512 MB)]
+    T2 --> NOR3[Nor Flash 3 (512 MB)]
+    T3["T3: Mass Storage (Persistent)"] --> eMMC[eMMC (64 GB)]
+    T3 --> microSD[microSD (64 GB)]
+    T4["T4: Reboot Images"] --> BB_eMMC[BB eMMC (4 GB)]
 ```
 
 ### Tier Definitions and Contents
@@ -37,8 +38,8 @@ graph LR
 ```mermaid
 flowchart TD
     Start([Piece of data]) --> Q1{Needs to survive reboot?}
-    Q1 -- No --> T0[T0]
     Q1 -- Yes --> Q2{Hardware config <br/> static?}
+    Q1 -- No --> T0[T0]
     
     Q2 -- Yes --> T1[T1]
     Q2 -- No --> Q3{Executable/ <br/> recovery info?}
@@ -49,8 +50,8 @@ flowchart TD
     Q4 -- Yes --> T3_choice[T3]
     Q4 -- No --> Q5{Expensive and/or <br/> hard to recreate?}
     
-    Q5 -- No --> Drop[Don't store <br/> or regenerate <br/> later]
     Q5 -- Yes --> T2[T2]
+    Q5 -- No --> Drop[Don't store <br/> or regenerate <br/> later]
 ```
 
 ### 3.3 System Architecture and Interfaces
@@ -58,11 +59,11 @@ flowchart TD
 ```mermaid
 graph TD
     subgraph CDH_Subsystems ["CDH / Subsystems (F')"]
-        Comms[Comms]
-        EPS[EPS]
-        Payload[Payload]
-        ADCS[ADCS]
-        FlightSW[Flight SW]
+        Comms[Comms] -->|data to store<br/>type of data| StorageManager
+        EPS[EPS] -->|data to store<br/>type of data| StorageManager
+        Payload[Payload] -->|data to store<br/>type of data| StorageManager
+        ADCS[ADCS] -->|data to store<br/>type of data| StorageManager
+        FlightSW[Flight SW] -->|data to store<br/>type of data| StorageManager
     end
 
     subgraph F_Component ["F' Component"]
@@ -86,17 +87,17 @@ graph TD
 
     subgraph HW ["HW"]
         EEPROM_HW[EEPROM]
-        NOR0_HW[Nor Flash 0]
-        NOR1_HW[Nor Flash 1]
-        NOR2_HW[Nor Flash 2]
-        NOR3_HW[Nor Flash 3]
+        NOR0_HW[Nor Flash 0<br/>SPI1_CS0]
+        NOR1_HW[Nor Flash 1<br/>SPI1_CS1]
+        NOR2_HW[Nor Flash 2<br/>SPI1_CS2]
+        NOR3_HW[Nor Flash 3<br/>SPI1_CS3]
         eMMC_HW[eMMC]
         microSD_HW[microSD]
         BB_eMMC_HW[BB eMMC]
     end
 
     %% Data Flow
-    CDH_Subsystems -- "data to store<br/>type of data" --> StorageManager
+    CDH_Subsystems -->|data to store<br/>type of data| StorageManager
     
     %% Storage Manager to Tiers
     StorageManager -- "device configs" --> T1_Interface
@@ -117,8 +118,8 @@ graph TD
     SPI1 <--> NOR1_HW
     SPI1 <--> NOR2_HW
     SPI1 <--> NOR3_HW
-    SPI2 <--> eMMC_HW
-    MMC1 <--> microSD_HW
+    SPI2 <--> microSD_HW
+    MMC1 <--> eMMC_HW
     MMC2 <--> BB_eMMC_HW
 ```
 
@@ -127,5 +128,6 @@ graph TD
 This document does not describe a state machine as it is not an F' component. The memory architecture is managed by the Storage Manager component and OSAL layers.
 
 ## 5. Notes
+
 - This document is intended to aid understanding of the memory storage design and is not an F' component specification.
 - **Integrations:** This memory architecture is implemented by the Storage Manager F' component (Layer 2), which interfaces with the CDH subsystems (Comms, EPS, DataCollection, ScienceInference, ADCS) via the F' framework, and with the Linux drivers and hardware for the memory tiers. Related documentation includes the subsystem SDDs and driver specifications.
