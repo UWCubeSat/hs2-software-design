@@ -100,7 +100,7 @@ Layer 3 — Application components (*Application)
     + pre-built subtopologies: ComCcsds | FileHandling | DataProducts
 
 Layer 2 — Hardware Managers (*Manager)
-    Camera1Manager | Camera2Manager | StarTrackerManager | GnssManager
+    Camera1Manager | Camera2Manager | StarTrackerManager | GnssManager | StorageManager
     ImuManager | SunSensorManager | MagnetorquerManager
     MpptIcManager | WatchdogPinger | DeployPanelsManager
     TemperatureSensorManager | HeaterManager
@@ -121,6 +121,7 @@ Layer 1 — F' Native Bus Drivers (*Driver)
 **Drivers** (Layer 1) are passive bus drivers with no device knowledge.
 
 `StarTrackerManager`, `GnssManager`, and `EnduroSatManager` are instantiated at the **top-level topology** because they are shared across multiple subtopologies. All other hardware managers are instantiated inside their primary subtopology.
+A detailed description of the flight computer memory architecture and tiers can be found in [FlightComputerMemory](./Core/FlightComputerMemory.md).
 
 ---
 
@@ -327,6 +328,7 @@ Top-level `switchMode: Adcs.Mode` signal inherited by all leaf states.
 |-----------|-------|------|---------|
 | `StarTrackerManager` | 2 | Active (worker) | Shared by DataCollectionApplication and AdcsApplication |
 | `GnssManager` | 2 | Active (worker) | Shared by DataCollectionApplication, AdcsApplication, and SatStateMachine |
+| `StorageManager` | 2 | Active (worker) | Manages data storage across memory tiers; receives from all CDH subsystems |
 | `RateGroupDriver` | — | Passive | Divides hardware timer interrupt into multiple rate signals |
 | `RateGroup1` | — | Active | 10 Hz scheduling |
 | `RateGroup2` | — | Active | 1 Hz scheduling |
@@ -455,6 +457,15 @@ Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fpr
 | `EnduroSatManager` | `ComCcsds` | Uplink/downlink byte stream |
 | `DataCollection` | `DataProducts` | Science result data products |
 | `DataCollection` | `FileHandling` | Flagged image files |
+| `CommsApplication` | `StorageManager` | Data to store + type |
+| `EPSApplication` | `StorageManager` | Data to store + type |
+| `DataCollectionApplication` | `StorageManager` | Data to store + type |
+| `AdcsApplication` | `StorageManager` | Data to store + type |
+| `ScienceInferenceApplication` | `StorageManager` | Data to store + type |
+| `StorageManager` | `T1_Interface` | Device configs (to EEPROM) |
+| `StorageManager` | `T2_Interface` | Sensitive data (to NOR Flash) |
+| `StorageManager` | `T3_Interface` | Images/payload (to eMMC/microSD) |
+| `StorageManager` | `T4_Interface` | Reboot images (to BB eMMC) |
 
 ---
 
