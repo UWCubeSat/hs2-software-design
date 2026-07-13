@@ -56,6 +56,7 @@ flowchart TD
 
 ### 3.3 System Architecture and Interfaces
 
+<div align="center">
 ```mermaid
 graph TD
     subgraph CDH_Subsystems ["CDH / Subsystems (F')"]
@@ -126,6 +127,7 @@ graph TD
     MMC1 <--> eMMC_HW
     MMC2 <--> BB_eMMC_HW
 ```
+</div>
 
 ## 4. State Machine
 
