@@ -78,9 +78,9 @@ graph TD
     end
 
     subgraph Linux_Drivers ["Linux Dev. Drivers"]
-        I2C[I2C]
-        SPI1[SPI]
-        SPI2[SPI]
+        I2C[I2C1]
+        SPI1[SPI1]
+        SPI2[SPI1]
         MMC1[MMC1]
         MMC2[MMC2]
     end
