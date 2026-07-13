@@ -81,8 +81,8 @@ graph TD
         I2C[I2C]
         SPI1[SPI]
         SPI2[SPI]
-        MMC1[MMC]
-        MMC2[MMC]
+        MMC1[MMC1]
+        MMC2[MMC2]
     end
 
     subgraph HW ["HW"]
@@ -122,7 +122,7 @@ graph TD
     SPI1 <--> NOR1_HW
     SPI1 <--> NOR2_HW
     SPI1 <--> NOR3_HW
-    SPI1 <--> microSD_HW
+    SPI2 <--> microSD_HW
     MMC1 <--> eMMC_HW
     MMC2 <--> BB_eMMC_HW
 ```
