@@ -14,15 +14,15 @@ This document is informational and does not contain formal requirements. It desc
 
 ```mermaid
 graph LR
-    T0["T0: Volatile, fast R/W"] --> RAM[RAM (512 MB)]
-    T1["T1: Static Configs"] --> EEPROM[EEPROM (32 KB)]
-    T2["T2: Mission Critical Persistent State"] --> NOR0[Nor Flash 0 (512 MB)]
-    T2 --> NOR1[Nor Flash 1 (512 MB)]
-    T2 --> NOR2[Nor Flash 2 (512 MB)]
-    T2 --> NOR3[Nor Flash 3 (512 MB)]
-    T3["T3: Mass Storage (Persistent)"] --> eMMC[eMMC (64 GB)]
-    T3 --> microSD[microSD (64 GB)]
-    T4["T4: Reboot Images"] --> BB_eMMC[BB eMMC (4 GB)]
+    T0["T0: Volatile, fast R/W"] --> RAM["RAM (512 MB)"]
+    T1["T1: Static Configs"] --> EEPROM["EEPROM (32 KB)"]
+    T2["T2: Mission Critical Persistent State"] --> NOR0["Nor Flash 0 (512 MB)"]
+    T2 --> NOR1["Nor Flash 1 (512 MB)"]
+    T2 --> NOR2["Nor Flash 2 (512 MB)"]
+    T2 --> NOR3["Nor Flash 3 (512 MB)"]
+    T3["T3: Mass Storage (Persistent)"] --> eMMC["eMMC (64 GB)"]
+    T3 --> microSD["microSD (64 GB)"]
+    T4["T4: Reboot Images"] --> BB_eMMC["BB eMMC (4 GB)"]
 ```
 
 ### Tier Definitions and Contents
@@ -59,11 +59,11 @@ flowchart TD
 ```mermaid
 graph TD
     subgraph CDH_Subsystems ["CDH / Subsystems (F')"]
-        Comms[Comms] -->|data to store<br/>type of data| StorageManager
-        EPS[EPS] -->|data to store<br/>type of data| StorageManager
-        Payload[Payload] -->|data to store<br/>type of data| StorageManager
-        ADCS[ADCS] -->|data to store<br/>type of data| StorageManager
-        FlightSW[Flight SW] -->|data to store<br/>type of data| StorageManager
+        Comms[Comms]
+        EPS[EPS]
+        Payload[Payload]
+        ADCS[ADCS]
+        FlightSW[Flight SW]
     end
 
     subgraph F_Component ["F' Component"]
@@ -91,13 +91,17 @@ graph TD
         NOR1_HW[Nor Flash 1<br/>SPI1_CS1]
         NOR2_HW[Nor Flash 2<br/>SPI1_CS2]
         NOR3_HW[Nor Flash 3<br/>SPI1_CS3]
+        microSD_HW[microSD<br/>SPI1_CS4]
         eMMC_HW[eMMC]
-        microSD_HW[microSD]
         BB_eMMC_HW[BB eMMC]
     end
 
-    %% Data Flow
-    CDH_Subsystems -->|data to store<br/>type of data| StorageManager
+    %% Data Flow - CDH Subsystems to Storage Manager
+    Comms -->|data to store<br/>type of data| StorageManager
+    EPS -->|data to store<br/>type of data| StorageManager
+    Payload -->|data to store<br/>type of data| StorageManager
+    ADCS -->|data to store<br/>type of data| StorageManager
+    FlightSW -->|data to store<br/>type of data| StorageManager
     
     %% Storage Manager to Tiers
     StorageManager -- "device configs" --> T1_Interface
@@ -118,7 +122,7 @@ graph TD
     SPI1 <--> NOR1_HW
     SPI1 <--> NOR2_HW
     SPI1 <--> NOR3_HW
-    SPI2 <--> microSD_HW
+    SPI1 <--> microSD_HW
     MMC1 <--> eMMC_HW
     MMC2 <--> BB_eMMC_HW
 ```
