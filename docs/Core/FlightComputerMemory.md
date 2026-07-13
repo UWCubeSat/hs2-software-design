@@ -58,9 +58,6 @@ flowchart TD
 
 ```mermaid
 graph TD
-    %% Spacer for centering
-    spacer1[``]
-    
     subgraph CDH_Subsystems ["CDH / Subsystems (F')"]
         Comms[Comms]
         EPS[EPS]
@@ -70,7 +67,7 @@ graph TD
     end
 
     subgraph F_Component ["F' Component"]
-        StorageManager["Storage Manager<br/>(CRC verification, categorize data,<br/>hamming codes, wear management,<br/>create data block)"]
+        StorageManager["Storage Manager<br/>(CRC verification, categorize data, hamming codes, wear management, create data block)"]
     end
 
     subgraph F_OSAL ["F' OSAL (Memory Tiers)"]
@@ -81,7 +78,7 @@ graph TD
     end
 
     subgraph Linux_Drivers ["Linux Dev. Drivers"]
-        I2C[I2C2]
+        I2C[I2C1]
         SPI1[SPI1]
         SPI2[SPI1]
         MMC1[MMC1]
@@ -113,7 +110,7 @@ graph TD
     StorageManager -- "handle reboots" --> T4_Interface
 
     %% Interfaces to Drivers
-    T1_Element --> I2C
+    T1_Interface <--> I2C
     T2_Interface <--> SPI1
     T3_Interface <--> SPI2
     T3_Interface <--> MMC1
@@ -128,14 +125,8 @@ graph TD
     SPI2 <--> microSD_HW
     MMC1 <--> eMMC_HW
     MMC2 <--> BB_eMMC_HW
-    
-    %% Spacer for balancing
-    spacer2[``]
-    
-    %% Connect spacers to force centering
-    spacer1 --> Comms
-    BB_eMMC_HW --> spacer2
 ```
+
 
 ## 4. State Machine
 
