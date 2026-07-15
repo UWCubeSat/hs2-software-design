@@ -70,14 +70,14 @@ graph TD
         StorageManager["Storage Manager<br/>(CRC verification, categorize data, hamming codes, wear management, create data block)"]
     end
 
-    subgraph F_OSAL ["F' OSAL (Memory Tiers)"]
+    subgraph F_OSAL ["Memory Tiers"]
         T1_Interface[T1]
         T2_Interface[T2]
         T3_Interface[T3]
         T4_Interface[T4]
     end
 
-    subgraph Linux_Drivers ["Linux Dev. Drivers"]
+    subgraph Linux_Drivers ["F' OSAL + Linux Dev. Drivers"]
         I2C[I2C1]
         SPI1[SPI1]
         eUSB[eUSB]
