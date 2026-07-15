@@ -91,7 +91,7 @@ graph TD
         NOR1_HW[Nor Flash 1<br/>SPI1_CS1]
         NOR2_HW[Nor Flash 2<br/>SPI1_CS2]
         NOR3_HW[Nor Flash 3<br/>SPI1_CS3]
-        eUSB_SSD_HW[eUSB_SSD<br/>eUSB]
+        eUSB_SSD_HW[eUSB_SSD]
         eMMC_HW[eMMC]
         BB_eMMC_HW[BB eMMC]
     end
