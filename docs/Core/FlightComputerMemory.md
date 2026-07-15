@@ -79,7 +79,7 @@ graph TD
 
     subgraph Linux_Drivers ["F' OSAL + Linux Dev. Drivers"]
         I2C[I2C1]
-        SPI1[SPI1]
+        SPI0[SPI0]
         eUSB[eUSB]
         MMC1[MMC1]
         MMC2[MMC2]
@@ -87,10 +87,10 @@ graph TD
 
     subgraph HW ["HW"]
         EEPROM_HW[EEPROM]
-        NOR0_HW[Nor Flash 0<br/>SPI1_CS0]
-        NOR1_HW[Nor Flash 1<br/>SPI1_CS1]
-        NOR2_HW[Nor Flash 2<br/>SPI1_CS2]
-        NOR3_HW[Nor Flash 3<br/>SPI1_CS3]
+        NOR0_HW[Nor Flash 0<br/>SPI0_CS0]
+        NOR1_HW[Nor Flash 1<br/>SPI0_CS1]
+        NOR2_HW[Nor Flash 2<br/>SPI0_CS2]
+        NOR3_HW[Nor Flash 3<br/>SPI0_CS3]
         eUSB_SSD_HW[eUSB_SSD]
         eMMC_HW[eMMC]
         BB_eMMC_HW[BB eMMC]
@@ -111,17 +111,17 @@ graph TD
 
     %% Interfaces to Drivers
     T1_Interface <--> I2C
-    T2_Interface <--> SPI1
+    T2_Interface <--> SPI0
     T3_Interface <--> eUSB
     T3_Interface <--> MMC1
     T4_Interface <--> MMC2
 
     %% Drivers to HW
     I2C <--> EEPROM_HW
-    SPI1 <--> NOR0_HW
-    SPI1 <--> NOR1_HW
-    SPI1 <--> NOR2_HW
-    SPI1 <--> NOR3_HW
+    SPI0 <--> NOR0_HW
+    SPI0 <--> NOR1_HW
+    SPI0 <--> NOR2_HW
+    SPI0 <--> NOR3_HW
     eUSB <--> eUSB_SSD_HW
     MMC1 <--> eMMC_HW
     MMC2 <--> BB_eMMC_HW
