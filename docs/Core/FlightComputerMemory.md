@@ -21,7 +21,7 @@ graph LR
     T2 --> NOR2["Nor Flash 2 (512 MB)"]
     T2 --> NOR3["Nor Flash 3 (512 MB)"]
     T3["T3: Mass Storage (Persistent)"] --> eMMC["eMMC (64 GB)"]
-    T3 --> microSD["microSD (64 GB)"]
+    T3 --> SSD["eUSB SSD (64 GB)"]
     T4["T4: Reboot Images"] --> BB_eMMC["BB eMMC (4 GB)"]
 ```
 
@@ -30,7 +30,7 @@ graph LR
 - **T0 (RAM):** Image buffers, DMA buffers, sensor readings, temp, telemetry packets, command buffers, thread space.
 - **T1 (EEPROM):** Board serial no, Sensor/I2C/SPI/T2/T3 device configs, manufacturing constants.
 - **T2 (NOR Flash):** Four NOR flash chips (only one active at a time via SPI chip select); stores satellite state (safe mode, current operating mode, mission phase), Sun sensor calibration, magnetometer bias, Battery SOC/Health estimates, Fault management (watchdog, fault log), LOST/FOUND processing results (w/ reference to image), info about chip state (bitmap, wear stats per chip), payload logs, status of FC software copy; health monitoring per chip.
-- **T3 (eMMC + microSD):** Images, Science data, payload logs.
+- **T3 (eMMC + eUSB SSD):** Images, Science data, payload logs.
 - **T4 (BB eMMC):** Linux kernel, bootloader, root/base FS, factory configs, FC SW.
 
 ### 3.2 Data Storage Decision Flowchart
@@ -80,7 +80,7 @@ graph TD
     subgraph Linux_Drivers ["Linux Dev. Drivers"]
         I2C[I2C1]
         SPI1[SPI1]
-        SPI2[SPI1]
+        eUSB[eUSB]
         MMC1[MMC1]
         MMC2[MMC2]
     end
@@ -91,7 +91,7 @@ graph TD
         NOR1_HW[Nor Flash 1<br/>SPI1_CS1]
         NOR2_HW[Nor Flash 2<br/>SPI1_CS2]
         NOR3_HW[Nor Flash 3<br/>SPI1_CS3]
-        microSD_HW[microSD<br/>SPI1_CS4]
+        eUSB_SSD_HW[eUSB_SSD<br/>eUSB]
         eMMC_HW[eMMC]
         BB_eMMC_HW[BB eMMC]
     end
@@ -112,7 +112,7 @@ graph TD
     %% Interfaces to Drivers
     T1_Interface <--> I2C
     T2_Interface <--> SPI1
-    T3_Interface <--> SPI2
+    T3_Interface <--> eUSB
     T3_Interface <--> MMC1
     T4_Interface <--> MMC2
 
@@ -122,7 +122,7 @@ graph TD
     SPI1 <--> NOR1_HW
     SPI1 <--> NOR2_HW
     SPI1 <--> NOR3_HW
-    SPI2 <--> microSD_HW
+    eUSB <--> eUSB_SSD_HW
     MMC1 <--> eMMC_HW
     MMC2 <--> BB_eMMC_HW
 ```
