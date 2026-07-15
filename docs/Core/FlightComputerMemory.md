@@ -78,7 +78,7 @@ graph TD
     end
 
     subgraph Linux_Drivers ["F' OSAL + Linux Dev. Drivers"]
-        I2C[I2C1]
+        I2C[I2C0]
         SPI0[SPI0]
         eUSB[eUSB]
         MMC1[MMC1]
@@ -86,7 +86,7 @@ graph TD
     end
 
     subgraph HW ["HW"]
-        EEPROM_HW[EEPROM]
+        EEPROM_HW[EEPROM<br/>Address 0x50]
         NOR0_HW[Nor Flash 0<br/>SPI0_CS0]
         NOR1_HW[Nor Flash 1<br/>SPI0_CS1]
         NOR2_HW[Nor Flash 2<br/>SPI0_CS2]
