@@ -4,7 +4,7 @@
 
 `GnssManager` is the Layer 2 hardware manager for the GNSS receiver. It is a SkyFox Labs piNAV-NG with DROP (Dead Reckoning Orbital Propagator). Like `StarTrackerManager` and `EnduroSatManager`, it isn't scoped to a single subtopology and instead it is at the **top-level topology** and shared across `DataCollectionApplication`, `AdcsApplication`, and `SatStateMachine`. It also feeds a PPS (Pulse Per Second) timing signal to Time services, sourced from the receiver's VPP (Valid Position Pulse) output.
 
-`GnssManager` is an **Active** component. Teh bus is **UART**, 9600 baud, 8N1, LVCMOS levels. All bus access goes through `LinuxUartDriver`, wired to the `ByteStreamDriverClient` port pattern like in `EnduroSatManager`. The receiver's RXD line is unused so there's no command channel for that.
+`GnssManager` is an **Active** component. The bus is **UART**, 9600 baud, 8N1, LVCMOS levels. All bus access goes through `LinuxUartDriver`, wired to the `ByteStreamDriverClient` port pattern like in `EnduroSatManager`. The receiver's RXD line is unused so there's no command channel for that.
 
 ---
 
@@ -19,9 +19,9 @@
 | HS2-GNS-005 | GnssManager shall publish the cached fix and its classification to DataCollectionApplication, AdcsApplication, and SatStateMachine on each RateGroup3 tick | Inspection |
 | HS2-GNS-006 | GnssManager shall pass the receiver's VPP rising edge through as a PPS timing reference to Time services, tagged with the GPS time reported in the following LSP/LSV sentences. | Inspection |
 | HS2-GNS-007 | GnssManager shall report receiver health telemetry each tick | Inspection |
-| HS2-GNS-008 | GnssManager shall track and report the elapsed time since the last Autonomous fix | Inspection |
+| HS2-GNS-008 | GnssManager shall track and report the elapsed time since the last Autonomous fix, used to detect prolonged reliance on DROP Estimated or Invalid fixes | Inspection |
 | HS2-GNS-009 | GnssManager shall log a WARNING_HI event and increment a consecutive failure counter on error | Inspection |
-| HS2-GNS-010 | GnssManager shall optionally force the receiver back into Cold Start | Inspection |
+| HS2-GNS-010 | GnssManager shall force the receiver back into Cold Start when the elapsed time since the last Autonomous fix exceeds `DROP_MAX_AGE_TICKS` | Inspection |
 
 ---
 
