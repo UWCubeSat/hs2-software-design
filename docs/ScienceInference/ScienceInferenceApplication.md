@@ -76,7 +76,7 @@ OFF
 
 PROCESS_IMAGES
   ├─ QUERYING        (on tick: poll flash for unprocessed images)
-  ├─ PROCESSING      (invoke LOST, FOUND, or SCOPE per image metadata)
+  ├─ PROCESSING      (invoke LOST, FOUND per image metadata)
   └─ STORING         (write results + compressed flagged images to flash)
 
 # Inherited by all leaf states:
@@ -96,9 +96,7 @@ Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/doc
 |---------|-----------|--------|----------------|
 | LOST | Lost-in-space star identification | Camera 1 | L&F |
 | FOUND | Follow-up optical navigation | Camera 2 | L&F |
-| SCOPE | Star catalog optical processing (runs LOST internally) | Camera 1 + 2 | Calibration |
 
-All libraries included via CMake. Invoked directly from `ScienceInferenceApplication` C++ implementation based on experiment type metadata stored with each image. SCOPE passes calibration images through LOST as an internal preprocessing stage — `ScienceInferenceApplication` passes calibration images to SCOPE only.
 
 ---
 
