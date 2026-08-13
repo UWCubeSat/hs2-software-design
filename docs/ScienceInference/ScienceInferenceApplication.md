@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-`ScienceInferenceApplication` is the Layer 3 Active component for the ScienceInference subtopology. It processes raw images stored on flash by running them through the HS2 science algorithms (LOST, FOUND, SCOPE). It operates on a scheduled polling cycle — finding unprocessed images, invoking the appropriate algorithm based on experiment metadata, storing results for downlink, compressing flagged images, and marking each image as processed.
+`ScienceInferenceApplication` is the Layer 3 Active component for the ScienceInference subtopology. It processes raw images stored on flash by running them through the HS2 science algorithms (LOST, FOUND). It operates on a scheduled polling cycle — finding unprocessed images, invoking the appropriate algorithm based on experiment metadata, storing results for downlink, compressing flagged images, and marking each image as processed.
 
 `ScienceInferenceApplication` is fully schedule-driven and receives no ground commands directly. It activates and deactivates based on mode commands from `SatStateMachine`.
 
@@ -13,7 +13,7 @@
 | ID | Requirement | Verification |
 |----|-------------|-------------|
 | HS2-SIA-001 | ScienceInferenceApplication shall poll flash storage for unprocessed images when in ProcessImages mode | Inspection |
-| HS2-SIA-002 | ScienceInferenceApplication shall process each unprocessed image with its designated algorithm (LOST, FOUND, or SCOPE) based on experiment type metadata | Inspection |
+| HS2-SIA-002 | ScienceInferenceApplication shall process each unprocessed image with its designated algorithm (LOST, FOUND) based on experiment type metadata | Inspection |
 | HS2-SIA-003 | ScienceInferenceApplication shall store algorithm outputs for downlink with matching experiment ID and timestamp | Inspection |
 | HS2-SIA-004 | ScienceInferenceApplication shall compress flagged images for downlink | Inspection |
 | HS2-SIA-005 | ScienceInferenceApplication shall mark each image as processed upon successful algorithm completion | Inspection |
