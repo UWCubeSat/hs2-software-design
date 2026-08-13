@@ -12,7 +12,7 @@
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
-| HS2-GNS-001 | GnssManager shall recognize `piNAV-NG` in the receiver's postreset identification banner as confirmation the receiver is alive before entering CONFIGURE | Inspection |
+| HS2-GNS-001 | GnssManager shall recognize `piNAV-NG` in the receiver's postreset identification banner as confirmation the receiver is alive before entering RUN | Inspection |
 | HS2-GNS-002 | GnssManager shall continuously ingest and parse the receiver's NMEA/piNAV sentence stream as it arrives over UART | Inspection |
 | HS2-GNS-003 | GnssManager shall cache the most recent position, velocity, and GPS time | Inspection |
 | HS2-GNS-004 | GnssManager shall classify each cached fix as Autonomous, DROP Estimated, or Invalid | Inspection |
@@ -56,7 +56,7 @@ Almost nothing about the receiver itself is changing at run. The baud rate, upda
 | `getGnssFix` | Input (sync) | `Payload.gnssFixGetter_p` | Returns the most recently cached GNSS fix |
 | `ppsOut` | Output | `Payload.gnssPps_p` | PPS record derived from the VPP pin, GPS time tagged, to Time services |
 | `positionOut` | Output | `Payload.gnssFix_p` | Cached ECEF position, velocity, GPS time, fix classification. To DataCollectionApplication, AdcsApplication, SatStateMachine |
-| `prmGet` | Output | `Fw.PrmGet` | Load parameters from PrmDb during CONFIGURE |
+| `prmGet` | Output | `Fw.PrmGet` | Load parameters from PrmDb during RESET, and on parameter updates thereafter |
 | `logOut` | Output | `Fw.Log` | Event logging (state transitions, fix classification changes, UART errors) |
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry (SM (State Machine) state, failure count, time since last fix, receiver voltages and current and temperature) |
 
@@ -68,13 +68,15 @@ Almost nothing about the receiver itself is changing at run. The baud rate, upda
 
 ## 4. State Machine
 
-`GnssManager` uses the standard Layer 2 flat SM (`RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN`).
+`GnssManager` uses a variant of the standard Layer 2 SM without a CONFIGURE state. The piNAV-NG has nothing to configure over the bus so this state is unnecessary. F' parameters are loaded from PrmDb during RESET instead of a later CONFIGURE state: `WAIT_RESET` and `ENABLE` both reference parameter values (`RESET_WAIT_TICKS`, `BANNER_WAIT_TICKS`) before they run, so those values need to already be loaded by the time RESET completes.
 
 ```
 RESET
   entry: flip /RESET low, hold briefly, flip hi
          clear cached fix, reset failure counter
          reset wait tick counter
+         load RESET_WAIT_TICKS, BANNER_WAIT_TICKS, DROP_MAX_AGE_TICKS,
+         MAX_CONSECUTIVE_UART_ERRORS from PrmDb
   on tick → WAIT_RESET
 
 WAIT_RESET
@@ -83,13 +85,8 @@ WAIT_RESET
 
 ENABLE
   entry: begin listening on UART
-  on receiving of "piNAV-NG" anywhere in a line → CONFIGURE
+  on receiving of "piNAV-NG" anywhere in a line → RUN
   on not receiving boot banner within BANNER_WAIT_TICKS → log WARNING_HI → RESET
-
-CONFIGURE
-  entry: load RESET_WAIT_TICKS, BANNER_WAIT_TICKS, DROP_MAX_AGE_TICKS,
-         MAX_CONSECUTIVE_UART_ERRORS from PrmDb
-  on tick → RUN
 
 RUN
   (continuously, based off of the UART stream): parse each incoming sentence group
@@ -105,14 +102,11 @@ RUN
   on "time since last Autonomous fix" >= DROP_MAX_AGE_TICKS, but only once at least
   one Autonomous fix has ever been achieved:
     log WARNING_HI, assert /RESET to force an early Cold Start → RESET
-
-# From any state:
-on reconfigure signal → CONFIGURE   # parameter update path from RUN
 ```
 
 **Errors:** UART error in `ENABLE` or `RUN` emits a throttled `WARNING_HI`, bumps `consecutiveFailures`, and enters `RESET`.
 
-**Parameter reconfiguration:** `reconfigure` signal drops `RUN` back to `CONFIGURE` without a full reset, just like the other managers.
+**Parameter reconfiguration:** When `parameterUpdated()` is called while `GnssManager` is in `RUN`, it reloads all parameters from `PrmDb` in place as there is no CONFIGURE state. While in `RESET`, `WAIT_RESET`, or `ENABLE`, the signal is ignored, since parameters are freshly loaded on the next RESET entry regardless.
 
 Reference: [`fprime-community/fprime-sensors` `ImuManager`](https://github.com/fprime-community/fprime-sensors/tree/devel/fprime-sensors/MpuImu/Components/ImuManager) (flat SM reference pattern), [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc)
 
