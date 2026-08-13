@@ -16,7 +16,7 @@
 | HS2-GNS-002 | GnssManager shall continuously ingest and parse the receiver's NMEA/piNAV sentence stream as it arrives over UART | Inspection |
 | HS2-GNS-003 | GnssManager shall cache the most recent position, velocity, and GPS time | Inspection |
 | HS2-GNS-004 | GnssManager shall classify each cached fix as Autonomous, DROP Estimated, or Invalid | Inspection |
-| HS2-GNS-005 | GnssManager shall publish the cached fix and its classification to DataCollectionApplication, AdcsApplication, and SatStateMachine on each RateGroup3 tick | Inspection |
+| HS2-GNS-005 | GnssManager shall publish the cached fix and its classification to DataCollectionApplication, AdcsApplication, and SatStateMachine on each RateGroup1 tick | Inspection |
 | HS2-GNS-006 | GnssManager shall pass the receiver's VPP rising edge through as a PPS timing reference to Time services, tagged with the GPS time reported in the following LSP/LSV sentences. | Inspection |
 | HS2-GNS-007 | GnssManager shall report receiver health telemetry each tick | Inspection |
 | HS2-GNS-008 | GnssManager shall track and report the elapsed time since the last Autonomous fix, used to detect prolonged reliance on DROP Estimated or Invalid fixes | Inspection |
@@ -29,7 +29,7 @@
 
 ### 3.1 Component Type
 
-Active component and an internal flat F' state machine (`Fw::Sm`). This is a change from the other Queued pattern as the piNAV-NG streams NMEA sentences continuously at a fixed 1 Hz over UART, and the `GnssManager` needs to keep draining that stream on its own schedule rather than only when polled. `schedIn` is driven by `RateGroup3` (0.1 Hz) so the manager parses every incoming 1 Hz sentence group as it arrives, caches the most recent value, and reports the cached value out on each 10 s tick.
+Active component and an internal flat F' state machine (`Fw::Sm`). This is a change from the other Queued pattern as the piNAV-NG streams NMEA sentences continuously at a fixed 1 Hz over UART, and the `GnssManager` needs to keep draining that stream on its own schedule rather than only when polled. `schedIn` is driven by `RateGroup1` (1 Hz) so the manager parses every incoming 1 Hz sentence group as it arrives, caches the most recent value, and reports the cached value out on each 1 s tick, matching the receiver's own update rate.
 
 
 ### 3.2 Parameters
@@ -47,18 +47,18 @@ Almost nothing about the receiver itself is changing at run. The baud rate, upda
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
-| `schedIn` | Input | `Svc.Sched` | RateGroup3 (0.1 Hz) tick. Drives cached fix publish |
+| `schedIn` | Input | `Svc.Sched` | RateGroup1 (1 Hz) tick. Drives the state machine's ticks and, in RUN, the cached fix publish |
 | `drvConnected` | Input | `Drv.ByteStreamReady` | Ready signal for the piNAV-NG's UART connection |
 | `drvReceiveIn` | Input | `Drv.ByteStreamData` | Receives raw NMEA/piNAV bytes from `LinuxUartDriver` |
 | `drvReceiveReturnOut` | Output | `Fw.BufferSend` | Returns ownership of the buffer arriving on `drvReceiveIn` |
-| `resetOut` | Output | `Drv.GpioWrite` | Drives the receiver's /RESET pin (active low), used at startup and optionally to force an early Cold Start if necesary |
+| `resetOut` | Output | `Drv.GpioWrite` | Drives the receiver's /RESET pin (active low), used at startup and optionally to force an early Cold Start if necessary |
 | `vppIn` | Input (async) | `Svc.Cycle` | Fires on the VPP pin's rising edge, captured via GPIO interrupt |
 | `getGnssFix` | Input (sync) | `Payload.gnssFixGetter_p` | Returns the most recently cached GNSS fix |
 | `ppsOut` | Output | `Payload.gnssPps_p` | PPS record derived from the VPP pin, GPS time tagged, to Time services |
 | `positionOut` | Output | `Payload.gnssFix_p` | Cached ECEF position, velocity, GPS time, fix classification. To DataCollectionApplication, AdcsApplication, SatStateMachine |
 | `prmGet` | Output | `Fw.PrmGet` | Load parameters from PrmDb during CONFIGURE |
 | `logOut` | Output | `Fw.Log` | Event logging (state transitions, fix classification changes, UART errors) |
-| `tlmOut` | Output | `Fw.Tlm` | Telemetry (SM (State Machine) state, failure count,  time since last fix, receiver voltages and current and temperature) |
+| `tlmOut` | Output | `Fw.Tlm` | Telemetry (SM (State Machine) state, failure count, time since last fix, receiver voltages and current and temperature) |
 
 ### 3.4 Commands
 
@@ -83,8 +83,8 @@ WAIT_RESET
 
 ENABLE
   entry: begin listening on UART
-  on recieveing of "piNAV-NG" anywhere in a line → CONFIGURE
-  on not recieving boot banner within BANNER_WAIT_TICKS → log WARNING_HI → RESET
+  on receiving of "piNAV-NG" anywhere in a line → CONFIGURE
+  on not receiving boot banner within BANNER_WAIT_TICKS → log WARNING_HI → RESET
 
 CONFIGURE
   entry: load RESET_WAIT_TICKS, BANNER_WAIT_TICKS, DROP_MAX_AGE_TICKS,
@@ -99,7 +99,7 @@ RUN
     not gated by schedIn)
     if Autonomous: reset "time since last Autonomous fix" counter
     if DROP Estimated or Invalid: increment that counter
-  on schedIn tick (RateGroup3, 0.1 Hz): publish cached fix and classification and telemetry
+  on schedIn tick (RateGroup1, 1 Hz): publish cached fix and classification and telemetry
   on error: log WARNING_HI (throttled), increment consecutive failure count
     if consecutive failures >= MAX_CONSECUTIVE_UART_ERRORS → RESET
   on "time since last Autonomous fix" >= DROP_MAX_AGE_TICKS, but only once at least
@@ -112,7 +112,7 @@ on reconfigure signal → CONFIGURE   # parameter update path from RUN
 
 **Errors:** UART error in `ENABLE` or `RUN` emits a throttled `WARNING_HI`, bumps `consecutiveFailures`, and enters `RESET`.
 
-**Parameter reconfiguration:** `reconfigure` signal drops `RUN` back to `CONFIGURE` without a full reset, just like teh other managers.
+**Parameter reconfiguration:** `reconfigure` signal drops `RUN` back to `CONFIGURE` without a full reset, just like the other managers.
 
 Reference: [`fprime-community/fprime-sensors` `ImuManager`](https://github.com/fprime-community/fprime-sensors/tree/devel/fprime-sensors/MpuImu/Components/ImuManager) (flat SM reference pattern), [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc)
 
