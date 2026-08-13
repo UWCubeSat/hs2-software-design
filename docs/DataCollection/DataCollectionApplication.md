@@ -2,6 +2,8 @@
 
 ## 1. Overview
 
+SCOPE
+
 `DataCollectionApplication` is the Layer 3 Active component for the DataCollection subtopology. It executes data collection experiments on command from `SatStateMachine` — powering on cameras, configuring them with experiment parameters from `PrmDb`, simultaneously acquiring images and navigation data, storing results to flash, and powering off all hardware upon completion.
 
 It coordinates `Camera1Manager` and `Camera2Manager` (within its subtopology) and consumes attitude from `StarTrackerManager` and position from `GnssManager` (both top-level).
