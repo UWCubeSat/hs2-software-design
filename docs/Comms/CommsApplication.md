@@ -2,13 +2,13 @@
 
 ## 1. Overview
 
-`CommsApplication` is the Layer 3 Active component for the Comms subtopology. It manages the EnduroSat S-band radio operating mode — switching between beacon (transmit SOH telemetry only), low-rate omni telemetry (all real-time telemetry), and high-rate high-gain downlink (real-time telemetry + playback of stored telemetry). It coordinates `EnduroSatManager` (within its subtopology) and bridges to the `ComCcsds` pre-built subtopology.
+`CommsApplication` is the Layer 3 Active component for the Comms subtopology. It manages the EnduroSat S-band radio operating mode — switching between `BEACON` to transmit real-time SOH telemetry at 1Hz, `STANDARD_DOWNLINK` mode to transmit all real-time telemetry including payload experiment data, and `STORED_PLAYBACK` mode to downlink stored and real-tim SOH telemetry concurrently.
 ---
 
 ## 2. Requirements
 
 | ID | Requirement | Verification |
-|----|-------------|-------------|
+|----|-------------|--------------|
 | HS2-COM-001 | CommsApplication shall maintain omni communications capability in all satellite modes | Inspection |
 | HS2-COM-002 | CommsApplication shall activate high-gain downlink mode when commanded by SatStateMachine | Inspection |
 | HS2-COM-003 | CommsApplication shall deactivate high-gain downlink and return to omni-only when commanded | Inspection |
