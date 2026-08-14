@@ -16,7 +16,7 @@ The HS2 sun sensor array consists of three photodiode sensors mounted on the sol
 |----|-------------|--------------|
 | HS2-SSM-001 | SunSensorManager shall confirm the sun sensor ADC is present and responding before proceeding out of RESET | Inspection |
 | HS2-SSM-002 | SunSensorManager shall wait for the reset stabilization period before proceeding to RUN | Inspection |
-| HS2-SSM-003 | SunSensorManager shall assert the ADC's chip select via the SPI chip select sequence before each SPI transaction (RESET ping and RUN channel reads) | Inspection |
+| HS2-SSM-003 | SunSensorManager shall pull the ADC's chip select pin low via GPIO before each SPI transaction (RESET ping and RUN channel reads) and release it high immediately afterward | Inspection |
 | HS2-SSM-004 | SunSensorManager shall read all three sun sensor channels each rate-group tick while in RUN | Inspection |
 | HS2-SSM-005 | SunSensorManager shall apply the calibration model (per-channel scale and offset) to each raw channel reading to produce a calibrated intensity value | Inspection |
 | HS2-SSM-006 | SunSensorManager shall publish the three calibrated channel intensities to AdcsApplication after each successful read cycle | Inspection |
@@ -51,6 +51,7 @@ Queued component with internal flat F' state machine (`Fw::Sm`). Has a message q
 |------|-----------|------|---------|
 | `schedIn` | Input | `Svc.Sched` | 10 Hz rate group tick — drives the SM step |
 | `getSunIntensities` | Input (sync) | Custom port (`intensityGetter_p`) | Returns the most recently cached calibrated channel intensities on demand, independent of the tick cycle |
+| `csOut` | Output | `Drv.GpioWrite` | Pulls the ADC's chip select pin low before each SPI transaction; released high immediately after |
 | `spiWriteRead` | Output | `Drv.SpiWriteRead` | SPI transaction with the ADC, used for the RESET ping and channel reads. One transaction per channel. |
 | `sunIntensitiesOut` | Output | `Adcs.SunIntensityPort` | Publish the three calibrated channel intensities + timestamp to AdcsApplication |
 | `prmGet` | Output | `Fw.PrmGet` | Load parameters from PrmDb during the WAIT_RESET-to-RUN transition, and on parameter updates thereafter |
@@ -71,7 +72,8 @@ Queued component with internal flat F' state machine (`Fw::Sm`). Has a message q
 RESET
   entry: zero all channel intensity buffers
          reset wait-tick counter
-         ping channel 0 over SPI to confirm the ADC is present and responding
+         pull csOut low, ping channel 0 over SPI to confirm the ADC is
+         present and responding, release csOut high
   on ping success → WAIT_RESET
   on ping failure → log WARNING_HI, increment failure count, retry
 
@@ -84,8 +86,9 @@ WAIT_RESET
 
 RUN
   on tick: for each of the 3 channels:
-             one SPI transaction: clock out start+channel-select bits,
-             clock in the 12-bit conversion result
+             pull csOut low, one SPI transaction (clock out start +
+             channel-select bits, clock in the 12-bit conversion result),
+             release csOut high
            if any spiWriteRead error or lost conversion framing:
              log WARNING_HI (throttled), increment failure count → RESET
            if all reads OK:
@@ -111,7 +114,7 @@ Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fpr
 
 ## 5. Notes
 
-- `SunSensorManager` is instantiated inside the ADCS subtopology. Its `spiWriteRead` port connects to a `LinuxSpiDriver` instance at the top-level topology.
+- `SunSensorManager` is instantiated inside the ADCS subtopology. Its `spiWriteRead` port connects to a `LinuxSpiDriver` instance and its `csOut` port connects to a `LinuxGpioDriver` instance, both at the top-level topology.
 - `sunIntensitiesOut` connects to `AdcsApplication` within the ADCS subtopology.
 - `SunSensorManager` is **excluded from health monitoring** (`Svc::Health`). Only `AdcsApplication` is health-checked.
 - The `Adcs.SunIntensityPort` type (carrying the three calibrated channel intensities and a timestamp) is defined in the ADCS module and shared with `AdcsApplication`.
