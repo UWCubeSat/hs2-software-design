@@ -27,7 +27,7 @@ All algorithms are included as external C++ libraries via CMake. Science results
 | IMU | SPI/I2C | AdcsApplication |
 | Sun Sensors | I2C/GPIO | AdcsApplication, SatStateMachine (sun/eclipse detection) |
 | Magnetorquers | PWM | AdcsApplication |
-| EPS Board | I2C/UART | EPSApplication, MpptIcManager, SatStateMachine |
+| EPS Board | I2C/UART | EPSApplication, MpptIcManager, CurrentSensorManager, SatStateMachine |
 | EnduroSat S-band Radio | UART | CommsApplication |
 | External Flash | SPI | FileHandling subtopology |
 | Temperature Sensors | I2C | ThermalApplication (via TemperatureSensorManager) |
@@ -102,7 +102,7 @@ Layer 3 — Application components (*Application)
 Layer 2 — Hardware Managers (*Manager)
     Camera1Manager | Camera2Manager | StarTrackerManager | GnssManager
     ImuManager | SunSensorManager | MagnetorquerManager
-    MpptIcManager | WatchdogPinger | DeployPanelsManager
+    MpptIcManager | CurrentSensorManager | WatchdogPinger | DeployPanelsManager
     TemperatureSensorManager | HeaterManager
     EnduroSatManager
 
@@ -294,14 +294,15 @@ Top-level `switchMode: Adcs.Mode` signal inherited by all leaf states.
 
 ### 5.7 EPS Subtopology
 
-**Purpose:** Monitors battery and power system health, accepts power configuration and panel deployment commands from ground and `SatStateMachine`, and publishes power state to `SatStateMachine` for submode decisions. Runs continuously independent of satellite mode.
+**Purpose:** Monitors battery and power-system health (battery/IC state from `MpptIcManager`, per-rail voltage and current from `CurrentSensorManager`), accepts panel deployment commands from ground, and publishes power state to `SatStateMachine` for submode decisions. BQ25756 register access is commanded directly on `MpptIcManager`. Runs continuously independent of satellite mode.
 
 **Components:**
 
 | Component | Type | Purpose |
 |-----------|------|---------|
-| `EPSApplication` | Active | Command-driven orchestrator; reads battery state from `MpptIcManager`; exposes `powerStateGet` synchronous get port read by `SatStateMachine`; forwards `SET_IC_REGISTER` commands to `MpptIcManager` via `setRegister` port; forwards deploy command to `DeployPanelsManager`. No mode interface. |
-| `MpptIcManager` | Active (worker) | Sole owner of BQ25756 IC over I2C; custom two-state SM: UNINITIALIZED → RUNNING; reads measurements each tick; handles IC fault recovery via INT interrupt |
+| `EPSApplication` | Active | Health monitor / state cache; reads battery state from `MpptIcManager` and rail state from `CurrentSensorManager`; exposes `powerStateGet` synchronous get port read by `SatStateMachine`; forwards deploy command to `DeployPanelsManager`. No mode interface. |
+| `MpptIcManager` | Queued (worker) | Sole owner of BQ25756 IC over I2C; flat four-state SM: RESET → WAIT_RESET → CONFIGURE → RUNNING (ADC enabled in CONFIGURE); reads measurements/status/flags and publishes their telemetry each tick; receives the six `MPPT_IC_*` register-access commands directly from ground |
+| `CurrentSensorManager` | Queued (worker) | Sole owner of INA3221 triple-rail current/voltage monitor on the PDS board over I2C; flat four-state hardware-manager SM: RESET → WAIT_RESET → CONFIGURE → RUN; publishes per-rail voltage/current to `EPSApplication` and as telemetry each tick; receives the three `CURRENT_SENSE_IC_*` register-access commands directly from ground |
 | `WatchdogPinger` | Passive | Toggles hardware watchdog GPIO pin on each rate group tick |
 | `DeployPanelsManager` | Active | Two-state SM: NOT_DEPLOYED → DEPLOYED; executes burn wire sequence in both states; emits WARNING_HI on re-attempt in DEPLOYED state |
 
@@ -343,7 +344,7 @@ Top-level `switchMode: Adcs.Mode` signal inherited by all leaf states.
 | Rate Group | Frequency | Scheduled Components |
 |------------|-----------|---------------------|
 | `RateGroup1` | 10 Hz | `AdcsApplication`, `ImuManager`, `SunSensorManager`, `MagnetorquerManager`, `WatchdogPinger` |
-| `RateGroup2` | 1 Hz | `SatStateMachine`, `EPSApplication`, `MpptIcManager`, `ThermalApplication`, `TemperatureSensorManager`, `HeaterManager`, `DataCollectionApplication` (availability check), `Health` |
+| `RateGroup2` | 1 Hz | `SatStateMachine`, `EPSApplication`, `MpptIcManager`, `CurrentSensorManager`, `ThermalApplication`, `TemperatureSensorManager`, `HeaterManager`, `DataCollectionApplication` (availability check), `Health` |
 | `RateGroup3` | 0.1 Hz | `StarTrackerManager`, `GnssManager`, `ScienceInferenceApplication`, `SystemResources`, `FileDownlink` |
 
 ---
