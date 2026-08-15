@@ -9,14 +9,13 @@
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
-| HS2-COM-001 | CommsApplication shall maintain omni communications capability in all satellite modes | Inspection |
-| HS2-COM-002 | CommsApplication shall activate high-gain downlink mode when commanded by SatStateMachine | Inspection |
-| HS2-COM-003 | CommsApplication shall deactivate high-gain downlink and return to omni-only when commanded | Inspection |
-| HS2-COM-004 | CommsApplication shall switch operating mode on command from SatStateMachine | Inspection |
-| HS2-COM-005 | CommsApplication shall respond to health ping within the required deadline | Inspection |
-| HS2-COM-006 | CommsApplication shall enable the transmission of stored telemetry along with real-time telemetry when high-gain downlink mode is activated | Inspection |
-| HS2-COM-007 | CommsApplication shall transmit only a SOH telemetry during beacon mode | Inspection |
-| HS2-COM-008 | CommsApplication shall transmit only real-time telemetry when omni-only downlink mode is activated | Inspection |
+| HS2-COM-001 | CommsApplication shall activate `BEACON` downlink mode when commanded by `SatStateMachine` | Inspection |
+| HS2-COM-002 | CommsApplication shall activate `STANDARD_DOWNLINK` downlink mode when commanded by `SatSatMachine` | Inspection |
+| HS2-COM-003 | CommsApplication shall activate `STORED_PLAYBACK` downlink mode only when commanded | Inspection |
+| HS2-COM-004 | CommsApplication shall respond to health ping within the required deadline | Inspection |
+| HS2-COM-005 | CommsApplication shall enable the transmission of stored telemetry along with real-time telemetry when `STORED_PLAYBACK` downlink mode is activated | Inspection |
+| HS2-COM-006 | CommsApplication shall enable the transmission of SOH telemetry only at a 1Hz rate when `BEACON` downlink mode is activated | Inspection |
+| HS2-COM-006 | CommsApplication shall enable the transmission of all real-time telemetry when `STANDARD_DOWNLINK` downlink mode is activated | Inspection |
 
 ---
 
@@ -38,29 +37,29 @@ Mode enum (owned by this component's module):
 
 ```fpp
 module Comms {
-    enum Mode { Beacon, OmniOnly, HighGainDownlink }
+    enum Mode { BEACON, STANDARD_DOWNLINK, STORED_PLAYBACK }
 }
 ```
 
 If the incoming mode matches the current mode, the handler returns immediately (idempotent).
 
-#### 3.2.1 Beacon Mode
+#### 3.2.1 `Beacon` Mode
 
-During this mode, only SOH telemetry shall be transmitted. This mode is intended for the satellite to establish a connection with the ground station, particularly during separation and detumbling. In `Beacon` mode, the satellite shall only transmit a small SOH telemetry packet to avoid heavy power usage. No other telemetry will be stored until a connection has been established.
+During this mode, only SOH telemetry shall be transmitted. This mode is intended for the satellite to establish a connection with the ground station, particularly when detumbling or when outside of a communication window. In `Beacon` mode, the satellite shall only transmit a single SOH telemetry packet at 1Hz to ensure minimum power draw.
 
 This mode will set all packets, except SOH, in the `TLMPacketizer` to have a `RateLogic` of `SILENCED`. 
 
-#### 3.2.2 OmniOnly mode
+#### 3.2.2 `STANDARD_DOWNLINK` mode
 
-During this mode, all real-time telemetry shall be downlinked to the ground station. The rate at which science telemetry will be transmitted compared to real-time is TBD.
+During this mode, all real-time telemetry shall be downlinked to the ground station at 1Hz.
 
 This mode will set all packets, except SOH, in the `TLMPacketizer` to have a `RateLogic` of `ON_CHANGE_MIN`. 
 
-#### 3.2.3 HighGain mode
+#### 3.2.3 `STORED_PLAYBACK` mode
 
-During this mode, all stored telemetry, which includes payload experiment data, will be downlinked to the ground station. The priority in this mode is to downlink images and payload data captured during experiments. A SOH packet shall be transmitted at a lower rate (TBD) compared to the experiment data to ensure mission objectives are met and to limit bandwidth consumption.
+During this mode, all stored telemetry, which includes payload experiment data, will be downlinked to the ground station. The priority in this mode is to downlink images and payload data captured during experiments. Stored telemetry will be downlinked at a rate of 5 Hz while real-time SOH telemetry will be downlinked at a rate of 1 Hz.
 
-This mode will set SOH in the `TLMPacketizer` to have a `RateLogic` of `EVERY_MAX` to ensure stored telemetry is given priority. All stored telemetry packets will have a `RateLogic` of `ON_CHANGE_MIN` to ensure priority is given to experiment data. 
+This mode will set SOH telemetry in the `TLMPacketizer` to have a `RateLogic` of `EVERY_MAX` to ensure stored telemetry is given priority. The `StorageManager` will then forward all stored telemetry in its internal queue to the `ComQueue` for downlink.
 
 ### 3.3 Ports
 
@@ -68,7 +67,7 @@ This mode will set SOH in the `TLMPacketizer` to have a `RateLogic` of `EVERY_MA
 |------|-----------|------|---------|
 | `modeIn` | Input | `Sat.CommsModePort` | Mode command from SatStateMachine |
 | `schedIn` | Input | `Svc.Sched` | Rate group tick |
-| `radioCmd` | Output | `Fw.Cmd` | Configure EnduroSatManager operating mode |
+| `downlinkMode` | Output | `Fw.Cmd` | Configure EnduroSatManager operating mode |
 | `pingIn` | `pingOut` | In/Out | `Svc.Ping` | Health monitoring |
 | `logOut` | Output | `Fw.Log` | Event logging |
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry (current mode, link state) |
