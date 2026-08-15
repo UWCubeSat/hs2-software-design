@@ -73,21 +73,39 @@ This mode will set SOH telemetry in the `TLMPacketizer` to have a `RateLogic` of
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry (current mode, link state) |
 ---
 
+### 3.4 Parameters
+Only the downlink mode in the `CommsApplication` will be changing at run time.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `RESET_WAIT_TICKS` | `U32` | Ticks to wait reconfiguring the UART connection between the `EndurosatRadioManager` and the Endurosat Transceiver |
+
+### 3.5 Signals
+| Signal | Description |
+|-----------|------|-------------|
+| `RESET_COM_UART` | Signal to `SatStateMachine` to re-open UART connection between `EndurosatRadioManager` and Endurosat Transciever. Triggered in `RESET` state |
+
 ## 4. State Machine
 
-`CommsApplication` uses a hierarchical F' state machine. Mode is the top-level state. A single `switchMode: Comms.Mode` signal defined at the top level is inherited by all leaf states.
+`CommsApplication` uses a hierarchical F' state machine with the following states: `RESET`, `WAIT_RESET`, `ENABLE`, and `RUN`.
 
 ```
-OMNI_ONLY
-  └─ ACTIVE          (omni link maintained; small telemetry packets only)
+RESET
+  entry: Signal to `SatStateMachine` to close and re-open connection to Endurosat Transceiver. Load RESET_WAIT_TICKs from PrmDb
 
-HIGH_GAIN_DOWNLINK
-  ├─ CONFIGURING     (configure EnduroSatManager for high-rate downlink)
-  └─ DOWNLINKING     (high-rate downlink active; requires AntennaPointing from AdcsApplication)
+  on tick → WAIT_RESET
 
-# Inherited by all leaf states:
-on switchMode(Comms.Mode.OmniOnly)          enter OMNI_ONLY
-on switchMode(Comms.Mode.HighGainDownlink)  enter HIGH_GAIN_DOWNLINK
+WAIT_RESET
+  on tick: Increment reset wait tick counter
+           if counter >= RESET_WAIT_TICKS → CONFIGURE
+
+CONFIGURE
+  entry: Set downlink mode to `BEACON`
+
+  on tick → RUN
+
+RUN
+   on `schedIn` tick (RateGroup1, 1 Hz): Publish telemetry
 ```
 
 Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions), [FPP substates](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#substates)
@@ -96,7 +114,7 @@ Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/doc
 
 ## 5. Notes
 
-- `HIGH_GAIN_DOWNLINK` requires `AdcsApplication` to be in `AntennaPointing` mode. `SatStateMachine` is responsible for commanding both simultaneously via the translation table — `CommsApplication` does not check ADCS state directly.
+- `STANDARD_DOWNLINK` and `STORED_PLAYBACK` require `AdcsApplication` to be in `AntennaPointing` mode. `SatStateMachine` is responsible for commanding both simultaneously via the translation table — `CommsApplication` does not check ADCS state directly.
 - `EnduroSatManager` is instantiated at the top-level topology (shared with `ComCcsds` subtopology); `CommsApplication` connects to it via the top-level topology wiring.
 - Detailed high-gain link configuration and `EnduroSatManager` interface to be defined during detailed design.
 - The `TLMPacketizer` component gives the `CommsApplication` capabilities to configure the rate at which certain packets are sent for the various operating modes.
