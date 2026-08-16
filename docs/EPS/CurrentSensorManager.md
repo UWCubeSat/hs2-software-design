@@ -1,10 +1,10 @@
-# CurrentSenseIcManager SDD
+# CurrentSensorManager SDD
 
 ## 1. Overview
 
-`CurrentSenseIcManager` is the Layer 2 hardware manager for the INA3221 triple-channel current/voltage monitor on the PDS (Power Distribution System) board. It owns all bus communication with the INA3221 — resetting, verifying, configuring, and reading the device — and both publishes per-rail measurements to `EPSApplication` and emits them as telemetry on each rate group tick.
+`CurrentSensorManager` is the Layer 2 hardware manager for the INA3221 triple-channel current/voltage monitor on the PDS (Power Distribution System) board. It owns all bus communication with the INA3221 — resetting, verifying, configuring, and reading the device — and both publishes per-rail measurements to `EPSApplication` and emits them as telemetry on each rate group tick.
 
-The INA3221 monitors three power rails (12 V, 5 V, 3.3 V), reporting bus voltage and current for each. `CurrentSenseIcManager` has no satellite mode awareness; it runs its startup and read loop unconditionally once initialized, driven entirely by the rate group tick. All bus access goes through the Layer 1 `LinuxI2cDriver` — `CurrentSenseIcManager` has no direct hardware knowledge beyond register addresses.
+The INA3221 monitors three power rails (12 V, 5 V, 3.3 V), reporting bus voltage and current for each. `CurrentSensorManager` has no satellite mode awareness; it runs its startup and read loop unconditionally once initialized, driven entirely by the rate group tick. All bus access goes through the Layer 1 `LinuxI2cDriver` — `CurrentSensorManager` has no direct hardware knowledge beyond register addresses.
 
 ---
 
@@ -12,11 +12,11 @@ The INA3221 monitors three power rails (12 V, 5 V, 3.3 V), reporting bus voltage
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
-| HS2-CSM-001 | CurrentSenseIcManager shall be the sole flight-software owner of the INA3221 over I2C. | Inspection |
-| HS2-CSM-002 | CurrentSenseIcManager shall read the bus voltage and current of all three rails each rate group tick. | Inspection |
-| HS2-CSM-003 | CurrentSenseIcManager shall publish the assembled rail measurements on railStateOut to EPSApplication each rate group tick. | Inspection |
-| HS2-CSM-004 | CurrentSenseIcManager shall emit telemetry channels for each rail's bus voltage and current. | Inspection |
-| HS2-CSM-005 | CurrentSenseIcManager shall log a WARNING_HI event and transition to RESET on any I2C bus error. | Inspection |
+| HS2-CSM-001 | CurrentSensorManager shall be the sole flight-software owner of the INA3221 over I2C. | Inspection |
+| HS2-CSM-002 | CurrentSensorManager shall read the bus voltage and current of all three rails each rate group tick. | Inspection |
+| HS2-CSM-003 | CurrentSensorManager shall publish the assembled rail measurements on railStateOut to EPSApplication each rate group tick. | Inspection |
+| HS2-CSM-004 | CurrentSensorManager shall emit telemetry channels for each rail's bus voltage and current. | Inspection |
+| HS2-CSM-005 | CurrentSensorManager shall log a WARNING_HI event and transition to RESET on any I2C bus error. | Inspection |
 
 ---
 
@@ -49,7 +49,7 @@ The INA3221's registers are all 16-bit, each transferred as two 8-bit bytes over
 | `CURRENT_SENSE_IC_SET_BITS_REG16` | `regAddr: INA3221Reg`, `mask: U16` | Read-modify-write: `reg \|= mask` |
 | `CURRENT_SENSE_IC_CLEAR_BITS_REG16` | `regAddr: INA3221Reg`, `mask: U16` | Read-modify-write: `reg &= ~mask` |
 
-`CurrentSenseIcManager` is not health-monitored. Bus-error recovery is handled autonomously by the self-healing SM.
+`CurrentSensorManager` is not health-monitored. Bus-error recovery is handled autonomously by the self-healing SM.
 
 ### 3.4 Telemetry
 
@@ -66,7 +66,7 @@ The INA3221's registers are all 16-bit, each transferred as two 8-bit bytes over
 
 ## 4. State Machine
 
-`CurrentSenseIcManager` uses a flat four-state F' state machine following the hardware-manager pattern: `RESET → WAIT_RESET → CONFIGURE → RUN`. The INA3221 has no enable step, so the `ENABLE` state is omitted.
+`CurrentSensorManager` uses a flat four-state F' state machine following the hardware-manager pattern: `RESET → WAIT_RESET → CONFIGURE → RUN`. The INA3221 has no enable step, so the `ENABLE` state is omitted.
 
 ```
 RESET
@@ -100,7 +100,7 @@ Reference: [`INA3221Manager` (FeatherCdh)](https://github.com/UWCubeSat), [FPP f
 ## 5. Notes
 
 - Current is derived from the INA3221 shunt-voltage registers and the per-channel shunt resistance; exact scaling and shunt values are hardware-team inputs resolved during detailed design.
-- `CurrentSenseIcManager` is instantiated inside the EPS subtopology. Its `busWrite`/`busWriteRead` ports connect to a `LinuxI2cDriver` instance at the top-level topology; `railStateOut` connects to `EPSApplication`.
-- `CurrentSenseIcManager` is **excluded from health monitoring** (`Svc::Health`). Only `EPSApplication` is health-checked.
+- `CurrentSensorManager` is instantiated inside the EPS subtopology. Its `busWrite`/`busWriteRead` ports connect to a `LinuxI2cDriver` instance at the top-level topology; `railStateOut` connects to `EPSApplication`.
+- `CurrentSensorManager` is **excluded from health monitoring** (`Svc::Health`). Only `EPSApplication` is health-checked.
 - The INA3221 is PDS-dependent hardware; it is present only in the flight/PDS configuration.
 - In the current hardware, Pin A0 is tied to SCL, meaning that the device I2C address is 0b1000011

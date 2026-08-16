@@ -1,12 +1,12 @@
-# MpptIcManager SDD
+# MpptManager SDD
 
 ## 1. Overview
 
-`MpptIcManager` is the Layer 2 Queued hardware manager responsible for all communication with the BQ25756 MPPT and battery charging IC. No other component reads or writes the BQ25756 directly.
+`MpptManager` is the Layer 2 Queued hardware manager responsible for all communication with the BQ25756 MPPT and battery charging IC. No other component reads or writes the BQ25756 directly.
 
-On each rate group tick in `RUNNING` state, `MpptIcManager` reads all relevant measurement, status, and flag registers over I2C (voltages, currents, charging status, charger/fault flags), assembles the data into a state struct, calls `EPSApplication`'s `batteryStateIn` port, and emits telemetry for the values it just read. If any abnormal charger/fault flag bit is set, it emits a `WARNING_HI` event.
+On each rate group tick in `RUN` state, `MpptManager` reads all relevant measurement, status, and flag registers over I2C (voltages, currents, charging status, charger/fault flags), assembles the data into a state struct, calls `EPSApplication`'s `batteryStateIn` port, and emits telemetry for the values it just read. If any abnormal charger/fault flag bit is set, it emits a `WARNING_HI` event.
 
-`MpptIcManager` receives register-access commands directly from ground via the command dispatcher — six commands split by register width (8- and 16-bit) and operation (verbatim write, set-bits, clear-bits). Each command performs the corresponding I2C transaction against the named register and emits a confirmation event.
+`MpptManager` receives register-access commands directly from ground via the command dispatcher — six commands split by register width (8- and 16-bit) and operation (verbatim write, set-bits, clear-bits). Each command performs the corresponding I2C transaction against the named register and emits a confirmation event.
 
 ---
 
@@ -14,12 +14,12 @@ On each rate group tick in `RUNNING` state, `MpptIcManager` reads all relevant m
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
-| HS2-MIM-001 | MpptIcManager shall be the sole flight-software owner of the BQ25756 IC. | Inspection |
-| HS2-MIM-002 | MpptIcManager shall publish the BQ25756 measurement, charging status, and flag state on batteryStateOut each rate group tick. | Inspection |
-| HS2-MIM-003 | MpptIcManager shall perform the commanded register write, set-bits, or clear-bits transaction over I2C on receipt of a register-access command. | Inspection |
-| HS2-MIM-004 | MpptIcManager shall read the charger and fault flag registers each rate group tick and emit a WARNING_HI event when any abnormal flag bit is set. | Inspection |
-| HS2-MIM-005 | MpptIcManager shall emit telemetry channels for vbatt, ibatt, vac, iac, and charging status. | Inspection |
-| HS2-MIM-006 | MpptIcManager shall enable the BQ25756 ADC so that measurement reads reflect real values. | Inspection |
+| HS2-MIM-001 | MpptManager shall be the sole flight-software owner of the BQ25756 IC. | Inspection |
+| HS2-MIM-002 | MpptManager shall publish the BQ25756 measurement, charging status, and flag state on batteryStateOut each rate group tick. | Inspection |
+| HS2-MIM-003 | MpptManager shall perform the commanded register write, set-bits, or clear-bits transaction over I2C on receipt of a register-access command. | Inspection |
+| HS2-MIM-004 | MpptManager shall read the charger and fault flag registers each rate group tick and emit a WARNING_HI event when any abnormal flag bit is set. | Inspection |
+| HS2-MIM-005 | MpptManager shall emit telemetry channels for vbatt, ibatt, vac, iac, and charging status. | Inspection |
+| HS2-MIM-006 | MpptManager shall enable the BQ25756 ADC so that measurement reads reflect real values. | Inspection |
 
 ---
 
@@ -33,7 +33,7 @@ Queued component with internal flat F' state machine (`Fw::Sm`). Has a message q
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
-| `schedIn` | Input | `Svc.Sched` | Rate group tick; drives the SM step (measurement read cycle in RUNNING) |
+| `schedIn` | Input | `Svc.Sched` | Rate group tick; drives the SM step (measurement read cycle in RUN) |
 | `busWrite` | Output | `Drv.I2c` | Write BQ25756 registers (reset, configure, register-access commands) |
 | `busWriteRead` | Output | `Drv.I2cWriteRead` | Write register pointer then read in one repeated-start transaction; all measurement, status, and flag reads |
 | `batteryStateOut` | Output | Custom struct port | Battery and IC state to EPSApplication (vbatt, ibatt, vac, iac, vfb, temperature, charging status, charger/fault flags, MPPT state) |
@@ -71,7 +71,7 @@ On success each command emits an activity event carrying the operation, register
 
 ## 4. State Machine
 
-`MpptIcManager` uses a flat four-state F' state machine: `RESET → WAIT_RESET → CONFIGURE → RUNNING`. The BQ25756 has no enable step, so the standard `ENABLE` state is omitted — the sequence is reset the IC, wait for the reset to settle, configure it, then run.
+`MpptManager` uses a flat four-state F' state machine: `RESET → WAIT_RESET → CONFIGURE → RUN`. The BQ25756 has no enable step, so the standard `ENABLE` state is omitted — the sequence is reset the IC, wait for the reset to settle, configure it, then run.
 
 ```
 RESET
@@ -85,10 +85,10 @@ WAIT_RESET
 CONFIGURE
   entry/on tick: write ADC_CONT (0x2B) to enable the ADC in continuous mode
                  write any additional configuration registers whose power-on defaults are unacceptable
-    if all writes OK → RUNNING
+    if all writes OK → RUN
     if any write error → log WARNING_HI → RESET
 
-RUNNING
+RUN
   on tick: read measurement registers (VBAT_ADC, IBAT_ADC, VAC_ADC, IAC_ADC, VFB_ADC, TS_ADC)
            read charging status register (CHARGER_STATUS_1)
            read charger/fault flag registers (CHARGER_FLAG_1, CHARGER_FLAG_2, FAULT_STATUS, FAULT_FLAG)
@@ -105,7 +105,7 @@ RUNNING
 
 Fault handling is done by the per-tick flag read: `CHARGER_FLAG_1/2` and `FAULT_FLAG` are cleared-on-read, so each tick captures the events that occurred since the previous tick. An abnormal flag emits a warning event but does not change state; the IC continues running. Only I2C bus errors self-heal by returning to `RESET`.
 
-**Command behavior outside RUNNING:** register-access commands received while in `RESET`, `WAIT_RESET`, or `CONFIGURE` are queued and execute once the component processes them — ordering against the reset/configure writes is TBD during detailed design.
+**Command behavior outside RUN:** register-access commands received while in `RESET`, `WAIT_RESET`, or `CONFIGURE` are queued and execute once the component processes them — ordering against the reset/configure writes is TBD during detailed design.
 
 Reference: [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc)
 
@@ -114,7 +114,7 @@ Reference: [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/
 ## 5. Notes
 
 - `batteryStateOut` port type is a custom struct carrying all BQ25756 measurement and status data plus the charger/fault flags. Consider splitting into a measurements port and a flags port if the struct becomes unwieldy; see `EPSApplication` notes for the matching `batteryStateIn` discussion.
-- `MpptIcManager` owns and publishes the periodic measurement telemetry (`VBATT_MV`, `IBATT_RAW`, `VAC_MV`, `IAC_RAW`, `CHARGING_STATE`). It still forwards the same values to `EPSApplication` on `batteryStateOut`; `EPSApplication` consumes them for `powerState` and may use them for more complex logic in the future.
-- The ADC must be enabled before measurement reads return real values; enabling it in `CONFIGURE` guarantees `RUNNING` reads are valid without an operator step.
+- `MpptManager` owns and publishes the periodic measurement telemetry (`VBATT_MV`, `IBATT_RAW`, `VAC_MV`, `IAC_RAW`, `CHARGING_STATE`). It still forwards the same values to `EPSApplication` on `batteryStateOut`; `EPSApplication` consumes them for `powerState` and may use them for more complex logic in the future.
+- The ADC must be enabled before measurement reads return real values; enabling it in `CONFIGURE` guarantees `RUN` reads are valid without an operator step.
 - The set of "abnormal" _FLAG bits that warrant a warning event is TBD pending a detailed pass over the BQ25756 datasheet fault/flag register definitions.
 - `BQ25756Reg8` / `BQ25756Reg16` enums enumerate all addressable registers by name and width; the `BQ25756RegOp` enum names the write/set-bits/clear-bits operation carried in the confirmation events.
