@@ -19,7 +19,6 @@ On each rate group tick in `RUN` state, `MpptManager` reads all relevant measure
 | HS2-MIM-003 | MpptManager shall perform the commanded register write, set-bits, or clear-bits transaction over I2C on receipt of a register-access command. | Inspection |
 | HS2-MIM-004 | MpptManager shall read the charger and fault flag registers each rate group tick and emit a WARNING_HI event when any abnormal flag bit is set. | Inspection |
 | HS2-MIM-005 | MpptManager shall emit telemetry channels for vbatt, ibatt, vac, iac, and charging status. | Inspection |
-| HS2-MIM-006 | MpptManager shall enable the BQ25756 ADC so that measurement reads reflect real values. | Inspection |
 
 ---
 
@@ -27,7 +26,7 @@ On each rate group tick in `RUN` state, `MpptManager` reads all relevant measure
 
 ### 3.1 Component Type
 
-Queued component with internal flat F' state machine (`Fw::Sm`). Has a message queue but no dedicated thread — executes on the rate-group caller thread each tick, which drives the SM step; the queue buffers the async register-access commands, which are handled in that same context. Register commands are therefore deferred to the next tick service (worst case ~1 s at 1 Hz), acceptable for non-time-critical configuration writes.
+Queued component with internal flat F' state machine (`Fw::Sm`).
 
 ### 3.2 Ports
 
@@ -48,12 +47,12 @@ Each command names its target register through a width-specific enum (`BQ25756Re
 
 | Mnemonic | Args | Description |
 |----------|------|-------------|
-| `MPPT_IC_WRITE_REG8` | `regAddr: BQ25756Reg8`, `value: U8` | Write a verbatim byte to an 8-bit register |
-| `MPPT_IC_SET_BITS_REG8` | `regAddr: BQ25756Reg8`, `mask: U8` | Read-modify-write: `reg \|= mask` |
-| `MPPT_IC_CLEAR_BITS_REG8` | `regAddr: BQ25756Reg8`, `mask: U8` | Read-modify-write: `reg &= ~mask` |
-| `MPPT_IC_WRITE_REG16` | `regAddr: BQ25756Reg16`, `value: U16` | Write a verbatim halfword to a 16-bit register |
-| `MPPT_IC_SET_BITS_REG16` | `regAddr: BQ25756Reg16`, `mask: U16` | Read-modify-write: `reg \|= mask` |
-| `MPPT_IC_CLEAR_BITS_REG16` | `regAddr: BQ25756Reg16`, `mask: U16` | Read-modify-write: `reg &= ~mask` |
+| `MPPT_WRITE_REG8` | `regAddr: BQ25756Reg8`, `value: U8` | Write to an 8-bit register |
+| `MPPT_SET_REG8` | `regAddr: BQ25756Reg8`, `mask: U8` | Read-modify-write: `reg \|= mask` |
+| `MPPT_CLEAR_REG8` | `regAddr: BQ25756Reg8`, `mask: U8` | Read-modify-write: `reg &= ~mask` |
+| `MPPT_WRITE_REG16` | `regAddr: BQ25756Reg16`, `value: U16` | Write to a 16-bit register |
+| `MPPT_SET_REG16` | `regAddr: BQ25756Reg16`, `mask: U16` | Read-modify-write: `reg \|= mask` |
+| `MPPT_CLEAR_REG16` | `regAddr: BQ25756Reg16`, `mask: U16` | Read-modify-write: `reg &= ~mask` |
 
 On success each command emits an activity event carrying the operation, register, and the byte/halfword actually written (the post-modify value for set/clear-bits). On I2C failure it emits a `WARNING_HI` write-error event and returns an `EXECUTION_ERROR` command response.
 
@@ -71,7 +70,7 @@ On success each command emits an activity event carrying the operation, register
 
 ## 4. State Machine
 
-`MpptManager` uses a flat four-state F' state machine: `RESET → WAIT_RESET → CONFIGURE → RUN`. The BQ25756 has no enable step, so the standard `ENABLE` state is omitted — the sequence is reset the IC, wait for the reset to settle, configure it, then run.
+`MpptManager` uses a flat four-state F' state machine: `RESET → WAIT_RESET → CONFIGURE → RUN`. The BQ25756 has no enable step (it does Max Power Point Tracking by default upon being turned on), so the standard `ENABLE` state is omitted.
 
 ```
 RESET
@@ -84,7 +83,6 @@ WAIT_RESET
 
 CONFIGURE
   entry/on tick: write ADC_CONT (0x2B) to enable the ADC in continuous mode
-                 write any additional configuration registers whose power-on defaults are unacceptable
     if all writes OK → RUN
     if any write error → log WARNING_HI → RESET
 

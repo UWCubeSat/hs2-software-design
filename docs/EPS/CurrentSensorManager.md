@@ -24,7 +24,7 @@ The INA3221 monitors three power rails (12 V, 5 V, 3.3 V), reporting bus voltage
 
 ### 3.1 Component Type
 
-Queued component with internal flat F' state machine (`Fw::Sm`). Has a message queue but no dedicated thread — executes on the rate group caller thread each tick.
+Queued component with internal flat F' state machine (`Fw::Sm`).
 
 ### 3.2 Ports
 
@@ -41,13 +41,11 @@ Queued component with internal flat F' state machine (`Fw::Sm`). Has a message q
 
 ### 3.3 Commands
 
-The INA3221's registers are all 16-bit, each transferred as two 8-bit bytes over I2C; a single `INA3221Reg` enum names every addressable register, so a command can only target a valid register.
-
 | Mnemonic | Args | Description |
 |----------|------|-------------|
-| `CURRENT_SENSE_IC_WRITE_REG16` | `regAddr: INA3221Reg`, `value: U16` | Write a verbatim halfword to a register |
-| `CURRENT_SENSE_IC_SET_BITS_REG16` | `regAddr: INA3221Reg`, `mask: U16` | Read-modify-write: `reg \|= mask` |
-| `CURRENT_SENSE_IC_CLEAR_BITS_REG16` | `regAddr: INA3221Reg`, `mask: U16` | Read-modify-write: `reg &= ~mask` |
+| `CURRENT_SENSOR_WRITE_REG16` | `regAddr: INA3221Reg`, `value: U16` | Write to a register |
+| `CURRENT_SENSOR_SET_REG16` | `regAddr: INA3221Reg`, `mask: U16` | Read-modify-write: `reg \|= mask` |
+| `CURRENT_SENSOR_CLEAR_REG16` | `regAddr: INA3221Reg`, `mask: U16` | Read-modify-write: `reg &= ~mask` |
 
 `CurrentSensorManager` is not health-monitored. Bus-error recovery is handled autonomously by the self-healing SM.
 
@@ -78,8 +76,7 @@ WAIT_RESET
            if error → RESET
 
 CONFIGURE
-  on tick: write the CONFIGURATION register — averaging mode, the bus- and shunt-voltage
-           conversion times, and operating mode (among other settings), plus per-channel enable
+  on tick: write the CONFIGURATION register to set averaging mode and conversion times
     if write OK → RUN
     if write error → log WARNING_HI → RESET
 

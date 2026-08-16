@@ -4,8 +4,6 @@
 
 `EPSApplication` is the Layer 3 Active component for the EPS subtopology. It monitors battery and power-system health by consuming state data published by `MpptIcManager` (battery/IC state) and `CurrentSensorManager` (per-rail voltage and current) on each rate group tick, and exposes a health/status struct to `SatStateMachine` via a synchronous get port so submode decisions can be made. It also accepts the panel deployment command from ground and forwards it to `DeployPanelsManager`.
 
-Register-access to the BQ25756 is no longer routed through `EPSApplication` — ground commands the IC directly on `MpptIcManager`. `EPSApplication` is a consumer of power-system state, not a command forwarder for it.
-
 Unlike other Layer 3 components, `EPSApplication` has no internal state machine — it operates identically regardless of satellite mode.
 
 ---
