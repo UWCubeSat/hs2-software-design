@@ -1,8 +1,8 @@
-# CommsApplication SDD
+# ComApplication SDD
 
 ## 1. Overview
 
-`CommsApplication` is the Layer 3 Active component for the Comms subtopology. It manages the EnduroSat S-band radio operating mode — switching between `BEACON` to transmit real-time SOH telemetry at 1Hz, `STANDARD_DOWNLINK` mode to transmit all real-time telemetry including payload experiment data, and `STORED_PLAYBACK` mode to downlink stored and real-time SOH telemetry concurrently.
+`ComApplication` is the Layer 3 Active component for the Comms subtopology. It manages the EnduroSat S-band radio operating mode — switching between `BEACON` to transmit real-time SOH telemetry at 1Hz, `STANDARD_DOWNLINK` mode to transmit all real-time telemetry including payload experiment data, and `STORED_PLAYBACK` mode to downlink stored and real-time SOH telemetry concurrently.
 
 ---
 
@@ -15,13 +15,13 @@
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
-| HS2-COM-001 | CommsApplication shall activate `BEACON` downlink mode when commanded by `SatStateMachine` | Inspection |
-| HS2-COM-002 | CommsApplication shall activate `STANDARD_DOWNLINK` downlink mode when commanded by `SatSatMachine` | Inspection |
-| HS2-COM-003 | CommsApplication shall activate `STORED_PLAYBACK` downlink mode only when commanded | Inspection |
-| HS2-COM-004 | CommsApplication shall respond to health ping within the required deadline | Inspection |
-| HS2-COM-005 | CommsApplication shall enable the transmission of stored telemetry along with real-time telemetry when `STORED_PLAYBACK` downlink mode is activated | Inspection |
-| HS2-COM-006 | CommsApplication shall enable the transmission of SOH telemetry only at a 1Hz rate when `BEACON` downlink mode is activated | Inspection |
-| HS2-COM-006 | CommsApplication shall enable the transmission of all real-time telemetry when `STANDARD_DOWNLINK` downlink mode is activated | Inspection |
+| HS2-COM-001 | ComApplication shall activate `BEACON` downlink mode when commanded by `SatStateMachine` | Inspection |
+| HS2-COM-002 | ComApplication shall activate `STANDARD_DOWNLINK` downlink mode when commanded by `SatSatMachine` | Inspection |
+| HS2-COM-003 | ComApplication shall activate `STORED_PLAYBACK` downlink mode only when commanded | Inspection |
+| HS2-COM-004 | ComApplication shall respond to health ping within the required deadline | Inspection |
+| HS2-COM-005 | ComApplication shall enable the transmission of stored telemetry along with real-time telemetry when `STORED_PLAYBACK` downlink mode is activated | Inspection |
+| HS2-COM-006 | ComApplication shall enable the transmission of SOH telemetry only at a 1Hz rate when `BEACON` downlink mode is activated | Inspection |
+| HS2-COM-006 | ComApplication shall enable the transmission of all real-time telemetry when `STANDARD_DOWNLINK` downlink mode is activated | Inspection |
 
 ---
 
@@ -33,7 +33,7 @@ Active component with internal hierarchical F' state machine (`Fw::Sm`).
 
 ### 3.2 Mode Interface
 
-`CommsApplication` receives its operating mode from `SatStateMachine` via a typed port:
+`ComApplication` receives its operating mode from `SatStateMachine` via a typed port:
 
 ```fpp
 sync input port modeIn: Sat.CommsModePort   # carries Comms.Mode
@@ -80,7 +80,7 @@ This mode will set SOH telemetry in the `TlmPacketizer` to have a `RateLogic` of
 ---
 
 ### 3.4 Parameters
-Only the downlink mode in the `CommsApplication` will be changing at run time.
+Only the downlink mode in the `ComApplication` will be changing at run time.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
@@ -88,13 +88,11 @@ Only the downlink mode in the `CommsApplication` will be changing at run time.
 
 ## 4. State Machine
 
-`CommsApplication` uses a hierarchical F' state machine with the following states: `RESET`, `BEACON`, `STORED_PLAYBACK`, and `STANDARD_DOWNLINK`.
+`ComApplication` uses a hierarchical F' state machine with the following states: `RESET`, `BEACON`, `STORED_PLAYBACK`, and `STANDARD_DOWNLINK`. All states, aside from `RESET`, will only be commanded by the `SatStateMachine` as the `ComApplication` does not follow a traditional state-machine like a hardware-manager.
 
 ```
 RESET
   entry: Log RESET event
-
-  on tick → BEACON
 
 BEACON
   entry: Set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `SILENCED`. Set `downlinkMode` telemetry to be `BEACON`.
@@ -118,9 +116,9 @@ Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/doc
 
 ## 6. Notes
 
-- `STANDARD_DOWNLINK` and `STORED_PLAYBACK` require `AdcsApplication` to be in `AntennaPointing` mode. `SatStateMachine` is responsible for commanding both simultaneously via the translation table — `CommsApplication` does not check ADCS state directly.
-- `TmtcRadioManager` is instantiated at the top-level topology (shared with `ComCcsds` subtopology); `CommsApplication` connects to it via the top-level topology wiring.
+- `STANDARD_DOWNLINK` and `STORED_PLAYBACK` require `AdcsApplication` to be in `AntennaPointing` mode. `SatStateMachine` is responsible for commanding both simultaneously via the translation table — `ComApplication` does not check ADCS state directly.
+- `TmtcRadioManager` is instantiated at the top-level topology (shared with `ComCcsds` subtopology); `ComApplication` connects to it via the top-level topology wiring.
 - Detailed high-gain link configuration and `TmtcRadioManager` interface to be defined during detailed design.
-- The `TlmPacketizer` component gives the `CommsApplication` capabilities to configure the rate at which certain packets are sent for the various operating modes.
+- The `TlmPacketizer` component gives the `ComApplication` capabilities to configure the rate at which certain packets are sent for the various operating modes.
 - For downlinking event, there are two log files to maintain: The first is for the last [TBD] minutes of events (refreshed/overwritten every [TBD] / 2 minutes) and the other which stores the last [TBD] minutes of events after the most recent `FATAL` exception. Ground can send commands to the `Svc::FileDownlink` component to retrieve these logs files held in non-volatile memory.
-- The "Health" pings will be incoming from the `Svc::Health` component which will send WARN/FATAL events if a certain number of configurable ticks have elapsed before a `pingOut` is sent from the `CommsApplication` component.
+- The "Health" pings will be incoming from the `Svc::Health` component which will send WARN/FATAL events if a certain number of configurable ticks have elapsed before a `pingOut` is sent from the `ComApplication` component.
