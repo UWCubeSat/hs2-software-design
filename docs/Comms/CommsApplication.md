@@ -65,7 +65,7 @@ This mode will set all packets, except SOH, in the `TlmPacketizer` to have a `Ra
 
 During this mode, all stored telemetry, which includes payload experiment data, will be downlinked to the ground station. The priority in this mode is to downlink images and payload data captured during experiments. Stored telemetry will be downlinked at a rate of 5 Hz while real-time SOH telemetry will be downlinked at a rate of 1 Hz.
 
-This mode will set SOH telemetry in the `TlmPacketizer` to have a `RateLogic` of `EVERY_MAX` to ensure stored telemetry is given priority. The `StorageManager` will then forward all stored telemetry in its internal queue to the `ComQueue` for downlink.
+This mode will set SOH telemetry in the `TlmPacketizer` to have a `RateLogic` of `EVERY_MAX` to ensure stored telemetry is given priority. The `Svc::DpCatalog` component can be used to downlink generated data products (such as images) that exist within a specified set of directories.
 
 ### 3.3 Ports
 
@@ -73,7 +73,6 @@ This mode will set SOH telemetry in the `TlmPacketizer` to have a `RateLogic` of
 |------|-----------|------|---------|
 | `modeIn` | Input | `Sat.CommsModePort` | Mode command from SatStateMachine |
 | `schedIn` | Input | `Svc.Sched` | Rate group tick |
-| `downlinkMode` | Output | `Fw.Cmd` | Configure `TmtcRadioManager` operating mode |
 | `pingIn` | Input | `Svc.Ping` | Health monitoring input ping from `Svc::Health` to component |
 | `pingOut` | Output | `Svc.Ping` | Health monitoring ping response from component to `Svc::Health` |
 | `logOut` | Output | `Fw.Log` | Event logging |
