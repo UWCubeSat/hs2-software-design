@@ -116,6 +116,7 @@ Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/doc
 
 ## 6. Notes
 
+- The `ComApplication` will be a part of another subtopology, titled [TBD], that also wrapps the `ComCCSDS` framing subtopology and the `TmtcRadioManager` component.
 - `STANDARD_DOWNLINK` and `STORED_PLAYBACK` require `AdcsApplication` to be in `AntennaPointing` mode. `SatStateMachine` is responsible for commanding both simultaneously via the translation table — `ComApplication` does not check ADCS state directly.
 - `TmtcRadioManager` is instantiated at the top-level topology (shared with `ComCcsds` subtopology); `ComApplication` connects to it via the top-level topology wiring.
 - Detailed high-gain link configuration and `TmtcRadioManager` interface to be defined during detailed design.
