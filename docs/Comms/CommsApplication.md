@@ -77,7 +77,7 @@ This mode will set SOH telemetry in the `TLMPacketizer` to have a `RateLogic` of
 | `pingIn` | Input | `Svc.Ping` | Health monitoring input ping from `Svc::Health` to component |
 | `pingOut` | Output | `Svc.Ping` | Health monitoring ping response from component to `Svc::Health` |
 | `logOut` | Output | `Fw.Log` | Event logging |
-| `tlmOut` | Output | `Fw.Tlm` | Telemetry (current mode, link state) |
+| `tlmOut` | Output | `Fw.Tlm` | Telemetry (current mode) that will be used in SOH packets |
 ---
 
 ### 3.4 Parameters
@@ -94,7 +94,7 @@ Only the downlink mode in the `CommsApplication` will be changing at run time.
 
 ## 4. State Machine
 
-`CommsApplication` uses a hierarchical F' state machine with the following states: `RESET`, `WAIT_RESET`, `ENABLE`, and `RUN`.
+`CommsApplication` uses a hierarchical F' state machine with the following states: `RESET`, `WAIT_RESET`, `CONFIGURE`, and `RUN`.
 
 ```
 RESET
@@ -112,7 +112,7 @@ CONFIGURE
   on tick → RUN
 
 RUN
-   on `schedIn` tick (RateGroup1, 1 Hz): Publish telemetry
+   on `schedIn` tick (RateGroup1, 1 Hz): Publish CommsApplication telemetry
 ```
 
 Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions), [FPP substates](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#substates)
@@ -125,4 +125,5 @@ Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/doc
 - `TmtcRadioManager` is instantiated at the top-level topology (shared with `ComCcsds` subtopology); `CommsApplication` connects to it via the top-level topology wiring.
 - Detailed high-gain link configuration and `TmtcRadioManager` interface to be defined during detailed design.
 - The `TLMPacketizer` component gives the `CommsApplication` capabilities to configure the rate at which certain packets are sent for the various operating modes.
+- For downlinking event, there are two log files to maintain: The first is for the last `TBD` minutes of events (refreshed/overwritten every `TBD / 2` minutes) and the other which stores the last `TBD` minutes of events after the most recent `FATAL` exception. Ground can send commands to the `Svc::FileDownlink` component to retrieve these logs files held in non-volatile memory.
 - The "Health" pings will be incoming from the `Svc::Health` component which will send WARN/FATAL events if a certain number of configurable ticks have elapsed before a `pingOut` is sent from the `CommsApplication` component.
