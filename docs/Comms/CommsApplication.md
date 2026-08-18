@@ -2,8 +2,14 @@
 
 ## 1. Overview
 
-`CommsApplication` is the Layer 3 Active component for the Comms subtopology. It manages the EnduroSat S-band radio operating mode — switching between `BEACON` to transmit real-time SOH telemetry at 1Hz, `STANDARD_DOWNLINK` mode to transmit all real-time telemetry including payload experiment data, and `STORED_PLAYBACK` mode to downlink stored and real-tim SOH telemetry concurrently.
+`CommsApplication` is the Layer 3 Active component for the Comms subtopology. It manages the EnduroSat S-band radio operating mode — switching between `BEACON` to transmit real-time SOH telemetry at 1Hz, `STANDARD_DOWNLINK` mode to transmit all real-time telemetry including payload experiment data, and `STORED_PLAYBACK` mode to downlink stored and real-time SOH telemetry concurrently.
+
 ---
+
+## 1.1 Definitions
+| Term | Definition |
+|------|------------|
+| Telemetry| Information that is downlinked to the HS-2 ground station including: F' events, images/files, and data packets |
 
 ## 2. Requirements
 
@@ -67,8 +73,9 @@ This mode will set SOH telemetry in the `TLMPacketizer` to have a `RateLogic` of
 |------|-----------|------|---------|
 | `modeIn` | Input | `Sat.CommsModePort` | Mode command from SatStateMachine |
 | `schedIn` | Input | `Svc.Sched` | Rate group tick |
-| `downlinkMode` | Output | `Fw.Cmd` | Configure EnduroSatManager operating mode |
-| `pingIn` | `pingOut` | In/Out | `Svc.Ping` | Health monitoring |
+| `downlinkMode` | Output | `Fw.Cmd` | Configure `TmtcRadioManager` operating mode |
+| `pingIn` | Input | `Svc.Ping` | Health monitoring input ping from `Svc::Health` to component |
+| `pingOut` | Output | `Svc.Ping` | Health monitoring ping response from component to `Svc::Health` |
 | `logOut` | Output | `Fw.Log` | Event logging |
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry (current mode, link state) |
 ---
@@ -78,12 +85,12 @@ Only the downlink mode in the `CommsApplication` will be changing at run time.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `RESET_WAIT_TICKS` | `U32` | Ticks to wait reconfiguring the UART connection between the `EndurosatRadioManager` and the Endurosat Transceiver |
+| `RESET_WAIT_TICKS` | `U32` | Ticks to wait reconfiguring the UART connection between the `TmtcRadioManager` and the Endurosat Transceiver |
 
 ### 3.5 Signals
 | Signal | Description |
 |-----------|------|-------------|
-| `RESET_COM_UART` | Signal to `SatStateMachine` to re-open UART connection between `EndurosatRadioManager` and Endurosat Transciever. Triggered in `RESET` state |
+| `RESET_COM_UART` | Signal to `SatStateMachine` to re-open UART connection between `TmtcRadioManager` and Endurosat Transciever. Triggered in `RESET` state |
 
 ## 4. State Machine
 
@@ -115,6 +122,7 @@ Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/doc
 ## 5. Notes
 
 - `STANDARD_DOWNLINK` and `STORED_PLAYBACK` require `AdcsApplication` to be in `AntennaPointing` mode. `SatStateMachine` is responsible for commanding both simultaneously via the translation table — `CommsApplication` does not check ADCS state directly.
-- `EnduroSatManager` is instantiated at the top-level topology (shared with `ComCcsds` subtopology); `CommsApplication` connects to it via the top-level topology wiring.
-- Detailed high-gain link configuration and `EnduroSatManager` interface to be defined during detailed design.
+- `TmtcRadioManager` is instantiated at the top-level topology (shared with `ComCcsds` subtopology); `CommsApplication` connects to it via the top-level topology wiring.
+- Detailed high-gain link configuration and `TmtcRadioManager` interface to be defined during detailed design.
 - The `TLMPacketizer` component gives the `CommsApplication` capabilities to configure the rate at which certain packets are sent for the various operating modes.
+- The "Health" pings will be incoming from the `Svc::Health` component which will send WARN/FATAL events if a certain number of configurable ticks have elapsed before a `pingOut` is sent from the `CommsApplication` component.
