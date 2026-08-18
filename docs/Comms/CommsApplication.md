@@ -86,32 +86,26 @@ Only the downlink mode in the `CommsApplication` will be changing at run time.
 |-----------|------|-------------|
 | `RESET_WAIT_TICKS` | `U32` | Ticks to wait reconfiguring the UART connection between the `TmtcRadioManager` and the Endurosat Transceiver |
 
-### 3.5 Signals
-| Signal | Description |
-|-----------|------|-------------|
-| `RESET_COM_UART` | Signal to `SatStateMachine` to re-open UART connection between `TmtcRadioManager` and Endurosat Transciever. Triggered in `RESET` state |
-
 ## 4. State Machine
 
-`CommsApplication` uses a hierarchical F' state machine with the following states: `RESET`, `WAIT_RESET`, `CONFIGURE`, and `RUN`.
+`CommsApplication` uses a hierarchical F' state machine with the following states: `RESET`, `BEACON`, `STORED_PLAYBACK`, and `STANDARD_DOWNLINK`.
 
 ```
 RESET
-  entry: Signal to `SatStateMachine` to close and re-open connection to Endurosat Transceiver. Load RESET_WAIT_TICKs from PrmDb
+  entry: Log RESET event
 
-  on tick → WAIT_RESET
+  on tick → BEACON
 
-WAIT_RESET
-  on tick: Increment reset wait tick counter
-           if counter >= RESET_WAIT_TICKS → CONFIGURE
+BEACON
+  entry: Set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `SILENCED`. Set `downlinkMode` telemetry to be `BEACON`.
 
-CONFIGURE
-  entry: Set downlink mode to `BEACON`
+STORED_PLAYBACK
+  entry: Set [TBD]. Set `downlinkMode` telemetry to be `STORED_PLAYBACK`
 
-  on tick → RUN
+STANDARD_DOWNLINK
+  entry: set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `ON_CHANGE_MIN`. Set `downlinkMode` telemetry to be `STANDARD_DOWNLINK`.
 
-RUN
-   on `schedIn` tick (RateGroup1, 1 Hz): Publish CommsApplication telemetry
+
 ```
 
 Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions), [FPP substates](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#substates)
