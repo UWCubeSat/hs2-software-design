@@ -53,19 +53,19 @@ If the incoming mode matches the current mode, the handler returns immediately (
 
 During this mode, only SOH telemetry shall be transmitted. This mode is intended for the satellite to establish a connection with the ground station, particularly when detumbling or when outside of a communication window. In `Beacon` mode, the satellite shall only transmit a single SOH telemetry packet at 1Hz to ensure minimum power draw.
 
-This mode will set all packets, except SOH, in the `TLMPacketizer` to have a `RateLogic` of `SILENCED`. 
+This mode will set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `SILENCED`. 
 
 #### 3.2.2 `STANDARD_DOWNLINK` mode
 
 During this mode, all real-time telemetry shall be downlinked to the ground station at 1Hz.
 
-This mode will set all packets, except SOH, in the `TLMPacketizer` to have a `RateLogic` of `ON_CHANGE_MIN`. 
+This mode will set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `ON_CHANGE_MIN`. 
 
 #### 3.2.3 `STORED_PLAYBACK` mode
 
 During this mode, all stored telemetry, which includes payload experiment data, will be downlinked to the ground station. The priority in this mode is to downlink images and payload data captured during experiments. Stored telemetry will be downlinked at a rate of 5 Hz while real-time SOH telemetry will be downlinked at a rate of 1 Hz.
 
-This mode will set SOH telemetry in the `TLMPacketizer` to have a `RateLogic` of `EVERY_MAX` to ensure stored telemetry is given priority. The `StorageManager` will then forward all stored telemetry in its internal queue to the `ComQueue` for downlink.
+This mode will set SOH telemetry in the `TlmPacketizer` to have a `RateLogic` of `EVERY_MAX` to ensure stored telemetry is given priority. The `StorageManager` will then forward all stored telemetry in its internal queue to the `ComQueue` for downlink.
 
 ### 3.3 Ports
 
@@ -128,6 +128,6 @@ Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/doc
 - `STANDARD_DOWNLINK` and `STORED_PLAYBACK` require `AdcsApplication` to be in `AntennaPointing` mode. `SatStateMachine` is responsible for commanding both simultaneously via the translation table — `CommsApplication` does not check ADCS state directly.
 - `TmtcRadioManager` is instantiated at the top-level topology (shared with `ComCcsds` subtopology); `CommsApplication` connects to it via the top-level topology wiring.
 - Detailed high-gain link configuration and `TmtcRadioManager` interface to be defined during detailed design.
-- The `TLMPacketizer` component gives the `CommsApplication` capabilities to configure the rate at which certain packets are sent for the various operating modes.
+- The `TlmPacketizer` component gives the `CommsApplication` capabilities to configure the rate at which certain packets are sent for the various operating modes.
 - For downlinking event, there are two log files to maintain: The first is for the last [TBD] minutes of events (refreshed/overwritten every [TBD] / 2 minutes) and the other which stores the last [TBD] minutes of events after the most recent `FATAL` exception. Ground can send commands to the `Svc::FileDownlink` component to retrieve these logs files held in non-volatile memory.
 - The "Health" pings will be incoming from the `Svc::Health` component which will send WARN/FATAL events if a certain number of configurable ticks have elapsed before a `pingOut` is sent from the `CommsApplication` component.
