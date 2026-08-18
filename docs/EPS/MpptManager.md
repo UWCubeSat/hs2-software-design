@@ -6,7 +6,7 @@
 
 On each rate group tick in `RUN` state, `MpptManager` reads all relevant measurement, status, and flag registers over I2C (voltages, currents, charging status, charger/fault flags), assembles the data into a state struct, calls `EPSApplication`'s `batteryStateIn` port, and emits telemetry for the values it just read. If any abnormal charger/fault flag bit is set, it emits a `WARNING_HI` event.
 
-`MpptManager` receives register-access commands directly from ground via the command dispatcher — six commands split by register width (8- and 16-bit) and operation (verbatim write, set-bits, clear-bits). Each command performs the corresponding I2C transaction against the named register and emits a confirmation event.
+`MpptManager` receives register-access commands directly from ground via the command dispatcher — six commands split by register width and operation. Each command performs the corresponding I2C transaction against the named register and emits a confirmation event.
 
 ---
 
@@ -16,8 +16,8 @@ On each rate group tick in `RUN` state, `MpptManager` reads all relevant measure
 |----|-------------|--------------|
 | HS2-MIM-001 | MpptManager shall be the sole flight-software owner of the BQ25756 IC. | Inspection |
 | HS2-MIM-002 | MpptManager shall publish the BQ25756 measurement, charging status, and flag state on batteryStateOut each rate group tick. | Inspection |
-| HS2-MIM-003 | MpptManager shall perform the commanded register write, set-bits, or clear-bits transaction over I2C on receipt of a register-access command. | Inspection |
-| HS2-MIM-004 | MpptManager shall read the charger and fault flag registers each rate group tick and emit a WARNING_HI event when any abnormal flag bit is set. | Inspection |
+| HS2-MIM-003 | MpptManager shall perform the commanded register write, set, or clear transaction over I2C on receipt of a register-access command. | Inspection |
+| HS2-MIM-004 | MpptManager shall read the charger and fault flag registers each rate group tick and emit a WARNING_HI event when any abnormal status bit is set. | Inspection |
 | HS2-MIM-005 | MpptManager shall emit telemetry channels for vbatt, ibatt, vac, iac, and charging status. | Inspection |
 
 ---
@@ -54,7 +54,7 @@ Each command names its target register through a width-specific enum (`BQ25756Re
 | `MPPT_SET_REG16` | `regAddr: BQ25756Reg16`, `mask: U16` | Read-modify-write: `reg \|= mask` |
 | `MPPT_CLEAR_REG16` | `regAddr: BQ25756Reg16`, `mask: U16` | Read-modify-write: `reg &= ~mask` |
 
-On success each command emits an activity event carrying the operation, register, and the byte/halfword actually written (the post-modify value for set/clear-bits). On I2C failure it emits a `WARNING_HI` write-error event and returns an `EXECUTION_ERROR` command response.
+On success each command emits an activity event carrying the operation, register, and the byte/halfword actually written (the post-modify value for set/clear). On I2C failure it emits a `WARNING_HI` write-error event and returns an `EXECUTION_ERROR` command response.
 
 ### 3.4 Telemetry
 
@@ -95,9 +95,9 @@ RUN
            emit telemetry channels
            if any abnormal charger/fault flag bit is set → emit WARNING_HI flag event (throttled)
            if any busWriteRead error → log WARNING_HI (throttled) → RESET
-  on register-access command (MPPT_IC_WRITE_REG8 / MPPT_IC_SET_BITS_REG8 / MPPT_IC_CLEAR_BITS_REG8 /
-                              MPPT_IC_WRITE_REG16 / MPPT_IC_SET_BITS_REG16 / MPPT_IC_CLEAR_BITS_REG16):
-           perform the I2C write (read-modify-write for set/clear-bits)
+  on register-access command (MPPT_WRITE_REG8 / MPPT_SET_REG8 / MPPT_CLEAR_REG8 /
+                              MPPT_WRITE_REG16 / MPPT_SET_REG16 / MPPT_CLEAR_REG16):
+           perform the I2C write (read-modify-write for set/clear)
            emit register-written event, or WARNING_HI write-error event on I2C failure
 ```
 
@@ -115,4 +115,4 @@ Reference: [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/
 - `MpptManager` owns and publishes the periodic measurement telemetry (`VBATT_MV`, `IBATT_RAW`, `VAC_MV`, `IAC_RAW`, `CHARGING_STATE`). It still forwards the same values to `EPSApplication` on `batteryStateOut`; `EPSApplication` consumes them for `powerState` and may use them for more complex logic in the future.
 - The ADC must be enabled before measurement reads return real values; enabling it in `CONFIGURE` guarantees `RUN` reads are valid without an operator step.
 - The set of "abnormal" _FLAG bits that warrant a warning event is TBD pending a detailed pass over the BQ25756 datasheet fault/flag register definitions.
-- `BQ25756Reg8` / `BQ25756Reg16` enums enumerate all addressable registers by name and width; the `BQ25756RegOp` enum names the write/set-bits/clear-bits operation carried in the confirmation events.
+- `BQ25756Reg8` / `BQ25756Reg16` enums enumerate all addressable registers by name and width; the `BQ25756RegOp` enum names the write/set/clear operation carried in the confirmation events.
