@@ -6,7 +6,7 @@
 
 ---
 
-## 1.1 Definitions
+## 1.1 Terminology
 | Term | Definition |
 |------|------------|
 | Telemetry| Information that is downlinked to the HS-2 ground station including: F' events, images/files, and data packets |
@@ -123,9 +123,52 @@ Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/doc
 
 [TBD] on Telemetry Groups.
 
-## 6. Notes
+## 6. Communications Connections
+The following diagrams highlight the routes in which uplink/downlink data (packets, data products, and events) are handled within our design:
 
-- The `ComApplication` will be a part of another subtopology, titled [TBD], that also wrapps the `ComCCSDS` framing subtopology and the `TmtcRadioManager` component.
+---
+### 6.1 TmtcRadioManager Connections
+Beginning with the `TmtcRadioManager` (replacing `comStub` in the diagram), it will be responsible for delivering uplink/downlink data packets to/from the rest of the flight software.
+
+The `comDriver` is the Linux UART driver responsible for delivering the uplinked bytes from the S-Band Transceiver over serial, to the `TmtcRadioManager` through its `recv` port into the `drvReceiveIn` input port. The `TmtcRadioManager` component will send downlink bytes through its `drvSendOut` to the `comDriver`'s `send` port.
+
+![TmtcRadioManager Connections](./images/comStubConnections.png)
+
+---
+
+### 6.2 Uplinked Data Connection Route
+![ComStubFramerConnections](./images/ComStubFramerConnections.png)
+
+For uplinked data, after it has passed through the S-Band Transceiver and into the `TmtcRadioManager`, it is then passed to the `FrameAccumulator` component which is responsible for extracting full CCSDS TC Transfer Frames. The `TmtcRadioManager` will transmit these received frames over the `dataOut` port into the `frameAccumulator`'s `dataIn` port for it to handle.
+
+---
+
+![FCUplinkConnections](./images/FCUplinkConnections.png)
+
+Once the `frameAccumulator` has received enough data to recognize a frame, it is then passed to the `Svc::Ccsds::TcDeframer` for handling. The frame is passed from the `frameAccumulator`'s `dataOut` port into the `TcDeframer`'s `dataIn` port.
+
+Next, the `TcDeframer` will unwrap CCSDS Space Packets from the CCSDS TC frame. The unwrapped Space Packet is sent from the `dataOut` port into the `svc::Ccsds::SpacePacketDeframer`'s `dataIn` port. From here, the `SpacePacketDeframer` component extracts the uplinked data (command or file) after validating the packet. The extracted payload is sent out on the `dataOut` port and into the `Svc::FPrimeRouter`'s `dataIn` port.
+
+The `Svc::FPrimeRouter` supports two kinds of packets: `Fw::ComPacketType::FW_PACKET_COMMAND` and `Fw::ComPacketType::FW_PACKET_FILE`. Unknown packet types are forwarded on the `unknownDataOut` port.
+
+---
+
+![fprimeRouterToCmdDisp](./images/fprimeRouterToCmdDisp.png)
+
+Commands are sent from the `commandOut` port and to the `Svc::CmdDispatcher`'s `seqCmdBuff` input port.
+
+---
+
+![fprimeRouterToFileUplink](./images/fprimeRouterTofileUplink.png)
+
+Uplinked file packets are sent from the `fileOut` port to the `Svc::FileUplink`'s `bufferSendIn` input port for processing.
+
+---
+
+
+## 7. Notes
+
+- The `ComApplication` will be a part of another subtopology, titled [TBD], that also wraps the `ComCCSDS` framing subtopology and the `TmtcRadioManager` component.
 - `STANDARD_DOWNLINK` and `STORED_PLAYBACK` require `AdcsApplication` to be in `AntennaPointing` mode. `SatStateMachine` is responsible for commanding both simultaneously via the translation table — `ComApplication` does not check ADCS state directly.
 - `TmtcRadioManager` is instantiated at the top-level topology (shared with `ComCcsds` subtopology); `ComApplication` connects to it via the top-level topology wiring.
 - Detailed high-gain link configuration and `TmtcRadioManager` interface to be defined during detailed design.
