@@ -16,7 +16,7 @@
 | ID | Requirement | Verification |
 |----|-------------|--------------|
 | HS2-COM-001 | ComApplication shall activate `BEACON` downlink mode when commanded by `SatStateMachine` | Inspection |
-| HS2-COM-002 | ComApplication shall activate `STANDARD_DOWNLINK` downlink mode when commanded by `SatSatMachine` | Inspection |
+| HS2-COM-002 | ComApplication shall activate `STANDARD_DOWNLINK` downlink mode when commanded by `SatStateMachine` | Inspection |
 | HS2-COM-003 | ComApplication shall activate `STORED_PLAYBACK` downlink mode only when commanded | Inspection |
 | HS2-COM-004 | ComApplication shall respond to health ping within the required deadline | Inspection |
 | HS2-COM-005 | ComApplication shall enable the transmission of stored telemetry along with real-time telemetry when `STORED_PLAYBACK` downlink mode is activated | Inspection |
