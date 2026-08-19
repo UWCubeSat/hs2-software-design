@@ -74,7 +74,7 @@ stateDiagram-v2
 Actions:
 
 - **declare** — updates the cached `SMstate` member from the signal being handled, writes the `State` telemetry channel, and logs `StateChanged`. Also logs `SMsignalInvalid` if handed an unexpected/initial-transition signal.
-- **checkPowered** — calls `powerAllowed_out(0)`; if the answer is `Fw.On.ON`, signals `resetSuccess` (advancing to `CONFIGURE`). Otherwise does nothing and stays in `RESET` — the next `tick` will ask again.
+- **checkPowered** — calls `powerAllowed_out(0)`; if the response is `Fw.On.ON`, signals `resetSuccess` (advancing to `CONFIGURE`). Otherwise does nothing and stays in `RESET` — the next `tick` will ask again.
 - **preparePWM** — calls `pwmSetDutyCycleOut(0, 0)` to zero the output; if that fails, signals `PWMerror`, logs `PwmGeneralFailure`, and returns without attempting to set the period. Otherwise calls `pwmSetPeriodOut(0, PERIOD_NS)`; on failure, same `PWMerror`/`PwmGeneralFailure` response. On success, telemeters `DutyCycleNs`/`DutyPercent` as `0`.
 - **enablePWM** — calls `pwmEnableOut(0, HIGH)`. On failure, signals `PWMerror` and logs `PwmGeneralFailure`. Otherwise signals `configureSuccess`.
 - **bail** — calls `pwmEnableOut(0, LOW)`. If that write also fails, logs `PwmDisableFailed`.
