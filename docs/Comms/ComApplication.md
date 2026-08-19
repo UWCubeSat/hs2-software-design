@@ -86,6 +86,15 @@ Only the downlink mode in the `ComApplication` will be changing at run time.
 |-----------|------|-------------|
 | `RESET_WAIT_TICKS` | `U32` | Ticks to wait reconfiguring the UART connection between the `TmtcRadioManager` and the Endurosat Transceiver |
 
+### 3.5 ComApplication Telemetry
+The following telemetry will be used for the `ComApplication`:
+
+| Mnemonic | Type | Description |
+|----------|------|-------------|
+| `downlink_mode` | `Comms.Mode` | Downlink mode that will be set by `SatStateMachine`. Can be one of the following values: `BEACON`, `STORED_PLAYBACK`, `STANDARD_DOWNLINK` |
+
+---
+
 ## 4. State Machine
 
 `ComApplication` uses a hierarchical F' state machine with the following states: `RESET`, `BEACON`, `STORED_PLAYBACK`, and `STANDARD_DOWNLINK`. All states, aside from `RESET`, will only be commanded by the `SatStateMachine` as the `ComApplication` does not follow a traditional state-machine like a hardware-manager.
