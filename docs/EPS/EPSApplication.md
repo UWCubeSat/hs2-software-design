@@ -34,8 +34,8 @@ Active component. No hierarchical state machine — `EPSApplication` operates co
 | `schedIn` | Input | `Svc.Sched` | Rate group tick (1 Hz) |
 | `cmdIn` | Input | `Fw.Cmd` | Ground commands via CmdDispatcher |
 | `cmdResponseOut` | Output | `Fw.CmdResponse` | Command completion status |
-| `batteryStateIn` | Input | Custom struct port | Battery and IC state from MpptIcManager (vbatt, ibatt, vac, iac, charging status, charger/fault flags, MPPT state, temperature) |
-| `railStateIn` | Input | Custom struct port | Per-rail bus voltage and current from CurrentSensorManager (12 V, 5 V, 3.3 V) |
+| `batteryStateGet` | Output | Custom `sync_input` port returning batteryState struct | Battery and IC state from MpptIcManager (vbatt, ibatt, vac, iac, charging status, charger/fault flags, MPPT state, temperature) |
+| `railStateIn` | Output | Custom `sync_input` port returning railState struct | Per-rail bus voltage and current from CurrentSensorManager (12 V, 5 V, 3.3 V) |
 | `powerStateGet` | Input | Custom `sync_input` port returning powerState struct | Synchronous get invoked by SatStateMachine; returns the latest assembled powerState (vbatt, ibatt, MPPT status, fault flags, charging status, rail voltages/currents, temperature) |
 | `deploy` | Output | `Fw.Signal` | Trigger deployment sequence on DeployPanelsManager |
 | `pingIn` / `pingOut` | In/Out | `Svc.Ping` | Health monitoring |

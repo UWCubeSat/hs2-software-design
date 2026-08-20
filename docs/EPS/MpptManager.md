@@ -35,7 +35,7 @@ Queued component with internal flat F' state machine (`Fw::Sm`).
 | `schedIn` | Input | `Svc.Sched` | Rate group tick; drives the SM step (measurement read cycle in RUN) |
 | `busWrite` | Output | `Drv.I2c` | Write BQ25756 registers (reset, configure, register-access commands) |
 | `busWriteRead` | Output | `Drv.I2cWriteRead` | Write register pointer then read in one repeated-start transaction; all measurement, status, and flag reads |
-| `batteryStateOut` | Output | Custom struct port | Battery and IC state to EPSApplication (vbatt, ibatt, vac, iac, vfb, temperature, charging status, charger/fault flags, MPPT state) |
+| `batteryStateGet` | Input | Custom `sync_input` port returning batteryState struct | Battery and IC state (vbatt, ibatt, vac, iac, vfb, temperature, charging status, charger/fault flags, MPPT state) |
 | `cmdIn` | Input | `Fw.Cmd` | Register-access commands via CmdDispatcher |
 | `cmdResponseOut` | Output | `Fw.CmdResponse` | Command completion status |
 | `logOut` | Output | `Fw.Log` | Event logging |

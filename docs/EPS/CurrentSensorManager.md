@@ -33,7 +33,7 @@ Queued component with internal flat F' state machine (`Fw::Sm`).
 | `schedIn` | Input | `Svc.Sched` | Rate group tick; drives the SM step |
 | `busWrite` | Output | `Drv.I2c` | Write INA3221 registers (reset, configure) |
 | `busWriteRead` | Output | `Drv.I2cWriteRead` | Write register pointer then read in one repeated-start transaction; channel reads |
-| `railStateOut` | Output | Custom struct port | Per-rail bus voltage and current to EPSApplication each tick |
+| `railStateGet` | Input | Custom `sync_input` port returning railState struct | Per-rail bus voltage and current |
 | `cmdIn` | Input | `Fw.Cmd` | Register-access commands via CmdDispatcher |
 | `cmdResponseOut` | Output | `Fw.CmdResponse` | Command completion status |
 | `logOut` | Output | `Fw.Log` | Event logging (state transitions, I2C errors) |
