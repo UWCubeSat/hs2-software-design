@@ -142,6 +142,7 @@ The `comDriver` is the Linux UART driver responsible for delivering the uplinked
 For uplinked data, after it has passed through the S-Band Transceiver and into the `TmtcRadioManager`, it is then passed to the `FrameAccumulator` component which is responsible for extracting full CCSDS TC Transfer Frames. The `TmtcRadioManager` will transmit these received frames over the `dataOut` port into the `frameAccumulator`'s `dataIn` port for it to handle.
 
 ---
+<br>
 
 ![FCUplinkConnections](./images/FCUplinkConnections.png)
 
@@ -158,12 +159,25 @@ The `Svc::FPrimeRouter` supports two kinds of packets: `Fw::ComPacketType::FW_PA
 Commands are sent from the `commandOut` port and to the `Svc::CmdDispatcher`'s `seqCmdBuff` input port.
 
 ---
+<br>
 
 ![fprimeRouterToFileUplink](./images/fprimeRouterTofileUplink.png)
 
 Uplinked file packets are sent from the `fileOut` port to the `Svc::FileUplink`'s `bufferSendIn` input port for processing.
 
 ---
+
+### 6.3 Downlinked Data Connection Route
+The following diagrams detail the route of downlink data through the port topology of the communications components  
+
+---
+<br>
+
+![Events + TLM + ComQueue](./images/eventsTlmComQueue.png)
+
+Events are sent through the `Svc::EventManager`'s `PktSend` port as `ComBuffer` types into the `ComCCSDS::ComQueue`'s `comPacketQueueIn` port.
+
+Telemetry packets are sent from the `Svc::TlmPacketizer`'s `PktSend` output port into the `ComCCSDS::ComQueue`'s `comPacketQueueIn` port.
 
 
 ## 7. Notes
