@@ -137,12 +137,19 @@ The `comDriver` is the Linux UART driver responsible for delivering the uplinked
 ---
 
 ### 6.2 Uplinked Data Connection Route
+The following diagrams detail the route of downlink data through the port topology of the software subsystems.
+
+---
+
+#### 6.2.1 Receiving data from Transceiver
+The following diagrams outline the 
 ![ComStubFramerConnections](./images/ComStubFramerConnections.png)
 
 For uplinked data, after it has passed through the S-Band Transceiver and into the `TmtcRadioManager`, it is then passed to the `FrameAccumulator` component which is responsible for extracting full CCSDS TC Transfer Frames. The `TmtcRadioManager` will transmit these received frames over the `dataOut` port into the `frameAccumulator`'s `dataIn` port for it to handle.
 
 ---
-<br>
+
+#### 6.2.2 FrameAccumulator
 
 ![FCUplinkConnections](./images/FCUplinkConnections.png)
 
@@ -153,13 +160,14 @@ Next, the `TcDeframer` will unwrap CCSDS Space Packets from the CCSDS TC frame. 
 The `Svc::FPrimeRouter` supports two kinds of packets: `Fw::ComPacketType::FW_PACKET_COMMAND` and `Fw::ComPacketType::FW_PACKET_FILE`. Unknown packet types are forwarded on the `unknownDataOut` port.
 
 ---
+#### 6.2.3 Command Dispatching
 
 ![fprimeRouterToCmdDisp](./images/fprimeRouterToCmdDisp.png)
 
 Commands are sent from the `commandOut` port and to the `Svc::CmdDispatcher`'s `seqCmdBuff` input port.
 
 ---
-<br>
+#### 6.2.4 Uplinked Files
 
 ![fprimeRouterToFileUplink](./images/fprimeRouterTofileUplink.png)
 
@@ -168,10 +176,11 @@ Uplinked file packets are sent from the `fileOut` port to the `Svc::FileUplink`'
 ---
 
 ### 6.3 Downlinked Data Connection Route
-The following diagrams detail the route of downlink data through the port topology of the communications components  
+The following diagrams detail the route of downlink data through the port topology of the software subsystems.
 
 ---
-<br>
+
+#### 6.3.1 Events and Telemetry Packets
 
 ![Events + TLM + ComQueue](./images/eventsTlmComQueue.png)
 
@@ -179,12 +188,20 @@ Events are sent through the `Svc::EventManager`'s `PktSend` port as `ComBuffer` 
 
 Telemetry packets are sent from the `Svc::TlmPacketizer`'s `PktSend` output port into the `ComCCSDS::ComQueue`'s `comPacketQueueIn` port.
 
+---
+#### 6.3.2 Downlinked Files
+![Dp Catalog to File Downlink](./images/dpCatalogFileDownlink.png)
+
+The `Svc.DpCatalog` component is responsible for maintaining catalogues of generated data products (files) that can be built and downlinked upon command from the operators. Downlinked files are passed from the `fileOut` output port into the `Svc.FileDownlink`'s `SendFile` input port to be enqueued for downlink.
+
+---
+
+
 
 ## 7. Notes
 
 - The `ComApplication` will be a part of another subtopology, titled [TBD], that also wraps the `ComCCSDS` framing subtopology and the `TmtcRadioManager` component.
 - `STANDARD_DOWNLINK` and `STORED_PLAYBACK` require `AdcsApplication` to be in `AntennaPointing` mode. `SatStateMachine` is responsible for commanding both simultaneously via the translation table — `ComApplication` does not check ADCS state directly.
-- `TmtcRadioManager` is instantiated at the top-level topology (shared with `ComCcsds` subtopology); `ComApplication` connects to it via the top-level topology wiring.
 - Detailed high-gain link configuration and `TmtcRadioManager` interface to be defined during detailed design.
 - The `TlmPacketizer` component gives the `ComApplication` capabilities to configure the rate at which certain packets are sent for the various operating modes.
 - For downlinking event, there are two log files to maintain: The first is for the last [TBD] minutes of events (refreshed/overwritten every [TBD] / 2 minutes) and the other which stores the last [TBD] minutes of events after the most recent `FATAL` exception. Ground can send commands to the `Svc::FileDownlink` component to retrieve these logs files held in non-volatile memory.
