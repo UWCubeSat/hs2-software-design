@@ -106,7 +106,7 @@ The following telemetry will be used for the `ComApplication`:
 
 ```
 RESET
-  entry: Log RESET event
+  entry: Set all packets in `TlmPacketizer` to have a `RateLogic` of `SILENCED`. Set `downlinkMode` telemetry to `NO_DOWNLINK`.
 
 BEACON
   entry: Set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `SILENCED`. Set `downlinkMode` telemetry to be `BEACON`.
@@ -116,7 +116,6 @@ STORED_PLAYBACK
 
 STANDARD_DOWNLINK
   entry: set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `ON_CHANGE_MIN`. Set `downlinkMode` telemetry to be `STANDARD_DOWNLINK`.
-
 
 ```
 
@@ -133,11 +132,12 @@ The following diagrams highlight the routes in which uplink/downlink data (packe
 
 ---
 ### 6.1 TmtcRadioManager Connections
+
+![TmtcRadioManager Connections](./images/comStubConnections.png)
+
 Beginning with the `TmtcRadioManager` (replacing `comStub` in the diagram), it will be responsible for delivering uplink/downlink data packets to/from the rest of the flight software.
 
 The `comDriver` is the Linux UART driver responsible for delivering the uplinked bytes from the S-Band Transceiver over serial, to the `TmtcRadioManager` through its `recv` port into the `drvReceiveIn` input port. The `TmtcRadioManager` component will send downlink bytes through its `drvSendOut` to the `comDriver`'s `send` port.
-
-![TmtcRadioManager Connections](./images/comStubConnections.png)
 
 ---
 
@@ -189,9 +189,11 @@ The following diagrams detail the route of downlink data through the port topolo
 
 ![Events + TLM + ComQueue](./images/eventsTlmComQueue.png)
 
-Events are sent through the `Svc::EventManager`'s `PktSend` port as `ComBuffer` types into the `ComCCSDS::ComQueue`'s `comPacketQueueIn` port.
+The `Svc.ComQueue` maintains 3 different queues for downlink data; 2 queues for `Fw::ComBuffer`s (telemetry + events), 1 queue for `Fw::Buffer`s (file downlink).
 
-Telemetry packets are sent from the `Svc::TlmPacketizer`'s `PktSend` output port into the `ComCCSDS::ComQueue`'s `comPacketQueueIn` port.
+Events are sent through the `Svc::EventManager`'s `PktSend` port as `ComBuffer` types into the `ComCCSDS::ComQueue`'s `comPacketQueueIn` port for processing on the internal com queue.
+
+Telemetry packets are sent from the `Svc::TlmPacketizer`'s `PktSend` output port into the `ComCCSDS::ComQueue`'s `comPacketQueueIn` port for processing on the internal com queue.
 
 ---
 #### 6.3.2 Downlinked Files
@@ -199,9 +201,33 @@ Telemetry packets are sent from the `Svc::TlmPacketizer`'s `PktSend` output port
 
 The `Svc.DpCatalog` component is responsible for maintaining catalogues of generated data products (files) that can be built and downlinked upon command from the operators. Downlinked files are passed from the `fileOut` output port into the `Svc.FileDownlink`'s `SendFile` input port to be enqueued for downlink.
 
+![File Downlink to ComQueue](./images/fileDownlinkComQueue.png)
+
+The `Svc.FileDownlink` component forwards file packets from the `bufferSendOut` port to the `Svc.ComQueue`'s `bufferQueueIn` port to append the file packet to the `ComQueue`'s internal buffer queue.
+
 ---
 
+#### 6.3.4 Downlink Framing
+![Downlink Framing](./images/DownlinkFraming.png)
 
+The `Svc.ComQueue` component processes `Fw::ComPacket`s and `Fw::Buffer`s to downlink telemetry/events and files from its internal queues when it is in the `READY` state (no queued buffers and is ready for sending to the communication adapter) and when the `TmtcRadioManager` indicates it is ready for another packet through the `ComQueue.comStatusIn` input port.
+
+NOTE: The `TmtcRadioManager` must send `Fw::Success::SUCCESS` over the `comStatusOut` port to receive more data to transmit.
+
+The data sent out from the `ComQueues` `dataOut` port is first sent to the `Svc.SpacePacketFramer` which wraps the downlink data in the payload of a CCSDS Space Packet. From there, the data is sent on the `Svc.SpacePacketFramer`'s `dataOut` port to the `Svc.ComAggregator`'s `dataIn` port to aggregate data for a CCSDS TM Transfer frame. Once the internal buffer is full, it is forwarded from the `dataOut` port into the `Svc.TmFramer` component's `dataIn` port.
+
+---
+#### 6.3.5 TmtcRadioManager Downlink
+![ComStubFramerConnections](./images/ComStubFramerConnections.png)
+
+After the `Svc.TmFramer` wraps a CCSDS Space Packet into a CCSDS TM Transfer frame, the data is sent out of the `dataOut` port and into the `TmtcRadioManager`'s `dataIn` port.
+
+---
+<br>
+
+![TmtcRadioManager Connections](./images/comStubConnections.png)
+
+From here, the `TmtcRadioManager` component will send all downlink data (received from the `Svc.ComQueue`'s framing topology) through it's `drvSendOut` output port and into the `ComDriver`, which is a passive `LinuxUartDriver` component to be sent to the S-band transceiver for transmission.
 
 ## 7. Notes
 
