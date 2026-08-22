@@ -81,7 +81,7 @@ During this mode, nothing will be transmitted from the satellite. Refer to requi
 | `pingOut` | Output | `Svc.Ping` | Health monitoring ping response from component to `Svc::Health` |
 | `logOut` | Output | `Fw.Log` | Event logging |
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry (current mode) that will be used in SOH packets |
-| `configureGroupRate` | Input | `ConfigureGroupRate`| Configure rate at which certain telemetry sections are transmitted |
+| `configureGroupRate` | Output | `Svc.ConfigureGroupRate`| Configure rate at which certain telemetry sections are transmitted as per the `Svc.TlmPacketizer` component |
 ---
 
 ### 3.4 Parameters
