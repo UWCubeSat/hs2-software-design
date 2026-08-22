@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-`ComApplication` is the Layer 3 Active component for the Comms subtopology. It manages the EnduroSat S-band radio operating mode — switching between `BEACON` to transmit real-time SOH telemetry at 1Hz, `STANDARD_DOWNLINK` mode to transmit all real-time telemetry including payload experiment data, and `STORED_PLAYBACK` mode to downlink stored and real-time SOH telemetry concurrently.
+`ComApplication` is the Layer 3 Active component for the Comms subtopology. It manages the EnduroSat S-band radio operating mode — switching between `BEACON` to transmit real-time SOH telemetry at 1Hz, `STANDARD_DOWNLINK` mode to transmit all real-time telemetry including payload experiment data, `STORED_PLAYBACK` mode to downlink stored and real-time SOH telemetry concurrently, and `NO_DOWNLINK` to cease transmission upon command.
 
 ---
 
@@ -43,7 +43,7 @@ Mode enum (owned by this component's module):
 
 ```fpp
 module Comms {
-    enum Mode { BEACON, STANDARD_DOWNLINK, STORED_PLAYBACK }
+    enum Mode { BEACON, STANDARD_DOWNLINK, STORED_PLAYBACK, NO_DOWNLINK }
 }
 ```
 
@@ -67,6 +67,10 @@ During this mode, all stored telemetry, which includes payload experiment data, 
 
 This mode will set SOH telemetry in the `TlmPacketizer` to have a `RateLogic` of `EVERY_MAX` to ensure stored telemetry is given priority. The `Svc::DpCatalog` component can be used to downlink generated data products (such as images and stored telemetry) that exist within a specified set of directories.
 
+#### 3.2.4 `NO_DOWNLINK` mode
+
+During this mode, nothing will be transmitted from the satellite. Refer to requirement `UNP12-91` within the RVM.
+
 ### 3.3 Ports
 
 | Port | Direction | Type | Purpose |
@@ -77,6 +81,7 @@ This mode will set SOH telemetry in the `TlmPacketizer` to have a `RateLogic` of
 | `pingOut` | Output | `Svc.Ping` | Health monitoring ping response from component to `Svc::Health` |
 | `logOut` | Output | `Fw.Log` | Event logging |
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry (current mode) that will be used in SOH packets |
+| `configureGroupRate` | Input | `ConfigureGroupRate`| Configure rate at which certain telemetry sections are transmitted |
 ---
 
 ### 3.4 Parameters
