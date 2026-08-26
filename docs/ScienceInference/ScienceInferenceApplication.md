@@ -12,106 +12,81 @@ The component is driven by two synchronous input ports:
 - `schedIn` (`Svc.Sched`) — a rate-group tick. All manifest scanning and processing happens here.
 - `modeIn` (`Sat.ScienceModePort`, carrying `Science.Mode`) — mode commands from `SatStateMachine`. `Off` holds the component idle; `ProcessImages` starts the per-tick scanning loop.
 
-Ground configures **which algorithms run** via `SET_ALGORITHM`/`CLEAR_ALGORITHM`/
+**Commands**\
+Ground configures which algorithms run via `SET_ALGORITHM`/`CLEAR_ALGORITHM`/
 `CLEAR_SCIENCE_TOPOLOGY` commands, which set/clear slots of an internal `Science.AlgorithmTopology`
 (defined in `FlightComputer/Types/Science/ScienceApplicationTypes.fpp` — a fixed-size array of up
-to 10 `Science.Algorithm` entries). Each `Algorithm` names the algorithm, the external-disk path
-to its executable, and a `Science.ImageType` value: `inputImage`, the image type it reads *and
-writes* — **an algorithm's output is always the same image type as its input; there is no
-separate output-type field.** There is no storage component or port to query for the next image —
-ScienceApplication reads the image partition and its manifest on disk directly via
-`Os::Directory`/`Os::File`/`Os::FileSystem`. The partition root is `imagePartitionDir` (defaults
-to the `IMAGE_PARTITION_DIR` constant, `/mnt/science_images`; public so unit tests/demos can point
-it at a scratch directory instead of a real mount point).
+to 10 `Science.Algorithm` entries). 
 
-**The partition holds two things: a manifest, and one subdirectory per `Science.ImageType` raw
-value.** `<imagePartitionDir>/experiments.csv` logs imaging opportunities — one line per
-opportunity, `#`-prefixed lines are comments/header and skipped — with columns `time, date,
-positionKnown, position, attitude, availableImageTypes` (`time` as `HH:MM:SS`, `date` as
-`DD:MM:YYYY`, `availableImageTypes` a `U16` bitmask where bit *n* means `Science.ImageType` raw
-value *n* is available for that opportunity). `<imagePartitionDir>/1/` holds `STARS` images,
-`<imagePartitionDir>/2/` holds `HORIZON` images, etc. An algorithm reads and overwrites its image
-**in place** at `<imagePartitionDir>/<inputImage>/<fileName>`, where `fileName` is derived from
-the experiment's `time`/`date` (`:` replaced with `-`, the two fields joined with `_` — e.g.
-`time=10:00:00, date=01:01:2026` → `10-00-00_01-01-2026`, no extension) and shared by every
-algorithm in the chain. Ground chains algorithms together by configuring successive topology slots
-with the *same* `inputImage`: they process that one file, one after another, in slot order — slot
-order doesn't affect which image type is used (that's fixed per algorithm), but it *does* set
-execution order, which is what makes chaining meaningful. Before running, the algorithm's current
-image content is preserved in `processed/` (see `processImage` below) — this happens on every run,
-not just the first, so each algorithm's own `processed/` snapshot reflects exactly what it read,
-even if an earlier algorithm in the same chain already overwrote the file once.
+**File system**\
+The partition holds two things: a manifest, and one subdirectory per `Science.ImageType` integer value. `<imagePartitionDir>/experiments.csv` logs imaging opportunities.
 
-**The satellite has two cameras, LOST and FOUND, and an algorithm's image file carries a
-`"L_"`/`"F_"` filename prefix identifying which one captured it** — e.g.
-`<imagePartitionDir>/<inputImage>/L_10-00-00_01-01-2026`. Each `Algorithm` has a `camera:
-Science.Camera` field (`ANY`/`LOST`/`FOUND`) that's *optional*: `LOST`/`FOUND` require that exact
-prefixed file to exist (a missing one fails the same way any other missing image would — see
-`MarkProcessedFailed`), while the default, `ANY`, means "whichever is actually there" —
-ScienceApplication probes for `"L_"` first, then `"F_"`, falling back to an unprefixed path (a
-camera-agnostic image, e.g. a test fixture predating camera-awareness) if neither exists. The
-resolved prefix applies to *both* the image path and its `processed/` backup, so two algorithms
-in the same chain that specify different concrete cameras never collide on the same file. See
-`resolveCameraPrefix` below.
+Each imaging opportunity has:
 
-**Every algorithm also has its own `results/` subdirectory for raw (not necessarily image) data
+- `time` as `HH:MM:SS`, 
+-  `date` as `DD:MM:YYYY`, 
+-  `positionKnown` as `bool`,
+-  `position` as `x:y:z`
+-  `attidue` as `x:y:z:w` (quaternion),
+-  `availableImageTypes` a `U16` bitmask representing `Science.ImageType` 
+
+`<imagePartitionDir>/1/` holds `STARS` images,
+`<imagePartitionDir>/2/` holds `HORIZON` images, etc.\
+`fileName` is derived from
+the experiment's `time`/`date` e.g.
+`time=10:00:00, date=01:01:2026` → `10-00-00_01-01-2026`
+
+Before running, the algorithm's current
+image content is preserved in `processed/` (i haven't figured out deleting yet but i'll do that soon)\
+The satellite has two cameras, LOST and FOUND, and an algorithm's image file carries a
+`"L_"`/`"F_"` filename prefix identifying which one captured it — e.g.
+`<imagePartitionDir>/<inputImage>/L_10-00-00_01-01-2026`\
+Every algorithm also has its own `results/` subdirectory for raw (not necessarily image) data
 hand-off to later configured algorithms** — `<imagePartitionDir>/<inputImage>/results/<fileName>`
-for an algorithm with a real image, or `<imagePartitionDir>/results/<fileName>` for one with
-`inputImage=NONE` (no image identity at all, so no `Science.ImageType` directory to anchor to).
-This is independent of, and in addition to, the image file: it's the *only* way an
-`inputImage=NONE` algorithm receives or produces anything, and it's also available to ordinary
-image-processing algorithms that want to pass along something that isn't itself an image (e.g.
-`average_color_cli`'s computed RGB triple).
+for an algorithm with an image, or `<imagePartitionDir>/results/<fileName>` for one with
+`inputImage=NONE`.
 
-**Which results an algorithm actually receives is decided by a separate "input type" negotiation,
-unrelated to `Science.ImageType`.** Each `Algorithm` has `outputTypes: U32` (a bitmask declaring
-which input-type bits its own results represent) and `requiredInputCombinations: [8] U32` (a
+Each `Algorithm` has `outputTypes: U32`, a bitmask declaring
+which input-type bits its own results represent. There is also `requiredInputCombinations: [8] U32`, which is a
 ranked list — index 0 most preferred — of bitmask *combinations* it can work with; an all-zero
-entry is a stop code, and at index 0 means "needs nothing"). "Input type" bit numbering has no FPP
-enum of its own for bits beyond the five below — it's purely an application-level convention
-documented here: bit 5 might mean "some algorithm-specific thing," and so on, however ground and
-the algorithm authors agree to number them from there. Bits 0-4, though, *are* predefined (backed
-by `Science.InputType`, added purely for readability — the runtime representation is still just a
-`U32` bitmask, `1 << InputType raw value`): `TIME`(0), `DATE`(1), `POSITION`(2),
-`SATELLITE_ATTITUDE`(3), `CAMERA_ATTITUDE`(4). Before running each algorithm, ScienceApplication
-ORs together every *earlier* configured algorithm's `outputTypes` **plus whichever of these five
-bits it can derive directly from the matched experiments.csv row** (`fallbackAvailableTypes` —
-see below) and walks the current algorithm's `requiredInputCombinations` for the first entry
-that's fully covered by that OR — the first (most preferred) satisfiable combination wins, so if
-a producer can serve multiple consumers' preferences, whichever combination the consumer ranks
-highest is what gets used. For every bit in the winning combination, ScienceApplication walks
-*backward* through the topology for the most recent earlier algorithm whose `outputTypes` has
-that bit — not necessarily the immediately preceding one — so an algorithm needing (say) both
-position and attitude gets both, from whichever earlier algorithms most recently produced each,
-even across several intervening algorithms that produced neither; **if no earlier algorithm
-supplies one of the five predefined bits, ScienceApplication falls back to writing that bit's
-value straight from the experiments.csv row** (`writeFallbackValue`) rather than treating it as
-missing. Those gathered (or synthesized) results paths are written to a manifest file and handed
-to the algorithm; if no combination is satisfiable, `NoMatchingInputCombination` is logged and the
-algorithm is **not** run — the whole experiment is left in `experiments.csv` for a later tick's
-retry, same as any other algorithm failure in the chain. See
-`resolveInputCombination`/`writeInputManifest` below for the mechanics.
+entry is a stop code, and at index 0 means "needs nothing". 
+
+Input/output types can be arbitrary, but bits 0-4 are predefined: `TIME`(0), `DATE`(1), `POSITION`(2),
+`SATELLITE_ATTITUDE`(3), `CAMERA_ATTITUDE`(4). Before running *any* algorithm in the chain,
+ScienceApplication checks every configured algorithm's `requiredInputCombinations` against the
+matched experiment: for each slot, it ORs together every earlier configured algorithm's
+`outputTypes`, and if any of the predefined bits aren't available from that, they're pulled from
+the manifest's truth measure data. The first applicable `requiredInputCombinations` is used. For
+every bit in the winning combination, ScienceApplication walks backward through the topology for
+the most recent earlier algorithm whose `outputTypes` has that bit.
+
+If some slot's combination isn't satisfiable, ScienceApplication asks one more question: would it
+have been satisfiable if `POSITION` were known? If yes, this is just the matched experiment's
+manifest row not knowing its position yet — not a defect in how the topology's wired — so nothing
+is logged, the experiment is simply left in `experiments.csv` for a later tick's retry (maybe a
+different experiment, or an earlier algorithm, supplies `POSITION` next time), and *no* algorithm
+in the chain runs this tick. If no, the combination can never be satisfied by this topology
+regardless of which experiment comes up — a standing defect in how ground configured it —
+`NoMatchingInputCombination` is logged once and a `topologyInvalid` flag is latched, which blocks
+*all* further scanning until ground touches the topology again (`SET_ALGORITHM`/
+`SET_ALGORITHM_PRESET`/`CLEAR_ALGORITHM`/`CLEAR_SCIENCE_TOPOLOGY` all clear it). Either way, this
+whole check happens before any algorithm actually runs, so a chain that's doomed to fail on a
+later slot never gets to run its earlier, possibly non-idempotent stages first.
 
 `TIME`/`DATE`/`SATELLITE_ATTITUDE` fall back to their experiments.csv field text verbatim;
-`POSITION` only if that row's `positionKnown` is true. `CAMERA_ATTITUDE` is different: there's no
-"camera attitude" column in experiments.csv at all, so it's *computed* — the row's satellite
-attitude quaternion (`SATELLITE_ATTITUDE`'s field, parsed as `"x:y:z:w"`) composed (Hamilton
-product) with the *requesting algorithm's own resolved camera*'s constant mounting-orientation
-quaternion (`LOST_CAMERA_ORIENTATION`/`FOUND_CAMERA_ORIENTATION`, defined in
-`FlightComputer/Types/Science/CameraOrientations.hpp` — plain C++, since FPP `constant` only
-accepts scalar expressions, not a struct-typed quaternion). This only makes sense for an algorithm
-that itself has a real image and a concretely resolved camera (`LOST`/`FOUND`, whether explicitly
-configured or resolved from `ANY` — see above); an `inputImage=NONE` algorithm has no camera
-context of its own, so `CAMERA_ATTITUDE`'s fallback is never available to it (though it could
-still come from an earlier algorithm's `outputTypes`, same as any other bit).
+`POSITION` only if that row's `positionKnown` is true. `CAMERA_ATTITUDE` is computed using satellite attitude and
+the camera's quaternion (stored as a const for now, but maybe we let scope override?). If an algorithm doesn't have
+an associated camera, it can `CAMERA_ATTITUDE` can only be obtained from a previous algorithm.
 
 On each tick while in `ProcessImages` mode, the component walks the configured topology slots in
 order (an empty `name` marks the end of the configured list — slots are meant to be packed with
 no gaps) to compute the bitwise-OR of every configured algorithm's `1 << inputImage` (skipping
 algorithms whose `inputImage` is `NONE` — they need no manifest image at all). It then scans
 `experiments.csv` top to bottom for the first line whose `availableImageTypes` bitmask has every
-one of those bits set (logging `NoExperimentReady` if none is found), and — if one is found — runs
-**every configured algorithm, in slot order, against that one experiment, all within the same
+one of those bits set (logging `NoExperimentReady` if none is found). If one is found, every
+configured algorithm's `requiredInputCombinations` is checked against it (see above) *before*
+running anything; only once the whole chain resolves does it actually run — **every configured
+algorithm, in slot order, against that one experiment, all within the same
 tick**: each algorithm's input image (if any) is expected to already exist (either logged as
 available at that opportunity, or produced by an earlier algorithm sharing the same `inputImage`
 in the same chain within the same tick) under that shared directory. "Running" an algorithm means
@@ -119,7 +94,9 @@ launching `algorithm.path` as an external process (`posix_spawn`, not `fork`+`ex
 shell — see Design below) with its image/results paths as arguments, and interpreting its exit
 code. On each algorithm's success, its pre-run image content is preserved in `processed/` (see
 above); if flagged, `compressRequestOut` is called with the image's path. If any algorithm in the
-chain fails, the whole experiment is abandoned for this tick — no manifest rewrite happens, so
+chain fails at this point — always a `processed/`-backup or `runAlgorithm` failure now, never an
+input-combination mismatch, since that was already ruled out before the chain started — the whole
+experiment is abandoned for this tick — no manifest rewrite happens, so
 it's retried (from the start of the chain) on a later tick. Once every configured algorithm has
 succeeded, the experiment's manifest line is removed from `experiments.csv` and appended to
 `completeExperiments.csv`, tagged with a bracketed, colon-separated list of which algorithms ran
@@ -149,7 +126,7 @@ backlog size.
 | HS2-SIA-013 | While `Off`, or while no algorithm topology slot is configured, ScienceApplication shall scan `experiments.csv` and process no images | Unit test |
 | HS2-SIA-014 | Once every configured algorithm has succeeded against an experiment, ScienceApplication shall move that experiment's manifest line from `experiments.csv` to `completeExperiments.csv`, tagged with the ordered list of algorithms that ran | Unit test |
 | HS2-SIA-015 | ScienceApplication shall emit a low-severity warning and skip (without aborting the scan) any non-comment `experiments.csv` line it cannot parse | Unit test (not yet covered — see Open Items) |
-| HS2-SIA-016 | ScienceApplication shall pick, for each algorithm, the most-preferred `requiredInputCombinations` entry that's fully covered by the OR of every earlier configured algorithm's `outputTypes`, and emit `NoMatchingInputCombination` and skip running the algorithm (leaving the experiment for a later tick's retry) if none is satisfiable | Unit test |
+| HS2-SIA-016 | ScienceApplication shall check every configured algorithm's `requiredInputCombinations` against the matched experiment *before running any algorithm in the chain*, picking for each the most-preferred entry fully covered by the OR of every earlier configured algorithm's `outputTypes` (plus experiments.csv fallback data) | Unit test |
 | HS2-SIA-017 | For each bit in the chosen combination, ScienceApplication shall gather results from the *most recent* earlier configured algorithm whose `outputTypes` provides that bit — which may be several slots back, not just the immediately preceding one — and pass all gathered paths to the algorithm | Unit test |
 | HS2-SIA-018 | An algorithm whose `inputImage` is `NONE` shall not require any `experiments.csv` image type to be available, and shall receive no image path at all - only the incoming-results-manifest and outgoing-results paths | Unit test |
 | HS2-SIA-019 | An algorithm with a concretely-configured `camera` (`LOST`/`FOUND`) shall read/write only that camera's `"L_"`/`"F_"`-prefixed image file, never a coexisting file with a different or no prefix | Unit test |
@@ -157,6 +134,8 @@ backlog size.
 | HS2-SIA-021 | If no earlier configured algorithm's `outputTypes` supplies a `TIME`/`DATE`/`POSITION`/`SATELLITE_ATTITUDE` bit an algorithm requires, ScienceApplication shall derive it directly from the matched experiments.csv row (`POSITION` only if `positionKnown`) rather than treating the combination as unsatisfiable | Unit test |
 | HS2-SIA-022 | If no earlier configured algorithm's `outputTypes` supplies the `CAMERA_ATTITUDE` bit an algorithm requires, and that algorithm has a real image with a concretely resolved camera, ScienceApplication shall derive it by composing the matched row's satellite attitude with that camera's constant mounting-orientation quaternion | Unit test |
 | HS2-SIA-023 | `SET_ALGORITHM_PRESET` shall configure the named slot with the selected preset's identity fields (`name`/`path`/`supportsOutputSelection`/`requiredInputCombinations`/`outputTypes`/`chosenOutput`) plus the command's own `inputImage`/`camera` arguments, applying the same index range check as `SET_ALGORITHM` | Unit test |
+| HS2-SIA-024 | If a configured algorithm's `requiredInputCombinations` can never be satisfied — not even with `POSITION` assumed known — ScienceApplication shall emit `NoMatchingInputCombination`, set a persistent `topologyInvalid` flag, and perform no further `experiments.csv` scanning until ground reconfigures the topology via `SET_ALGORITHM`/`SET_ALGORITHM_PRESET`/`CLEAR_ALGORITHM`/`CLEAR_SCIENCE_TOPOLOGY` (each of which clears the flag) | Unit test (not yet covered — see Open Items) |
+| HS2-SIA-025 | If a configured algorithm's `requiredInputCombinations` would be satisfied with a known `POSITION`, but the matched experiment's row doesn't have one, ScienceApplication shall leave the experiment in `experiments.csv` for a later tick's retry without setting `topologyInvalid` or emitting `NoMatchingInputCombination` | Unit test (not yet covered — see Open Items) |
 
 ## Design
 
@@ -235,9 +214,89 @@ and to guard against a future entry action being added unsafely.)
 `modeIn_handler` logs `StateChanged` for every mode command it receives (not just ones that
 change state) and forwards `activate`/`deactivate` to the state machine.
 
+```mermaid
+flowchart TD
+    tick(["schedIn tick"]) --> topoCheck{"topologyInvalid?"}
+    topoCheck -->|"yes"| idle(["no-op"])
+    topoCheck -->|"no"| mode{"state?"}
+    mode -->|"INIT / OFF"| idle
+    mode -->|"PROCESS_IMAGES"| build["buildNeededImageMask:
+    OR (1 << inputImage) over
+    configured slots"]
+
+    build --> anyAlgo{"any slot
+    configured?"}
+    anyAlgo -->|"no"| idle
+    anyAlgo -->|"yes"| find["findReadyExperiment:
+    scan experiments.csv top-to-bottom"]
+
+    find --> ready{"line found whose
+    availableImageTypes
+    covers the mask?"}
+    ready -->|"no"| logNone["log NoExperimentReady"] --> idle
+    ready -->|"yes"| checkAll["checkAllInputCombinations:
+    resolveInputCombination for every
+    configured slot - nothing runs yet"]
+
+    checkAll --> allOk{"every slot
+    resolves?"}
+    allOk -->|"yes"| chainStart(["processImage, per configured
+    algorithm, in slot order"])
+    allOk -->|"no, at some slot"| wouldPosFix{"would that slot resolve
+    with POSITION assumed
+    available?"}
+
+    wouldPosFix -->|"yes: this experiment's row
+    just lacks a known position"| retryLater(["leave experiments.csv untouched;
+    retry on a later tick -
+    topologyInvalid NOT set"]) --> idle
+    wouldPosFix -->|"no: unsatisfiable
+    regardless of experiment"| logCombo["log NoMatchingInputCombination"] --> setInvalid["topologyInvalid = true"] --> idle
+
+    chainStart --> hasImg{"inputImage
+    == NONE?"}
+    hasImg -->|"no"| backup["resolveCameraPrefix +
+    back up to processed/"]
+    backup --> backupOk{"backup
+    succeeded?"}
+    backupOk -->|"no"| failBackup["log MarkProcessedFailed"]
+    backupOk -->|"yes"| manifest
+    hasImg -->|"yes"| manifest["writeInputManifest
+    (combination already resolved
+    by checkAllInputCombinations)"]
+
+    manifest --> run["runAlgorithm:
+    posix_spawn(algorithm.path, ...),
+    wait for exit code"]
+
+    run --> exitCode{"exit code"}
+    exitCode -->|"0"| ok["ImagesProcessed++
+    log ImageProcessed"]
+    exitCode -->|"2"| flagged["ImagesProcessed++
+    log ImageProcessed
+    compressRequestOut"]
+    exitCode -->|"other / spawn failed"| failRun["ImagesFailed++
+    log ProcessingFailed"]
+
+    ok --> nextAlgo{"more algorithms
+    in chain?"}
+    flagged --> nextAlgo
+    nextAlgo -->|"yes"| chainStart
+    nextAlgo -->|"no"| complete["completeExperiment:
+    move line to completeExperiments.csv"]
+    complete --> done["ExperimentsCompleted++
+    log ExperimentCompleted"] --> idle
+
+    failBackup --> abandon(["abandon experiment this tick:
+    experiments.csv left untouched,
+    whole chain retried on a later tick"])
+    failRun --> abandon
+    abandon --> idle
+```
+
 Action:
 
-- **runNextAvailableExperiment** — calls `buildNeededImageMask` to OR together `1 << inputImage` for every configured algorithm with a real (non-`NONE`) `inputImage` (stopping at the first slot with an empty `name`); if nothing is configured, returns immediately. Calls `findReadyExperiment` to scan `experiments.csv` for the first non-comment line whose `availableImageTypes` covers that mask; if none is found, logs `NoExperimentReady` and returns. Otherwise runs `processImage` for each configured algorithm in slot order (passing its slot index, so it can look at earlier slots for input-combination resolution), stopping at the first failure (leaving `experiments.csv` untouched, so the whole chain retries from the start on a later tick). If every algorithm succeeds, builds the ordered `algo1:algo2:...` list and calls `completeExperiment`, then increments/telemeters `ExperimentsCompleted` and logs `ExperimentCompleted`. (Named for what it does rather than the original `processNextImage`, which predates the experiments.csv/multi-algorithm-per-tick design.)
+- **runNextAvailableExperiment** — returns immediately, doing nothing, if `topologyInvalid` is already set (see `checkAllInputCombinations` below) — ground must reconfigure the topology before anything is attempted again. Otherwise calls `buildNeededImageMask` to OR together `1 << inputImage` for every configured algorithm with a real (non-`NONE`) `inputImage` (stopping at the first slot with an empty `name`); if nothing is configured, returns immediately. Calls `findReadyExperiment` to scan `experiments.csv` for the first non-comment line whose `availableImageTypes` covers that mask; if none is found, logs `NoExperimentReady` and returns. Calls `checkAllInputCombinations` to validate every configured algorithm's `requiredInputCombinations` against the matched experiment *before running anything*; if it returns `false` (either a per-experiment retry, or a newly-latched `topologyInvalid`), returns without touching `experiments.csv` or running any algorithm. Otherwise runs `processImage` for each configured algorithm in slot order (passing its slot index, so it can look at earlier slots for input-combination resolution), stopping at the first failure (leaving `experiments.csv` untouched, so the whole chain retries from the start on a later tick) — a failure here is always a `processed/`-backup or `runAlgorithm` failure, never an input-combination mismatch, since `checkAllInputCombinations` already ruled that out. If every algorithm succeeds, builds the ordered `algo1:algo2:...` list and calls `completeExperiment`, then increments/telemeters `ExperimentsCompleted` and logs `ExperimentCompleted`. (Named for what it does rather than the original `processNextImage`, which predates the experiments.csv/multi-algorithm-per-tick design.)
 
 `SET_ALGORITHM`/`SET_ALGORITHM_PRESET` share a private helper:
 
@@ -257,12 +316,13 @@ Helpers (not state machine actions, called from `runNextAvailableExperiment`):
 - **findReadyExperiment** — reads the whole `experiments.csv` file into a fixed-size stack buffer (bounded by `MAX_EXPERIMENTS_FILE_SIZE`), then hand-parses it line by line (no line-based text I/O utility exists elsewhere in this codebase): skips `#`-prefixed lines, extracts the `time`/`date`/`availableImageTypes` fields of each candidate via a small comma-field-extraction helper (logging `MalformedExperimentLine` and skipping any non-comment line that doesn't parse), and returns the first line whose mask satisfies `(availableImageTypes & neededMask) == neededMask`, along with the raw matched line text (for `completeExperiment`) and the derived shared filename.
 - **completeExperiment** — rewrites `experiments.csv` with the matched line's exact byte range omitted (opened with `Os::File::Mode::OPEN_CREATE` **and** `OverwriteType::OVERWRITE` — the 2-arg `open()` overload defaults to `NO_OVERWRITE`, which would silently fail to truncate a file that already exists), then appends the matched line plus `, [algorithmList]` to `completeExperiments.csv` (`OPEN_APPEND`, which creates the file if missing).
 - **resolveCameraPrefix(stageDir, fileName, configuredCamera, resolvedCamera)** — a free function (not a member; needs no component state), called from `processImage` for any algorithm with a real image. `LOST`/`FOUND` return their fixed prefix (`"L_"`/`"F_"`) directly, setting `resolvedCamera` to match. `ANY` probes the filesystem: `Os::FileSystem::exists` on the `"L_"`-prefixed path, then the `"F_"`-prefixed one, returning the first prefix found; if neither exists, returns an empty prefix and `resolvedCamera = ANY` (an unresolved camera) — the caller then proceeds with an unprefixed path exactly as before camera-awareness existed (e.g. for a test fixture or other camera-agnostic image), rather than failing outright. A concretely-configured camera does *not* probe for existence — if that exact prefixed file is missing, the existing `MarkProcessedFailed` path (the subsequent `copyFile` failing) reports it, same as any other missing image.
-- **resolveInputCombination(slotIndex, matchedLine, resolvedCamera, chosenCombination)** — ORs together `outputTypes` from every slot before `slotIndex`, plus `fallbackAvailableTypes(matchedLine, resolvedCamera)` (see below), into `availableTypes`, then walks `algorithms[slotIndex].requiredInputCombinations` from index 0 for the first entry fully covered by `availableTypes` (`(combination & availableTypes) == combination`). An all-zero entry is the stop code: at index 0 it means "no requirements" (returns `true` with `chosenCombination = 0`); reached after some non-zero entries means none of them matched (returns `false`). Since combinations are tried in preference order and the first satisfiable one wins, this is also how "the option the algorithm prefers most, among what's actually available" gets chosen — there's no separate producer-side selection step.
+- **checkAllInputCombinations(numConfigured, fileName, matchedLine)** — called by `runNextAvailableExperiment` once an experiment is matched, *before any algorithm in the chain runs*. Walks slots `0..numConfigured-1`, resolving each one's camera the same way `processImage` will (via `resolveCameraPrefix` — a pure filesystem probe, no side effects) and calling `resolveInputCombination` on it. At the first slot that doesn't resolve, it's checked a second time with `assumePositionAvailable=true`: if that succeeds, this experiment's manifest row simply doesn't have a known position yet — not a topology defect — so this returns `false` *without* touching `topologyInvalid`, leaving the experiment for a later tick's retry. If it still doesn't resolve even with `POSITION` assumed available, the topology can never satisfy this slot regardless of which experiment comes up next — a standing defect in how ground configured it — so `NoMatchingInputCombination` is logged, `topologyInvalid` is set, and this returns `false`. Returns `true` only once every configured slot resolves, at which point `runNextAvailableExperiment` goes on to actually run the chain.
+- **resolveInputCombination(slotIndex, matchedLine, resolvedCamera, chosenCombination, assumePositionAvailable=false)** — ORs together `outputTypes` from every slot before `slotIndex`, plus `fallbackAvailableTypes(matchedLine, resolvedCamera)` (see below) — and, if `assumePositionAvailable`, the `POSITION` bit regardless of what the row actually says — into `availableTypes`, then walks `algorithms[slotIndex].requiredInputCombinations` from index 0 for the first entry fully covered by `availableTypes` (`(combination & availableTypes) == combination`). An all-zero entry is the stop code: at index 0 it means "no requirements" (returns `true` with `chosenCombination = 0`); reached after some non-zero entries means none of them matched (returns `false`). Since combinations are tried in preference order and the first satisfiable one wins, this is also how "the option the algorithm prefers most, among what's actually available" gets chosen — there's no separate producer-side selection step. `assumePositionAvailable` exists solely so `checkAllInputCombinations` can tell a genuine topology defect apart from an experiment that just doesn't have a known position yet; every other caller (`processImage`) uses the default (`false`).
 - **fallbackAvailableTypes(matchedLine, resolvedCamera)** — determines which of the five predefined `InputType` bits are derivable straight from the matched experiments.csv row, without needing any earlier configured algorithm: `TIME`/`DATE` if their fields are non-empty; `POSITION` only if `positionKnown` parses `true`/`1` *and* the position field is non-empty; `SATELLITE_ATTITUDE` if the attitude field parses as a `"x:y:z:w"` quaternion; `CAMERA_ATTITUDE` only if `SATELLITE_ATTITUDE` is available *and* `resolvedCamera` is a concrete `LOST`/`FOUND` (it's meaningless without a camera to compose against — see the Introduction).
 - **resultsDirFor(slotIndex, resultsDir)** — computes `"<imagePartitionDir>/<algorithms[slotIndex].inputImage>/results"` if that slot has a real (non-`NONE`) `inputImage`, else `"<imagePartitionDir>/results"` — there's no per-`ImageType` directory to anchor a `NONE`-input algorithm's results to. Used by `processImage` (for a slot's own outgoing results), `writeInputManifest` (for a supplier slot's results), and `writeFallbackValue` (for a synthesized fallback value file), so the formula lives in exactly one place.
 - **writeFallbackValue(slotIndex, fileName, bit, matchedLine, resolvedCamera, valuePath)** — writes one predefined `InputType` bit's fallback value to a small text file at `"<resultsDirFor(slotIndex)>/<fileName>.fallback<bit>"`, returning that path in `valuePath`. `TIME`/`DATE`/`POSITION`/`SATELLITE_ATTITUDE` are written verbatim from their experiments.csv field text (re-checked the same way as `fallbackAvailableTypes`, so a caller that only checked availability via that function can rely on this one succeeding). `CAMERA_ATTITUDE` parses the attitude field into a `Quaternion`, composes it (Hamilton product, via `Science::compose`) with `resolvedCamera`'s constant orientation, and formats the result back to `"x:y:z:w"` text. Returns `false` for any other bit, or if the value genuinely isn't available (mirrors `fallbackAvailableTypes` exactly, so the two never disagree). The manifest-line format is unchanged by this — it still just points at a file to read, so no CLI needed updating for this feature.
 - **writeInputManifest(slotIndex, fileName, chosenCombination, matchedLine, resolvedCamera, manifestPath)** — for each bit set in `chosenCombination` (0 through 31), scans slots `slotIndex - 1` down to `0` for the most recent one whose `outputTypes` has that bit, calls `resultsDirFor` on *that* slot to recompute its results path, and appends a `"<bit> <path>"` line to a manifest file written under `resultsDirFor(slotIndex)`. If no earlier algorithm supplies a bit, falls back to `writeFallbackValue` before giving up on that bit entirely (silently omitting it from the manifest if even the fallback fails — which shouldn't happen, since `resolveInputCombination` only chose this combination because `fallbackAvailableTypes` already confirmed it). Returns `false` (and leaves `manifestPath` untouched) if `chosenCombination == 0`, since there's nothing to gather.
-- **processImage** — if `algorithm.inputImage` is `NONE`, there's no image at all for this algorithm (and no camera to resolve). Otherwise calls `resolveCameraPrefix` to pick the `"L_"`/`"F_"`/unprefixed image path (`<inputImage-dir>/<prefix><fileName>`) and, *before* running (since the algorithm will overwrite this same path in place — output is always the same image type as input), preserves the current content in that directory's `processed/` subdirectory under the *same* prefix: removes any stale `processed/<prefix><fileName>` first (`Os::FileSystem::copyFile` opens its destination with `OPEN_WRITE`, which lacks `O_TRUNC`, so a second, possibly-shorter copy over an existing file could otherwise leave stale trailing bytes past the new EOF — this matters now because the *same* `processed/<prefix><fileName>` path can be written more than once per chain, once per algorithm sharing that `inputImage` and camera), then copies; if that copy fails, processing fails immediately without running the algorithm. Computes `resultsDirFor(slotIndex)` (creating it) for this algorithm's own outgoing-results path. Calls `resolveInputCombination` (passing `matchedLine` and the resolved camera); if unsatisfied, logs `NoMatchingInputCombination` and fails immediately without running the algorithm (same as the copy-failure case above). Otherwise calls `writeInputManifest` to get the incoming-results-manifest path, then `runAlgorithm()` (below) is called. On success: increments and telemeters `ImagesProcessed`, logs `ImageProcessed` (the image path if there was one, else the outgoing-results path, since there's nothing else to identify the run by). If the algorithm flagged the image (and there is one), calls `compressRequestOut` with its path. On algorithm failure: increments and telemeters `ImagesFailed`, logs `ProcessingFailed` (`WARNING_HI`), and leaves any image in place (any partial/incomplete output the failed algorithm process may have written is not cleaned up — the image may itself be partially overwritten, but the `processed/` copy taken just before running remains a pristine backup of what the algorithm actually saw). Only the telemetry channel that actually changed is written on any given call.
+- **processImage** — if `algorithm.inputImage` is `NONE`, there's no image at all for this algorithm (and no camera to resolve). Otherwise calls `resolveCameraPrefix` to pick the `"L_"`/`"F_"`/unprefixed image path (`<inputImage-dir>/<prefix><fileName>`) and, *before* running (since the algorithm will overwrite this same path in place — output is always the same image type as input), preserves the current content in that directory's `processed/` subdirectory under the *same* prefix: removes any stale `processed/<prefix><fileName>` first (`Os::FileSystem::copyFile` opens its destination with `OPEN_WRITE`, which lacks `O_TRUNC`, so a second, possibly-shorter copy over an existing file could otherwise leave stale trailing bytes past the new EOF — this matters now because the *same* `processed/<prefix><fileName>` path can be written more than once per chain, once per algorithm sharing that `inputImage` and camera), then copies; if that copy fails, processing fails immediately without running the algorithm. Computes `resultsDirFor(slotIndex)` (creating it) for this algorithm's own outgoing-results path. Calls `resolveInputCombination` again (passing `matchedLine` and the resolved camera) purely to recompute `chosenCombination` — `checkAllInputCombinations` already confirmed this slot resolves before any algorithm in the chain started running, so the result isn't checked for failure here. Calls `writeInputManifest` to get the incoming-results-manifest path, then `runAlgorithm()` (below) is called. On success: increments and telemeters `ImagesProcessed`, logs `ImageProcessed` (the image path if there was one, else the outgoing-results path, since there's nothing else to identify the run by). If the algorithm flagged the image (and there is one), calls `compressRequestOut` with its path. On algorithm failure: increments and telemeters `ImagesFailed`, logs `ProcessingFailed` (`WARNING_HI`), and leaves any image in place (any partial/incomplete output the failed algorithm process may have written is not cleaned up — the image may itself be partially overwritten, but the `processed/` copy taken just before running remains a pristine backup of what the algorithm actually saw). Only the telemetry channel that actually changed is written on any given call.
 - **runAlgorithm** — launches `algorithm.path` directly via `posix_spawn()`, not `fork()`+`exec()`: `fork()` is unsafe to call from a thread in a multi-threaded process (ScienceApplication's active-component thread is one of several in this deployment) — only the calling thread survives `fork()` in the child, so a lock another thread happened to be holding at that instant (e.g. inside `malloc`) stays locked forever in the child. `posix_spawn` launches and execs the child directly without duplicating this process's full multi-threaded state; it still takes a plain `argv` array rather than a shell command string, so there's no quoting/injection risk from any path either way. If `hasImageInput`, passes `imagePath`, `incomingResultsManifestPath`, and `outgoingResultsPath` as `argv[1..3]`; otherwise (`inputImage` was `NONE`, so there's no image at all) omits `imagePath`, passing the other two as `argv[1..2]`. `incomingResultsManifestPath` names a manifest of `"<bit> <path>"` lines (see `writeInputManifest`) - it may not exist (no `requiredInputCombinations` entry was satisfiable, or this is the first algorithm in a chain), which the algorithm is expected to treat as "no incoming data," not a failure. Writing to `outgoingResultsPath` is optional - not every algorithm has raw data to contribute beyond its image (e.g. `invert_cli` doesn't write there; `average_color_cli` writes its computed `"R G B\n"` there). Exit code `0` → success, not flagged. Exit code `2` → success, flagged for compression. Anything else — a different exit code, a signal, or a failed spawn (e.g. `algorithm.path` doesn't exist) — is treated as failure. This convention (a handful of file-path args plus the exit-code protocol) is this iteration's placeholder for "a generic algorithm interface"; there's no real HS2 algorithm library yet (see Open Items).
 
 ### Telemetry
@@ -288,7 +348,7 @@ Helpers (not state machine actions, called from `runNextAvailableExperiment`):
 | `ExperimentCompleted` | activity high | Every configured algorithm ran successfully against one `experiments.csv` opportunity; carries the experiment's derived filename. Also serves as the downlinked record of the outcome — there is no separate storage component to report results to. |
 | `NoExperimentReady` | activity low | No logged opportunity currently covers every configured algorithm's `inputImage`; scanning will retry on a later tick. Expected to be routine/frequent, not a fault. |
 | `MalformedExperimentLine` | warning low | A non-comment `experiments.csv` line couldn't be parsed (too few fields, a non-numeric `availableImageTypes`, or a time/date field that doesn't fit the derived filename); carries the raw line. The line is skipped; scanning continues. |
-| `NoMatchingInputCombination` | warning high | None of the algorithm's `requiredInputCombinations` entries could be satisfied by earlier configured algorithms' `outputTypes`; carries the slot index. The algorithm is not run; the experiment is left in `experiments.csv` for a later tick's retry, same as any other algorithm failure. |
+| `NoMatchingInputCombination` | warning high | Emitted by `checkAllInputCombinations`, before any algorithm runs, when a configured algorithm's `requiredInputCombinations` can never be satisfied — not even with `POSITION` assumed known; carries the slot index. No algorithm in the chain runs, and `topologyInvalid` is latched so nothing more is attempted until ground reconfigures the topology — unlike every other failure event here, this one does *not* imply a later-tick retry. (A combination that's unsatisfiable *only* because this experiment's row lacks a known position doesn't emit this event or set `topologyInvalid` — see HS2-SIA-025.) |
 
 ## Open Items / Known Deviations
 
@@ -308,6 +368,8 @@ Helpers (not state machine actions, called from `runNextAvailableExperiment`):
 - **`Camera::ANY`'s filesystem probe (try `"L_"`, then `"F_"`, then unprefixed) is a heuristic, not a guarantee of correctness** — if *both* a `"L_"` and a `"F_"` file happen to exist for the same experiment and `inputImage`, `ANY` always picks `LOST`'s, silently ignoring `FOUND`'s. An algorithm that must run against a specific camera should configure that camera explicitly rather than relying on `ANY`; `ANY` exists mainly to keep pre-camera-aware fixtures/algorithms working unprefixed, and as a convenience default.
 - **`PREDEFINED_ALGORITHMS`'s two entries (`INVERT`, `AVERAGE_COLOR`) use placeholder deployment paths** (`/opt/science_algorithms/...`), not real installed-executable locations — same caveat as `runAlgorithm`'s Open Items note above: there's no real HS2 algorithm install location finalized yet. `SET_ALGORITHM_PRESET` against either preset will fail to launch until these are updated to real paths.
 - **`Science.AlgorithmPreset` only covers the two example algorithms that exist in this repo.** Adding a new preset means adding both an enum value (`ScienceApplicationTypes.fpp`) and a matching `PREDEFINED_ALGORITHMS` entry, in the same order — there's no compile-time check tying the two together (the runtime `FW_ASSERT` in `SET_ALGORITHM_PRESET_cmdHandler` only catches a mismatch when actually exercised, not at build time).
+- **`topologyInvalid` has no ground-visible telemetry, command, or query — it's an internal C++ member only.** The only way to know it's set is by having already seen the one-time `NoMatchingInputCombination` event go by; there's no channel exposing its current value, and no dedicated command to clear it independent of actually reconfiguring the topology (any of `SET_ALGORITHM`/`SET_ALGORITHM_PRESET`/`CLEAR_ALGORITHM`/`CLEAR_SCIENCE_TOPOLOGY` clears it as a side effect). Acceptable for this iteration since ground is expected to notice the warning-severity event, but a dedicated telemetry channel would make the stuck state easier to spot after the fact.
+- **`checkAllInputCombinations`'s `topologyInvalid`-latching and its `assumePositionAvailable` position exception (HS2-SIA-024/HS2-SIA-025) aren't yet covered by a dedicated unit test** — `testNoMatchingInputCombinationEmitsWarning` (see Testing) exercises the genuine-defect path incidentally, but nothing yet specifically confirms `topologyInvalid` blocks a *subsequent* tick's scan, gets cleared by a topology-editing command, or that a `POSITION`-only shortfall leaves it unset.
 - **The `"L_"`/`"F_"`/unprefixed filename convention has no camera-availability signal in `experiments.csv`** — `availableImageTypes` only says an `ImageType` is available, not which camera(s) captured it, or under which prefix. `buildNeededImageMask`/`findReadyExperiment` are entirely unaware of cameras; an experiment is "ready" purely by `ImageType` bit, and it's only at `processImage` time (per algorithm, per its own `camera` field) that a concrete file gets resolved and might turn out to be missing. This is a deliberate minimal-surface choice for this iteration, not a requirement.
 
 ## Testing
@@ -379,13 +441,17 @@ algorithms count toward `ImagesProcessed`/`ImageProcessed` even though `Echo` ha
 logged under its results path instead); the experiment completes normally.
 
 `testNoMatchingInputCombinationEmitsWarning` configures `Echo` to require a bit
-(`requiredInputCombinations[0]=0x400`, deliberately outside the five predefined `InputType` bits
-so no experiments.csv fallback can rescue it) that nothing in the topology's `outputTypes` ever
-provides. Confirms `NoMatchingInputCombination` fires exactly once, carrying the correct slot index, and
-that this is fatal for the experiment (matching every other algorithm-failure path): `Echo` is
-never run, `ExperimentsCompleted` does not increment, and the manifest line stays in
-`experiments.csv` for a later tick's retry — even though `Invert` (slot 0, earlier in the same
-chain) already succeeded.
+(`requiredInputCombinations[0]=0x400`, deliberately outside the five predefined `InputType` bits,
+and outside `POSITION` too — so neither the ordinary experiments.csv fallback nor the
+`assumePositionAvailable` exception can rescue it) that nothing in the topology's `outputTypes`
+ever provides. Confirms `NoMatchingInputCombination` fires exactly once, carrying the correct slot
+index. Since `checkAllInputCombinations` now validates the whole chain *before* anything runs,
+`Invert` (slot 0, earlier in the chain) never runs either this time — a change from the old
+per-algorithm-inline-check behavior, where it would have already succeeded by the time `Echo`'s
+check failed. `topologyInvalid` is set, `ExperimentsCompleted` does not increment, and the
+manifest line is left untouched in `experiments.csv` — but unlike a per-experiment failure, this
+one isn't actually retried on a later tick: `topologyInvalid` being set blocks *every* subsequent
+tick's scan until ground reconfigures the topology.
 
 `testInputCombinationGathersFromOlderAlgorithm` is the multi-source lookback test — the concrete
 "position and attitude, from two different earlier algorithms" scenario: `AttitudeDet` (slot 0,
