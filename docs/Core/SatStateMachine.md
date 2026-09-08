@@ -112,24 +112,6 @@ STANDBY
     exit:  log SatSubmode<Name>Exited
 ```
 
-```mermaid
-stateDiagram-v2
-    [*] --> SAFE
-    SAFE --> STANDBY: SAFE_EXIT (checkout complete)
-    STANDBY --> SAFE: SAFE_MODE, or vbatt < CRITICAL_THRESHOLD
-```
-
-**STANDBY submode selection:**
-
-```mermaid
-flowchart TD
-    tick(["STANDBY: evaluated every 1 Hz tick"]) --> c1{"Over ground station AND<br/>queue > threshold AND<br/>power OK AND commsReady?"}
-    c1 -->|yes| DOWNLINK["DOWNLINK"]
-    c1 -->|no| c2{"Power OK AND<br/>EXPERIMENT_ENABLED?"}
-    c2 -->|yes| SCIENCE["SCIENCE"]
-    c2 -->|no| CHARGE["CHARGE (fallback)"]
-```
-
 **Mode/submode-to-app translation table** 
 
 | Satellite State | `AdcsApplication` | `DataCollectionApplication` | `ScienceInferenceApplication` | `CommsApplication` | `ThermalApplication` |
