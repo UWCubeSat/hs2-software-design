@@ -104,7 +104,7 @@ Layer 2 — Hardware Managers (*Manager)
     ImuManager | SunSensorManager | MagnetorquerManager
     MpptIcManager | CurrentSensorManager | WatchdogPinger | DeployPanelsManager
     TemperatureSensorManager | HeaterManager
-    EnduroSatManager
+    TmtcRadioManager
 
 Layer 1 — F' Native Bus Drivers (*Driver)
     LinuxI2cDriver | LinuxSpiDriver | LinuxUartDriver | LinuxGpioDriver
@@ -120,7 +120,7 @@ Layer 1 — F' Native Bus Drivers (*Driver)
 
 **Drivers** (Layer 1) are passive bus drivers with no device knowledge.
 
-`StarTrackerManager`, `GnssManager`, and `EnduroSatManager` are instantiated at the **top-level topology** because they are shared across multiple subtopologies. All other hardware managers are instantiated inside their primary subtopology.
+`StarTrackerManager`, `GnssManager`, and `TmtcRadioManager` are instantiated at the **top-level topology** because they are shared across multiple subtopologies. All other hardware managers are instantiated inside their primary subtopology.
 
 ---
 
@@ -281,7 +281,7 @@ Top-level `switchMode: Adcs.Mode` signal inherited by all leaf states.
 | Component | Type | Purpose |
 |-----------|------|---------|
 | `CommsApplication` | Active | Hierarchical SM; receives mode from `SatStateMachine`; manages radio operating mode |
-| `EnduroSatManager` | Active (worker) | State machine: RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN / error→RESET. Bridges ComCcsds to the S-band radio. |
+| `TmtcRadioManager` | Active (worker) | State machine: RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN / error→RESET. Bridges ComCcsds to the S-band radio. |
 
 **CommsApplication modes (received via `Sat.CommsModePort`):**
 
@@ -290,7 +290,7 @@ Top-level `switchMode: Adcs.Mode` signal inherited by all leaf states.
 | `OmniOnly` | Low-rate omni telemetry only. Small packets. Always available. |
 | `HighGainDownlink` | Full high-rate downlink. Requires `AntennaPointing` from `AdcsApplication`. |
 
-**Health monitoring:** `CommsApplication` is health-monitored. `EnduroSatManager` excluded.
+**Health monitoring:** `CommsApplication` is health-monitored. `TmtcRadioManager` excluded.
 
 ### 5.7 EPS Subtopology
 
@@ -453,7 +453,7 @@ Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fpr
 | `SatStateMachine.dataColModeOut` | `DataCollectionApplication` | Mode command (`DataCollection.Mode`) |
 | `SatStateMachine.scienceInferenceModeOut` | `ScienceInferenceApplication` | Mode command (`ScienceInference.Mode`) |
 | `SatStateMachine.commsModeOut` | `CommsApplication` | Mode command (`Comms.Mode`) |
-| `EnduroSatManager` | `ComCcsds` | Uplink/downlink byte stream |
+| `TmtcRadioManager` | `ComCcsds` | Uplink/downlink byte stream |
 | `DataCollection` | `DataProducts` | Science result data products |
 | `DataCollection` | `FileHandling` | Flagged image files |
 
