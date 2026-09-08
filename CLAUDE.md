@@ -25,7 +25,7 @@ The satellite uses **F' (F Prime)** (`nasa/fprime@devel`), a NASA JPL component-
 - **Layer 2 — Managers (`*Manager`):** Hardware device managers — `ImuManager`, `Camera1Manager`, `StarTrackerManager`, etc. Single flat SM: `RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN`. No satellite mode awareness. Reference: `fprime-community/fprime-sensors` ImuManager.
 - **Layer 1 — Drivers (`*Driver`):** F' native bus drivers with no device knowledge (LinuxI2cDriver, LinuxSpiDriver, LinuxUartDriver, LinuxGpioDriver)
 
-Three Layer 2 managers are shared across subtopologies and instantiated at the top-level topology: `StarTrackerManager`, `GnssManager`, `EnduroSatManager`.
+Three Layer 2 managers are shared across subtopologies and instantiated at the top-level topology: `StarTrackerManager`, `GnssManager`, `TmtcRadioManager`.
 
 `SatStateMachine` manages two main modes: **Safe** and **Standby**. Standby has four autonomous submodes (Downlink, Science, Charge, Eclipse) evaluated each 1 Hz tick in priority order. `SatStateMachine` sends each application component its target mode via a dedicated typed port — it owns the translation table.
 

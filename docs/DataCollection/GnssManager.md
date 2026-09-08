@@ -2,9 +2,9 @@
 
 ## 1. Overview
 
-`GnssManager` is the Layer 2 hardware manager for the GNSS receiver. It is a SkyFox Labs piNAV-NG with DROP (Dead Reckoning Orbital Propagator). Like `StarTrackerManager` and `EnduroSatManager`, it isn't scoped to a single subtopology and instead it is at the **top-level topology** and shared across `DataCollectionApplication`, `AdcsApplication`, and `SatStateMachine`. It also feeds a PPS (Pulse Per Second) timing signal to Time services, sourced from the receiver's VPP (Valid Position Pulse) output.
+`GnssManager` is the Layer 2 hardware manager for the GNSS receiver. It is a SkyFox Labs piNAV-NG with DROP (Dead Reckoning Orbital Propagator). Like `StarTrackerManager` and `TmtcRadioManager`, it isn't scoped to a single subtopology and instead it is at the **top-level topology** and shared across `DataCollectionApplication`, `AdcsApplication`, and `SatStateMachine`. It also feeds a PPS (Pulse Per Second) timing signal to Time services, sourced from the receiver's VPP (Valid Position Pulse) output.
 
-`GnssManager` is an **Active** component. The bus is **UART**, 9600 baud, 8N1, LVCMOS levels. All bus access goes through `LinuxUartDriver`, wired to the `ByteStreamDriverClient` port pattern like in `EnduroSatManager`. The receiver's RXD line is unused so there's no command channel for that.
+`GnssManager` is an **Active** component. The bus is **UART**, 9600 baud, 8N1, LVCMOS levels. All bus access goes through `LinuxUartDriver`, wired to the `ByteStreamDriverClient` port pattern like in `TmtcRadioManager`. The receiver's RXD line is unused so there's no command channel for that.
 
 ---
 
