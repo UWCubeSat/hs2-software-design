@@ -4,7 +4,7 @@
 
 `LinuxPwmDriver` is a Layer 1 passive driver for one Linux PWM channel. It gives a hardware manager (Layer 2 component) a synchronous F' interface for setting the channel period and duty cycle and for enabling or disabling the output. It contains no device or actuator logic.
 
-It uses the Linux PWM sysfs interface (`/sys/class/pwm/pwmchipN/pwmM/`). One driver instance owns one channel. Current usages are: `MagnetorquerManager` needs 3 instances (H-bridge motor driver), and `HeaterManager` needs 1 (for Kapton heater).
+It uses the Linux PWM sysfs interface (`/sys/class/pwm/pwmchipN/pwmM/`). One driver instance owns one channel. 
 
 ---
 
@@ -59,8 +59,3 @@ A manager configures a channel in this order:
 3. Enable the channel.
 
 The manager owns actuator-safe behavior. For example, duty cycle should be set to 0 before enabling a channel or when dealing with an error.
-
----
-
-## 4. Notes
-- N/A
