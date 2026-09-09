@@ -28,7 +28,7 @@ All algorithms are included as external C++ libraries via CMake. Science results
 | Sun Sensors | I2C/GPIO | AdcsApplication, SatStateMachine (sun/eclipse detection) |
 | Magnetorquers | PWM | AdcsApplication |
 | EPS Board | I2C/UART | EPSApplication, MpptManager, CurrentSensorManager, SatStateMachine |
-| EnduroSat S-band Radio | UART | CommsApplication |
+| EnduroSat S-band Radio | UART | ComApplication |
 | External Flash | SPI | FileHandling subtopology |
 | Temperature Sensors | I2C | ThermalApplication (via TemperatureSensorManager) |
 | Heater | PWM | ThermalApplication (via HeaterManager) |
@@ -60,7 +60,7 @@ Evaluated each 1 Hz tick by `SatStateMachine` in priority order. The highest-pri
 
 | Priority | Submode | Entry Condition |
 |----------|---------|-----------------|
-| 1 | **Downlink** | Over ground station AND downlink queue above `DOWNLINK_QUEUE_THRESHOLD` AND power OK AND `CommsApplication` reports downlink readiness (`commsReadyIn`) |
+| 1 | **Downlink** | Over ground station AND downlink queue above `DOWNLINK_QUEUE_THRESHOLD` AND power OK AND `ComApplication` reports downlink readiness (`commsReadyIn`) |
 | 2 | **Science** | Power OK AND `EXPERIMENT_ENABLED` parameter set AND not Downlink |
 | 3 | **Charge** | Fallback - none of the above conditions met |
 
@@ -69,7 +69,7 @@ Evaluated each 1 Hz tick by `SatStateMachine` in priority order. The highest-pri
 - Over ground station → `GnssManager` (orbital position + ephemeris)
 - In sun / in eclipse → sun sensors AND `GnssManager` orbital position calculation
 - Downlink queue depth → `ComQueue` component
-- Downlink readiness → `CommsApplication` (`commsReadyIn`)
+- Downlink readiness → `ComApplication` (`commsReadyIn`)
 - `EXPERIMENT_ENABLED`, `POWER_THRESHOLD`, `DOWNLINK_QUEUE_THRESHOLD` → persisted via `PrmDb`
 
 **Key parameters:**
@@ -96,7 +96,7 @@ Layer 4, Mission Orchestration
 
 Layer 3, Application components (*Application)
     DataCollectionApplication | ScienceInferenceApplication
-    AdcsApplication | CommsApplication | EPSApplication | ThermalApplication
+    AdcsApplication | ComApplication | EPSApplication | ThermalApplication
     + pre-built subtopologies: ComCcsds | FileHandling | DataProducts
 
 Layer 2, Hardware Managers (*Manager)
@@ -104,7 +104,7 @@ Layer 2, Hardware Managers (*Manager)
     ImuManager | SunSensorManager | MagnetorquerManager
     MpptManager | CurrentSensorManager | WatchdogPinger | DeployPanelsManager
     TemperatureSensorManager | HeaterManager
-    EnduroSatManager
+    TmtcRadioManager
 
 Layer 1, F' Native Bus Drivers (*Driver)
     LinuxI2cDriver | LinuxSpiDriver | LinuxUartDriver | LinuxGpioDriver
@@ -120,7 +120,7 @@ Layer 1, F' Native Bus Drivers (*Driver)
 
 **Drivers** (Layer 1) are passive bus drivers with no device knowledge.
 
-`StarTrackerManager`, `GnssManager`, and `EnduroSatManager` are instantiated at the **top-level topology** because they are shared across multiple subtopologies. All other hardware managers are instantiated inside their primary subtopology.
+`StarTrackerManager`, `GnssManager`, and `TmtcRadioManager` are instantiated at the **top-level topology** because they are shared across multiple subtopologies. All other hardware managers are instantiated inside their primary subtopology.
 
 ---
 
@@ -280,10 +280,10 @@ Top-level `switchMode: Adcs.Mode` signal inherited by all leaf states.
 
 | Component | Type | Purpose |
 |-----------|------|---------|
-| `CommsApplication` | Active | Hierarchical SM; receives mode from `SatStateMachine`; manages radio operating mode |
-| `EnduroSatManager` | Active (worker) | State machine: RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN / error→RESET. Bridges ComCcsds to the S-band radio. |
+| `ComApplication` | Active | Hierarchical SM; receives mode from `SatStateMachine`; manages radio operating mode |
+| `TmtcRadioManager` | Active (worker) | State machine: RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN / error→RESET. Bridges ComCcsds to the S-band radio. |
 
-**CommsApplication modes (received via `Sat.CommsModePort`):**
+**ComApplication modes (received via `Sat.CommsModePort`):**
 
 | Mode | Behavior |
 |------|----------|
@@ -292,7 +292,7 @@ Top-level `switchMode: Adcs.Mode` signal inherited by all leaf states.
 | `StoredPlayback` | Downlinks stored telemetry and data products (priority) alongside real-time SOH telemetry at 1Hz. Ground-commanded only; requires `AntennaPointing` from `AdcsApplication`. |
 | `NoDownlink` | Ceases all transmission. Ground-commanded only. |
 
-**Health monitoring:** `CommsApplication` is health-monitored. `EnduroSatManager` excluded.
+**Health monitoring:** `ComApplication` is health-monitored. `TmtcRadioManager` excluded.
 
 ### 5.7 EPS Subtopology
 
@@ -356,9 +356,9 @@ flowchart TB
 ```mermaid
 flowchart TB
     subgraph COMMS["Comms Subtopology"]
-        CommsApp["CommsApplication"]
-        ESM["EnduroSatManager"]
-        CommsApp --> ESM
+        CommsApp["ComApplication"]
+        TRM["TmtcRadioManager"]
+        CommsApp --> TRM
     end
 
     subgraph EPSSUB["EPS Subtopology"]
@@ -413,7 +413,7 @@ flowchart TB
     SSM -->|adcsModeOut| AdcsApp["AdcsApplication"]
     SSM -->|dataColModeOut| DCApp["DataCollectionApplication"]
     SSM -->|scienceInferenceModeOut| SIApp["ScienceInferenceApplication"]
-    SSM -->|commsModeOut| CommsApp["CommsApplication"]
+    SSM -->|commsModeOut| CommsApp["ComApplication"]
     SSM -->|thermalModeOut| ThermApp["ThermalApplication"]
 ```
 
@@ -476,11 +476,11 @@ Application components have no knowledge of `Sat::Mode` or `Sat::StandbySubmode`
 | `sunEclipseIn` | Input | Sun sensors + `GnssManager` | In sun / in eclipse |
 | `orbitStateIn` | Input | `GnssManager` | Over ground station flag |
 | `downlinkQueueDepthIn` | Input | `ComQueue` | Current queue depth (bytes) |
-| `commsReadyIn` | Input | `CommsApplication` | Downlink readiness/permission flag; gates `Downlink` submode entry |
+| `commsReadyIn` | Input | `ComApplication` | Downlink readiness/permission flag; gates `Downlink` submode entry |
 
 ### Translation Table
 
-| Satellite State | `AdcsApplication` | `DataCollectionApplication` | `ScienceInferenceApplication` | `CommsApplication` | `ThermalApplication` |
+| Satellite State | `AdcsApplication` | `DataCollectionApplication` | `ScienceInferenceApplication` | `ComApplication` | `ThermalApplication` |
 |----------------|-------------------|----------------------------|-------------------------------|-------------------|----------------------|
 | Safe | Detumble | Off | Off | Beacon | ActiveHeating |
 | Standby/Downlink | AntennaPointing | Off | Off | StandardDownlink | NoHeating |
@@ -594,10 +594,10 @@ Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fpr
 | `SatStateMachine.adcsModeOut` | `AdcsApplication` | Mode command (`Adcs.Mode`) |
 | `SatStateMachine.dataColModeOut` | `DataCollectionApplication` | Mode command (`DataCollection.Mode`) |
 | `SatStateMachine.scienceInferenceModeOut` | `ScienceInferenceApplication` | Mode command (`ScienceInference.Mode`) |
-| `SatStateMachine.commsModeOut` | `CommsApplication` | Mode command (`Comms.Mode`) |
+| `SatStateMachine.commsModeOut` | `ComApplication` | Mode command (`Comms.Mode`) |
 | `SatStateMachine.thermalModeOut` | `ThermalApplication` | Mode command (`Thermal.Mode`) |
-| `CommsApplication.commsReadyOut` | `SatStateMachine.commsReadyIn` | Downlink readiness/permission flag |
-| `EnduroSatManager` | `ComCcsds` | Uplink/downlink byte stream |
+| `ComApplication.commsReadyOut` | `SatStateMachine.commsReadyIn` | Downlink readiness/permission flag |
+| `TmtcRadioManager` | `ComCcsds` | Uplink/downlink byte stream |
 | `DataCollection` | `DataProducts` | Science result data products |
 | `DataCollection` | `FileHandling` | Flagged image files |
 
@@ -611,7 +611,7 @@ Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fpr
 | `DataCollectionApplication` | DataCollection |
 | `ScienceInferenceApplication` | ScienceInference |
 | `AdcsApplication` | ADCS |
-| `CommsApplication` | Comms |
+| `ComApplication` | Comms |
 | `EPSApplication` | EPS |
 | `ThermalApplication` | Thermal |
 | `cmdDisp` | CdhCore |

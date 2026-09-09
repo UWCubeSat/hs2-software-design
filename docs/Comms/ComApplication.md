@@ -1,8 +1,8 @@
-# CommsApplication SDD
+# ComApplication SDD
 
 ## 1. Overview
 
-`CommsApplication` is the Layer 3 Active component for the Comms subtopology. It manages the EnduroSat S-band radio operating mode, switching between `Beacon` to transmit real-time SOH telemetry at 1Hz, `StandardDownlink` mode to transmit all real-time telemetry including payload experiment data, `StoredPlayback` mode to downlink stored and real-time SOH telemetry concurrently, and `NoDownlink` to cease transmission upon command.
+`ComApplication` is the Layer 3 Active component for the Comms subtopology. It manages the EnduroSat S-band radio operating mode, switching between `BEACON` to transmit real-time SOH telemetry at 1Hz, `STANDARD_DOWNLINK` mode to transmit all real-time telemetry including payload experiment data, `STORED_PLAYBACK` mode to downlink stored and real-time SOH telemetry concurrently, and `NO_DOWNLINK` to cease transmission upon command.
 
 ---
 
@@ -15,13 +15,13 @@
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
-| HS2-COM-001 | CommsApplication shall activate `Beacon` downlink mode when commanded by `SatStateMachine` | Inspection |
-| HS2-COM-002 | CommsApplication shall activate `StandardDownlink` downlink mode when commanded by `SatStateMachine` | Inspection |
-| HS2-COM-003 | CommsApplication shall activate `StoredPlayback` downlink mode only when commanded | Inspection |
-| HS2-COM-004 | CommsApplication shall respond to health ping within the required deadline | Inspection |
-| HS2-COM-005 | CommsApplication shall enable the transmission of stored telemetry along with real-time telemetry when `StoredPlayback` downlink mode is activated | Inspection |
-| HS2-COM-006 | CommsApplication shall enable the transmission of SOH telemetry only at a 1Hz rate when `Beacon` downlink mode is activated | Inspection |
-| HS2-COM-007 | CommsApplication shall enable the transmission of all real-time telemetry when `StandardDownlink` downlink mode is activated | Inspection |
+| HS2-COM-001 | ComApplication shall activate `BEACON` downlink mode when commanded by `SatStateMachine` | Inspection |
+| HS2-COM-002 | ComApplication shall activate `STANDARD_DOWNLINK` downlink mode when commanded by `SatStateMachine` | Inspection |
+| HS2-COM-003 | ComApplication shall activate `STORED_PLAYBACK` downlink mode only when commanded | Inspection |
+| HS2-COM-004 | ComApplication shall respond to health ping within the required deadline | Inspection |
+| HS2-COM-005 | ComApplication shall enable the transmission of stored telemetry along with real-time telemetry when `STORED_PLAYBACK` downlink mode is activated | Inspection |
+| HS2-COM-006 | ComApplication shall enable the transmission of SOH telemetry only at a 1Hz rate when `BEACON` downlink mode is activated | Inspection |
+| HS2-COM-007 | ComApplication shall enable the transmission of all real-time telemetry when `STANDARD_DOWNLINK` downlink mode is activated | Inspection |
 
 ---
 
@@ -33,7 +33,7 @@ Active component with internal hierarchical F' state machine (`Fw::Sm`).
 
 ### 3.2 Mode Interface
 
-`CommsApplication` receives its operating mode from `SatStateMachine` via a typed port:
+`ComApplication` receives its operating mode from `SatStateMachine` via a typed port:
 
 ```fpp
 sync input port modeIn: Sat.CommsModePort   # carries Comms.Mode
@@ -43,31 +43,31 @@ Mode enum (owned by this component's module):
 
 ```fpp
 module Comms {
-    enum Mode { Beacon, StandardDownlink, StoredPlayback, NoDownlink }
+    enum Mode { BEACON, STANDARD_DOWNLINK, STORED_PLAYBACK, NO_DOWNLINK }
 }
 ```
 
 If the incoming mode matches the current mode, the handler returns immediately (idempotent).
 
-#### 3.2.1 `Beacon` Mode
+#### 3.2.1 `BEACON` Mode
 
-During this mode, only SOH telemetry shall be transmitted. This mode is intended for the satellite to establish a connection with the ground station, particularly when detumbling or when outside of a communication window. In `Beacon` mode, the satellite shall only transmit a single SOH telemetry packet at 1Hz to ensure minimum power draw.
+During this mode, only SOH telemetry shall be transmitted. This mode is intended for the satellite to establish a connection with the ground station, particularly when detumbling or when outside of a communication window. In `BEACON` mode, the satellite shall only transmit a single SOH telemetry packet at 1Hz to ensure minimum power draw.
 
 This mode will set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `SILENCED`. 
 
-#### 3.2.2 `StandardDownlink` mode
+#### 3.2.2 `STANDARD_DOWNLINK` mode
 
 During this mode, all real-time telemetry shall be downlinked to the ground station at 1Hz.
 
 This mode will set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `ON_CHANGE_MIN`. 
 
-#### 3.2.3 `StoredPlayback` mode
+#### 3.2.3 `STORED_PLAYBACK` mode
 
 During this mode, all stored telemetry, which includes payload experiment data, will be downlinked to the ground station. The priority in this mode is to downlink images and payload data captured during experiments. Real-time SOH telemetry will be downlinked at a rate of 1 Hz.
 
 This mode will set SOH telemetry in the `TlmPacketizer` to have a `RateLogic` of `EVERY_MAX` to ensure stored telemetry is given priority. The `Svc::DpCatalog` component can be used to downlink generated data products (such as images and stored telemetry) that exist within a specified set of directories.
 
-#### 3.2.4 `NoDownlink` mode
+#### 3.2.4 `NO_DOWNLINK` mode
 
 During this mode, nothing will be transmitted from the satellite. Refer to requirement `UNP12-91` within the RVM.
 
@@ -84,57 +84,51 @@ During this mode, nothing will be transmitted from the satellite. Refer to requi
 | `configureGroupRate` | Output | `Svc.ConfigureGroupRate`| Configure rate at which certain telemetry sections are transmitted as per the `Svc.TlmPacketizer` component |
 ---
 
-### 3.4 Parameters
-Only the downlink mode in the `CommsApplication` will be changing at run time.
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `RESET_WAIT_TICKS` | `U32` | Ticks to wait reconfiguring the UART connection between the `EnduroSatManager` and the Endurosat Transceiver |
-
-### 3.5 CommsApplication Telemetry
-The following telemetry will be used for the `CommsApplication`:
+### 3.4 ComApplication Telemetry
+The following telemetry will be used for the `ComApplication`:
 
 | Mnemonic | Type | Description |
 |----------|------|-------------|
-| `downlink_mode` | `Comms.Mode` | Downlink mode that will be set by `SatStateMachine`. Can be one of the following values: `Beacon`, `StandardDownlink`, `StoredPlayback`, `NoDownlink` |
+| `downlink_mode` | `Comms.Mode` | Downlink mode that will be set by `SatStateMachine`. Can be one of the following values: `BEACON`, `STORED_PLAYBACK`, `STANDARD_DOWNLINK`, or `NO_DOWNLINK` |
 
 ---
 
 ## 4. State Machine
 
-`CommsApplication` uses a hierarchical F' state machine with the following states: `RESET`, `BEACON`, `STORED_PLAYBACK`, `STANDARD_DOWNLINK`, and `NO_DOWNLINK`. All states, aside from `RESET`, are commanded directly by `SatStateMachine` via the inherited `switchMode` signal, matching the pattern used by every other application component (see `AdcsApplication.md`/`DataCollectionApplication.md`).
+`ComApplication` uses a hierarchical F' state machine with the following states: `BEACON`, `STORED_PLAYBACK`, `STANDARD_DOWNLINK`, `NO_DOWNLINK`. All states will only be commanded by the `SatStateMachine` as the `ComApplication` does not follow a traditional state-machine like a hardware-manager.
 
 ```
-RESET
-  entry: Set all packets in `TlmPacketizer` to have a `RateLogic` of `SILENCED`. Set `downlinkMode` telemetry to `NoDownlink`.
 
 BEACON
-  entry: Set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `SILENCED`. Set `downlinkMode` telemetry to be `Beacon`.
+  entry: Set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `SILENCED`. Set `downlinkMode` telemetry to be `BEACON`.
 
 STORED_PLAYBACK
-  entry: Set SOH telemetry in the `TlmPacketizer` to have a `RateLogic` of `EVERY_MAX`. Set `downlinkMode` telemetry to be `StoredPlayback`.
+  entry: Set SOH telemetry in the `TlmPacketizer` to have a `RateLogic` of `EVERY_MAX`. Set `downlinkMode` telemetry to be `STORED_PLAYBACK`.
 
 STANDARD_DOWNLINK
-  entry: set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `ON_CHANGE_MIN`. Set `downlinkMode` telemetry to be `StandardDownlink`.
+  entry: set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `ON_CHANGE_MIN`. Set `downlinkMode` telemetry to be `STANDARD_DOWNLINK`.
 
 NO_DOWNLINK
-  entry: Set all packets in `TlmPacketizer` to have a `RateLogic` of `SILENCED`. Set `downlinkMode` telemetry to be `NoDownlink`.
+  entry: Set all packets in `TlmPacketizer` to have a `RateLogic` of `SILENCED`. Set `downlinkMode` telemetry to `NO_DOWNLINK`.
 
 # Inherited by all four states:
-on switchMode(Comms.Mode.Beacon)           → enter BEACON
-on switchMode(Comms.Mode.StandardDownlink) → enter STANDARD_DOWNLINK
-on switchMode(Comms.Mode.StoredPlayback)   → enter STORED_PLAYBACK
-on switchMode(Comms.Mode.NoDownlink)       → enter NO_DOWNLINK
+on switchMode(Comms.Mode.BEACON)           → enter BEACON
+on switchMode(Comms.Mode.STANDARD_DOWNLINK) → enter STANDARD_DOWNLINK
+on switchMode(Comms.Mode.STORED_PLAYBACK)   → enter STORED_PLAYBACK
+on switchMode(Comms.Mode.NO_DOWNLINK)       → enter NO_DOWNLINK
 ```
+
+`NO_DOWNLINK` is the initial state - its entry action (silence all packets) is the satellite's safe default before any downlink mode has been commanded.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> RESET
-    RESET --> BEACON: switchMode(Beacon)
-    RESET --> STANDARD_DOWNLINK: switchMode(StandardDownlink)
-    RESET --> STORED_PLAYBACK: switchMode(StoredPlayback)
-    RESET --> NO_DOWNLINK: switchMode(NoDownlink)
+    [*] --> NO_DOWNLINK
+    NO_DOWNLINK --> BEACON: switchMode(BEACON)
+    NO_DOWNLINK --> STANDARD_DOWNLINK: switchMode(STANDARD_DOWNLINK)
+    NO_DOWNLINK --> STORED_PLAYBACK: switchMode(STORED_PLAYBACK)
 ```
+
+Any state can reach any other state directly via the inherited `switchMode` signal (all four `on switchMode(...)` handlers above apply regardless of current state); the diagram shows entry from the initial `NO_DOWNLINK` default rather than the full peer-to-peer mesh.
 
 Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions), [FPP substates](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#substates)
 
@@ -148,13 +142,13 @@ Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/doc
 The following diagrams highlight the routes in which uplink/downlink data (packets, data products, and events) are handled within our design:
 
 ---
-### 6.1 EnduroSatManager Connections
+### 6.1 TmtcRadioManager Connections
 
-![EnduroSatManager Connections](./images/comStubConnections.png)
+![TmtcRadioManager Connections](./images/comStubConnections.png)
 
-Beginning with the `EnduroSatManager` (replacing `comStub` in the diagram), it will be responsible for delivering uplink/downlink data packets to/from the rest of the flight software.
+Beginning with the `TmtcRadioManager` (replacing `comStub` in the diagram), it will be responsible for delivering uplink/downlink data packets to/from the rest of the flight software.
 
-The `comDriver` is the Linux UART driver responsible for delivering the uplinked bytes from the S-Band Transceiver over serial, to the `EnduroSatManager` through its `recv` port into the `drvReceiveIn` input port. The `EnduroSatManager` component will send downlink bytes through its `drvSendOut` to the `comDriver`'s `send` port.
+The `comDriver` is the Linux UART driver responsible for delivering the uplinked bytes from the S-Band Transceiver over serial, to the `TmtcRadioManager` through its `recv` port into the `drvReceiveIn` input port. The `TmtcRadioManager` component will send downlink bytes through its `drvSendOut` to the `comDriver`'s `send` port.
 
 ---
 
@@ -167,7 +161,7 @@ The following diagrams detail the route of downlink data through the port topolo
 The following diagrams outline the 
 ![ComStubFramerConnections](./images/ComStubFramerConnections.png)
 
-For uplinked data, after it has passed through the S-Band Transceiver and into the `EnduroSatManager`, it is then passed to the `FrameAccumulator` component which is responsible for extracting full CCSDS TC Transfer Frames. The `EnduroSatManager` will transmit these received frames over the `dataOut` port into the `frameAccumulator`'s `dataIn` port for it to handle.
+For uplinked data, after it has passed through the S-Band Transceiver and into the `TmtcRadioManager`, it is then passed to the `FrameAccumulator` component which is responsible for extracting full CCSDS TC Transfer Frames. The `TmtcRadioManager` will transmit these received frames over the `dataOut` port into the `frameAccumulator`'s `dataIn` port for it to handle.
 
 ---
 
@@ -227,24 +221,24 @@ The `Svc.FileDownlink` component forwards file packets from the `bufferSendOut` 
 #### 6.3.3 Downlink Framing
 ![Downlink Framing](./images/DownlinkFraming.png)
 
-The `Svc.ComQueue` component processes `Fw::ComPacket`s and `Fw::Buffer`s to downlink telemetry/events and files from its internal queues when it is in the `READY` state (no queued buffers and is ready for sending to the communication adapter) and when the `EnduroSatManager` indicates it is ready for another packet through the `ComQueue.comStatusIn` input port.
+The `Svc.ComQueue` component processes `Fw::ComPacket`s and `Fw::Buffer`s to downlink telemetry/events and files from its internal queues when it is in the `READY` state (no queued buffers and is ready for sending to the communication adapter) and when the `TmtcRadioManager` indicates it is ready for another packet through the `ComQueue.comStatusIn` input port.
 
-NOTE: The `EnduroSatManager` must send `Fw::Success::SUCCESS` over the `comStatusOut` port to receive more data to transmit.
+NOTE: The `TmtcRadioManager` must send `Fw::Success::SUCCESS` over the `comStatusOut` port to receive more data to transmit.
 
 The data sent out from the `ComQueues` `dataOut` port is first sent to the `Svc.SpacePacketFramer` which wraps the downlink data in the payload of a CCSDS Space Packet. From there, the data is sent on the `Svc.SpacePacketFramer`'s `dataOut` port to the `Svc.ComAggregator`'s `dataIn` port to aggregate data for a CCSDS TM Transfer frame. Once the internal buffer is full, it is forwarded from the `dataOut` port into the `Svc.TmFramer` component's `dataIn` port.
 
 ---
-#### 6.3.4 EnduroSatManager Downlink
+#### 6.3.4 TmtcRadioManager Downlink
 ![ComStubFramerConnections](./images/ComStubFramerConnections.png)
 
-After the `Svc.TmFramer` wraps a CCSDS Space Packet into a CCSDS TM Transfer frame, the data is sent out of the `dataOut` port and into the `EnduroSatManager`'s `dataIn` port.
+After the `Svc.TmFramer` wraps a CCSDS Space Packet into a CCSDS TM Transfer frame, the data is sent out of the `dataOut` port and into the `TmtcRadioManager`'s `dataIn` port.
 
 ---
 <br>
 
-![EnduroSatManager Connections](./images/comStubConnections.png)
+![TmtcRadioManager Connections](./images/comStubConnections.png)
 
-From here, the `EnduroSatManager` component will send all downlink data (received from the `Svc.ComQueue`'s framing topology) through it's `drvSendOut` output port and into the `ComDriver`, which is a passive `LinuxUartDriver` component to be sent to the S-band transceiver for transmission.
+From here, the `TmtcRadioManager` component will send all downlink data (received from the `Svc.ComQueue`'s framing topology) through it's `drvSendOut` output port and into the `ComDriver`, which is a passive `LinuxUartDriver` component to be sent to the S-band transceiver for transmission.
 
 ## 7. Notes
 
@@ -252,17 +246,17 @@ From here, the `EnduroSatManager` component will send all downlink data (receive
 
 ```mermaid
 flowchart LR
-    SSM["SatStateMachine"] -->|commsModeOut| App["CommsApplication"]
+    SSM["SatStateMachine"] -->|commsModeOut| App["ComApplication"]
     App -->|commsReadyIn| SSM
     App -->|configureGroupRate| TlmPk["Svc.TlmPacketizer"]
     TlmPk --> CCSDS["ComCcsds<br/>(framing chain + ComQueue)"]
-    CCSDS --> ESM["EnduroSatManager"]
-    ESM --> ComDriver["LinuxUartDriver"]
+    CCSDS --> TRM["TmtcRadioManager"]
+    TRM --> ComDriver["LinuxUartDriver"]
 ```
 
-- The `CommsApplication` will be a part of another subtopology, titled [TBD], that also wraps the `ComCCSDS` framing subtopology and the `EnduroSatManager` component.
-- `StandardDownlink` and `StoredPlayback` require `AdcsApplication` to be in `AntennaPointing` mode. `SatStateMachine` is responsible for commanding both simultaneously via the translation table. `CommsApplication` does not check ADCS state directly.
-- `EnduroSatManager` interface to be defined during detailed design.  
-- The `TlmPacketizer` component gives the `CommsApplication` capabilities to configure the rate at which certain packets are sent for the various operating modes.
+- The `ComApplication` will be a part of another subtopology, titled [TBD], that also wraps the `ComCCSDS` framing subtopology and the `TmtcRadioManager` component.
+- `STANDARD_DOWNLINK` and `STORED_PLAYBACK` require `AdcsApplication` to be in `AntennaPointing` mode. `SatStateMachine` is responsible for commanding both simultaneously via the translation table. `ComApplication` does not check ADCS state directly.
+- `TmtcRadioManager` interface to be defined during detailed design.  
+- The `TlmPacketizer` component gives the `ComApplication` capabilities to configure the rate at which certain packets are sent for the various operating modes.
 - For downlinking event, there are two log files to maintain: The first is for the last [TBD] minutes of events (refreshed/overwritten every [TBD] / 2 minutes) and the other which stores the last [TBD] minutes of events after the most recent `FATAL` exception. Ground can send commands to the `Svc::FileDownlink` component to retrieve these logs files held in non-volatile memory.
-- The "Health" pings will be incoming from the `Svc::Health` component which will send WARN/FATAL events if a certain number of configurable ticks have elapsed before a `pingOut` is sent from the `CommsApplication` component.
+- The "Health" pings will be incoming from the `Svc::Health` component which will send WARN/FATAL events if a certain number of configurable ticks have elapsed before a `pingOut` is sent from the `ComApplication` component.

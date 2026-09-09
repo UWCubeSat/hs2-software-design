@@ -24,7 +24,7 @@ mode via a dedicated typed port.
 | HS2-SAT-008 | SatStateMachine shall command each Layer 3 application component's operating mode per its translation table | Inspection |
 | HS2-SAT-009 | SatStateMachine shall respond to `Svc.Health` pings | Inspection |
 | HS2-SAT-010 | SatStateMachine shall support a `RESET` command that forces reentry to the current top level state's initial substate | Inspection |
-| HS2-SAT-011 | SatStateMachine shall not enter the Downlink submode unless `CommsApplication` reports downlink readiness via `commsReadyIn` | Inspection |
+| HS2-SAT-011 | SatStateMachine shall not enter the Downlink submode unless `ComApplication` reports downlink readiness via `commsReadyIn` | Inspection |
 
 ---
 
@@ -53,13 +53,13 @@ Active component. Internal `Fw::Sm` state machine with two top level sibling sta
 | `sunEclipseIn` | Input (async) | `Sat.SunEclipseInPort` | In eclipse classification, from sun sensors + GNSS. |
 | `orbitStateIn` | Input (async) | `Sat.OrbitStateInPort` | Flag for being over the ground station, from `GnssManager` |
 | `downlinkQueueDepthIn` | Input (async) | `Sat.DownlinkQueueDepthInPort` | Current downlink queue depth in bytes, from `ComQueue` |
-| `commsReadyIn` | Input (async) | `Sat.CommsReadyInPort` | Downlink readiness/permission flag from `CommsApplication`; gates `DOWNLINK` entry. |
+| `commsReadyIn` | Input (async) | `Sat.CommsReadyInPort` | Downlink readiness/permission flag from `ComApplication`; gates `DOWNLINK` entry. |
 | `powerStateGet` | Output (sync get) | `Sat.PowerStateGetPort` | Pulls the latest power state from `EPSApplication` each tick |
 | `pingIn` / `pingOut` | Input / Output | `Svc.Ping` | Health monitoring |
 | `adcsModeOut` | Output | `Sat.AdcsModePort` | Mode command to `AdcsApplication` |
 | `dataColModeOut` | Output | `Sat.DataColModePort` | Mode command to `DataCollectionApplication` |
 | `scienceInferenceModeOut` | Output | `Sat.ScienceInferenceModePort` | Mode command to `ScienceInferenceApplication` |
-| `commsModeOut` | Output | `Sat.CommsModePort` | Mode command to `CommsApplication` |
+| `commsModeOut` | Output | `Sat.CommsModePort` | Mode command to `ComApplication` |
 | `thermalModeOut` | Output | `Sat.ThermalModePort` | Mode command to `ThermalApplication` |
 | `prmGet` | Output | `Fw.PrmGet` | Load parameters from PrmDb |
 | `logOut` | Output | `Fw.Log` | Event logging |
@@ -132,7 +132,7 @@ flowchart TD
 
 **Mode/submode-to-app translation table** 
 
-| Satellite State | `AdcsApplication` | `DataCollectionApplication` | `ScienceInferenceApplication` | `CommsApplication` | `ThermalApplication` |
+| Satellite State | `AdcsApplication` | `DataCollectionApplication` | `ScienceInferenceApplication` | `ComApplication` | `ThermalApplication` |
 |----------------|-------------------|------------------------------|-------------------------------|----------------------|----------------------|
 | Safe | Detumble | Off | Off | Beacon | ActiveHeating |
 | Standby/Downlink | AntennaPointing | Off | Off | StandardDownlink | NoHeating |
