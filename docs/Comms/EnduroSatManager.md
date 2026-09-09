@@ -10,16 +10,16 @@
 |----|-------------|--------------|
 | HS2-ESM-001 | EnduroSatManager shall forward CCSDS Space Protocol telemetry packets over UART to the S-Band transceiver for downlink.  | Inspection |
 | HS2-ESM-002 | EnduroSatManager shall forward CCSDS Space Protocol command packets received over UART to the `CommandDispatcher` for processing. | Inspection |
-| HS2-ESM-003| EnduroSatManager shall maintain a status indicating the state of connection with the S-Band transceiver at all times | Inspection/Unit tests |
+| HS2-ESM-003| EnduroSatManager shall maintain a status indicating the state of connection with the S-Band transceiver at all times | Test |
 
 ---
 
 ## 3. Design
 
-## 3.1 Component Type
+### 3.1 Component Type
 Passive component that implements the F' `Communication Adapter Interface` that specifies both the ports and protocols used to operate with the standard F´ uplink and downlink components.
 
-## 3.2 Communication Adapter Interface
+### 3.2 Communication Adapter Interface
 Any communication component (e.g. a radio component) that is intended for use with the standard F´ uplink and downlink stack should implement the Communication Adapter Interface. This interface specifies both the ports and protocols used to operate with the standard F´ uplink and downlink components.
 
 The communication adapter interface protocol is designed to work alongside the framer status protocol and the com queue protocol to ensure that data messages do not overload a communication interface. These protocols are discussed below.
@@ -44,7 +44,7 @@ Framer implementations may choose to implement a different behavior. For example
 
 For HS-2, we will be utilizing the `Svc::Ccsds::SpacePacketFramer` and `Svc::Ccsds::SpacePacketDeframe`.
 
-## 3.3 Ports
+### 3.3 Ports
 The communication adapter interface is composed of five ports. These ports are used to transmit outgoing data through some communication hardware and receive incoming data from that same hardware. These ports share types with the ByteStreamDriver model for backwards compatibility:
 
 | Port | Direction | Type | Purpose |

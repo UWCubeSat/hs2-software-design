@@ -40,20 +40,58 @@ Queued component. No dedicated thread. All sync input port handlers execute on t
 
 ## 4. State Machine
 
-Single flat state machine following the hardware manager pattern.
+Single flat state machine following the hardware manager pattern (`RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN`, error from any state loops back to `RESET`).
 
 ```
-RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN
-  ↑_____________ error from any state _____|
+RESET
+  entry: clear cached readings; mark all sensors invalid; reset error counters
+  on tick → WAIT_RESET
+
+WAIT_RESET
+  on tick: count ticks
+           if hold period elapsed → ENABLE
+           (no bus operations)
+
+ENABLE
+  entry: assert any required power or enable GPIO for the sensor bus
+  on tick:
+    if enable OK → CONFIGURE
+    if enable error → RESET
+
+CONFIGURE
+  entry: write initialization sequence to each sensor over I2C
+         (resolution, conversion rate, one-shot vs. continuous mode)
+  on tick:
+    if all writes OK → RUN
+    if any I2C error → RESET
+
+RUN
+  on tick: read all sensors over I2C; update cache and validity flags
+           on I2C error: log WARNING_HI, mark all readings invalid → RESET
+  on tempReadIn: serve cached readings and validity flags from RUN;
+                 return all-invalid if not in RUN
+
+# Global signal - reachable from any state:
+on error signal → RESET
 ```
 
-| State | Action |
-|-------|--------|
-| `RESET` | Clear cached readings; mark all sensors invalid; reset error counters. Immediately signal → `WAIT_RESET`. |
-| `WAIT_RESET` | Count ticks. After hold period elapses, signal → `ENABLE`. |
-| `ENABLE` | Assert any required power or enable GPIO for the sensor bus. Signal → `CONFIGURE` on success, → `RESET` on failure. |
-| `CONFIGURE` | Write initialization sequence to each sensor over I2C (resolution, conversion rate, one-shot vs. continuous mode). Signal → `RUN` on success, → `RESET` on any I2C error. |
-| `RUN` | Read all sensors over I2C each tick; update cache and validity flags. Serve `tempReadIn` from cache. On I2C error: log `WARNING_HI`, mark all readings invalid, signal → `RESET`. |
+```mermaid
+stateDiagram-v2
+    [*] --> RESET
+    RESET --> WAIT_RESET: on tick
+    WAIT_RESET --> ENABLE: hold elapsed
+    ENABLE --> CONFIGURE: enable OK
+    CONFIGURE --> RUN: writes OK
+```
+
+**Error recovery:** any of `ENABLE`, `CONFIGURE`, or `RUN` return directly to `RESET` on an I2C bus error.
+
+```mermaid
+stateDiagram-v2
+    ENABLE --> RESET: error
+    CONFIGURE --> RESET: error
+    RUN --> RESET: error
+```
 
 ---
 

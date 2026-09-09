@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-`MagnetorquerManager` is the Layer 2 hardware manager for the magnetorquer coils within the ADCS subtopology. It is an **actuator manager** — it receives a magnetic moment vector from `AdcsApplication`, converts it to per-axis PWM duty cycles, and drives the H-bridge current driver via six PWM signals (two per axis: one signal per current direction).
+`MagnetorquerManager` is the Layer 2 hardware manager for the magnetorquer coils within the ADCS subtopology. It is an **actuator manager**, receiving a magnetic moment vector from `AdcsApplication`, converting it to per-axis PWM duty cycles, and driving the H-bridge current driver via six PWM signals (two per axis, one signal per current direction).
 
 `MagnetorquerManager` is a **Queued** component driven by `RateGroup1` (10 Hz). It has no satellite mode awareness and performs no control law computation. On receiving a moment vector, it computes the corresponding duty cycles and applies them as a burst over N ticks; after the burst completes it idles (zero current on all axes) until the next moment vector arrives. This burst-then-idle pattern allows the magnetometer to read an uncontaminated B-field between actuation pulses.
 
@@ -38,7 +38,7 @@ Each H-bridge axis requires two PWM inputs for bidirectional current control: dr
 
 ### 3.1 Component Type
 
-Queued component with internal flat F' state machine (`Fw::Sm`). Has a message queue but no dedicated thread — executes on the `RateGroup1` caller thread each 10 Hz tick.
+Queued component with internal flat F' state machine (`Fw::Sm`). Has a message queue but no dedicated thread. It executes on the `RateGroup1` caller thread each 10 Hz tick.
 
 ### 3.2 Parameters
 
@@ -52,11 +52,11 @@ Queued component with internal flat F' state machine (`Fw::Sm`). Has a message q
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
-| `schedIn` | Input | `Svc.Sched` | 10 Hz rate group tick — drives SM step and burst countdown |
+| `schedIn` | Input | `Svc.Sched` | 10 Hz rate group tick that drives the SM step and burst countdown |
 | `momentVectorIn` | Input (sync) | `Adcs.MomentVectorPort` | Magnetic moment vector from AdcsApplication; converted to duty cycles |
 | `controlIn` | Input (async) | `Adcs.ManagerControlPort` | ON/OFF command from AdcsApplication |
 | `pwmSetPeriodOut[6]` | Output | `Drv.PwmSetPeriod` | Set PWM period on all six channels during CONFIGURE |
-| `pwmSetDutyCycleOut[6]` | Output | `Drv.PwmSetDutyCycle` | Duty cycle control — channels 0–1: X-axis (±), 2–3: Y-axis (±), 4–5: Z-axis (±) |
+| `pwmSetDutyCycleOut[6]` | Output | `Drv.PwmSetDutyCycle` | Duty cycle control for channels 0-1 (X-axis ±), 2-3 (Y-axis ±), 4-5 (Z-axis ±) |
 | `pwmEnableOut[6]` | Output | `Drv.PwmEnable` | Enable all six channels on CONFIGURE entry; disable on error before → RESET |
 | `prmGet` | Output | `Fw.PrmGet` | Load parameters from PrmDb during CONFIGURE |
 | `logOut` | Output | `Fw.Log` | Event logging (state transitions, errors) |
@@ -70,7 +70,7 @@ Queued component with internal flat F' state machine (`Fw::Sm`). Has a message q
 
 ## 4. State Machine
 
-`MagnetorquerManager` uses a single flat F' state machine. All states are peers — no nesting. The SM is stepped by `schedIn` each tick.
+`MagnetorquerManager` uses a single flat F' state machine. All states are peers with no nesting. The SM is stepped by `schedIn` each tick.
 
 ```
 OFF
@@ -116,12 +116,41 @@ RUN
            on any write error:
              log WARNING_HI (throttled), increment failure count → RESET
 
-# Global signals — reachable from any state:
+# Global signals reachable from any state
 on error signal       → RESET
 on controlIn(OFF)     → OFF
 on controlIn(ON)      → RESET   # no-op from non-OFF states
 on reconfigure signal → CONFIGURE
 ```
+
+```mermaid
+stateDiagram-v2
+    [*] --> RESET
+    RESET --> WAIT_RESET: on tick
+    WAIT_RESET --> CONFIGURE: wait elapsed
+    CONFIGURE --> RUN: writes OK
+    RUN --> CONFIGURE: reconfigure
+```
+
+**Error recovery:** either `CONFIGURE` or `RUN` return directly to `RESET` on a PWM write error.
+
+```mermaid
+stateDiagram-v2
+    CONFIGURE --> RESET: error
+    RUN --> RESET: error
+```
+
+**OFF power control:**
+
+```mermaid
+stateDiagram-v2
+    RESET --> OFF: controlIn(OFF)
+    WAIT_RESET --> OFF: controlIn(OFF)
+    CONFIGURE --> OFF: controlIn(OFF)
+    RUN --> OFF: controlIn(OFF)
+```
+
+**Powering back on:** `OFF --> RESET` on `controlIn(ON)`, from any state.
 
 **Burst-then-idle:** After each moment vector is received, duty cycles are applied for exactly `BURST_TICKS` ticks. The coils then idle at zero current until the next `momentVectorIn`. This ensures the magnetometer can sample an uncontaminated B-field between actuation pulses.
 

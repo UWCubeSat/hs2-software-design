@@ -131,11 +131,52 @@ on switchMode(Adcs.Mode.EarthLimbPointing) enter EARTH_LIMB_POINTING
 on switchMode(Adcs.Mode.AttitudeHold)      enter ATTITUDE_HOLD
 ```
 
+```mermaid
+stateDiagram-v2
+    [*] --> OFF
+    OFF --> DETUMBLE: switchMode(Detumble)
+    OFF --> SUN_POINTING: switchMode(SunPointing)
+    OFF --> ANTENNA_POINTING: switchMode(AntennaPointing)
+    OFF --> EARTH_LIMB_POINTING: switchMode(EarthLimbPointing)
+    OFF --> ATTITUDE_HOLD: switchMode(AttitudeHold)
+```
+
 Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions), [FPP substates](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#substates)
 
 ---
 
 ## 5. Notes
+
+**Subtopology wiring - sensor inputs:**
+
+```mermaid
+flowchart LR
+    SSM["SatStateMachine"] -->|adcsModeOut| App["AdcsApplication"]
+    Gnss["GnssManager<br/>(top-level, shared)"] -->|positionGet| App
+    StarTracker["StarTrackerManager<br/>(top-level, shared)"] -->|attitudeIn| Filter["AttitudeFilter"]
+    Imu["ImuManager"] -->|imuDataOut| Filter
+    Sun["SunSensorManager"] -->|sunVectorIn| Filter
+```
+
+**Subtopology wiring - control loop dispatch:**
+
+```mermaid
+flowchart LR
+    App["AdcsApplication"] -->|filter*Get, 6 ports| Filter["AttitudeFilter"]
+    App -->|bDotCompute| BDot["BDotAlgorithm"]
+    App -->|quaternionPdCompute| QPd["QuaternionPdAlgorithm"]
+    App -->|slewRateCompute| Slew["SlewRateAlgorithm"]
+    App -->|momentVectorOut| Mtq["MagnetorquerManager"]
+```
+
+**Subtopology wiring - hardware power sequencing:**
+
+```mermaid
+flowchart LR
+    App["AdcsApplication"] -->|imuControl| Imu["ImuManager"]
+    App -->|sunSensorControl| Sun["SunSensorManager"]
+    App -->|magnetorquerControl| Mtq["MagnetorquerManager"]
+```
 
 - `StarTrackerManager` and `GnssManager` are top-level components shared with `DataCollectionApplication`; connections are wired at the top-level topology.
 - Hardware managers (`ImuManager`, `SunSensorManager`, `MagnetorquerManager`) and Layer 2.5 components (`AttitudeFilter`, `BDotAlgorithm`, `QuaternionPdAlgorithm`, `SlewRateAlgorithm`) are all instantiated inside the ADCS subtopology.

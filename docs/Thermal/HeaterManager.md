@@ -4,7 +4,7 @@
 
 `HeaterManager` is a Layer 2 Queued worker component in the Thermal subtopology. It owns the PWM-driven heater output channel, managing its initialization via `LinuxPwmDriver`. In `RUN` state it accepts duty cycle commands from `ThermalApplication` and writes the corresponding nanosecond value to the PWM channel. In any non-`RUN` state all heater commands are clamped to zero, ensuring the heater defaults off during initialization and error recovery.
 
-The PWM period is fixed at topology assembly time as a C++ constructor argument — it is not a runtime parameter.
+The PWM period is fixed at topology assembly time as a C++ constructor argument. It is not a runtime parameter.
 
 ---
 
@@ -39,24 +39,50 @@ Queued component. No dedicated thread. All sync input port handlers execute on t
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry (current duty cycle, SM state) |
 | `timeGetOut` | Output | `Fw.Time` | Timestamps |
 
-No command ports. No health monitoring. No PrmDb parameters — PWM period is a topology constant passed as a constructor argument.
+No command ports. No health monitoring. No PrmDb parameters. PWM period is a topology constant passed as a constructor argument.
 
 ---
 
 ## 4. State Machine
 
-Three-state flat state machine. WAIT_RESET and ENABLE are omitted because `LinuxPwmDriver` handles channel export and open at topology init time — there is no chip boot delay to wait for and no power rail to assert.
+Three-state flat state machine (`RESET → CONFIGURE → RUN`, any error loops back to `RESET`). `WAIT_RESET` and `ENABLE` are omitted because `LinuxPwmDriver` handles channel export and open at topology init time. There is no chip boot delay to wait for and no power rail to assert.
 
 ```
-RESET → CONFIGURE → RUN
-  ↑___ any error ____|
+RESET
+  entry: clear internal state and error counters
+  on tick → CONFIGURE
+
+CONFIGURE
+  entry: call pwmSetPeriod with the configured period
+         call pwmSetDutyCycle(0) to zero the output
+         call pwmEnable(HIGH) to activate the channel
+  on tick:
+    if all writes OK → RUN
+    if any PWM error → RESET
+
+RUN
+  on heaterCmdIn: convert duty percent to nanoseconds; call pwmSetDutyCycleOut
+                  clamped to zero if not in RUN
+  on PWM_WRITE_ERR: log WARNING_HI, call pwmEnable(LOW) → RESET
+
+# Global signal - reachable from any state:
+on error signal → RESET
 ```
 
-| State | Action |
-|-------|--------|
-| `RESET` | Clear internal state and error counters. Immediately signal → `CONFIGURE`. |
-| `CONFIGURE` | Call `pwmSetPeriod` with the configured period. Call `pwmSetDutyCycle(0)` to zero the output. Call `pwmEnable(HIGH)` to activate the channel. Signal → `RUN` on success, → `RESET` on any PWM error. |
-| `RUN` | On `heaterCmdIn`: convert duty percent to nanoseconds and call `pwmSetDutyCycleOut`. On any `PWM_WRITE_ERR`: log `WARNING_HI`, call `pwmEnable(LOW)`, signal → `RESET`. |
+```mermaid
+stateDiagram-v2
+    [*] --> RESET
+    RESET --> CONFIGURE: on tick
+    CONFIGURE --> RUN: writes OK
+```
+
+**Error recovery:** either `CONFIGURE` or `RUN` return directly to `RESET` on a PWM write error.
+
+```mermaid
+stateDiagram-v2
+    CONFIGURE --> RESET: error
+    RUN --> RESET: error
+```
 
 ---
 

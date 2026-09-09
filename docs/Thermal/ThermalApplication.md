@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-`ThermalApplication` is the Layer 3 Active component for the Thermal subtopology. It receives a mode command from `SatStateMachine` and executes the satellite's thermal control policy — reading temperature sensor data from `TemperatureSensorManager` each rate group tick and commanding a heater duty cycle to `HeaterManager`.
+`ThermalApplication` is the Layer 3 Active component for the Thermal subtopology. It receives a mode command from `SatStateMachine` and executes the satellite's thermal control policy, reading temperature sensor data from `TemperatureSensorManager` each rate group tick and commanding a heater duty cycle to `HeaterManager`.
 
 In `NoHeating` mode the heater is commanded off and the component monitors temperature for out-of-range conditions. In `ActiveHeating` mode a PID control loop runs each tick and modulates the heater duty cycle toward a configurable setpoint. If any sensor reading is invalid the heater is clamped to zero and a WARNING_HI is emitted.
 
@@ -69,7 +69,7 @@ If the incoming mode matches the current mode, the handler returns immediately (
 | Mnemonic | Args | Description |
 |----------|------|-------------|
 | `SET_HEATER_OVERRIDE` | `dutyPercent: F32` | Force heater to a fixed duty cycle regardless of PID output |
-| `CLEAR_HEATER_OVERRIDE` |  —  | Revoke heater override |
+| `CLEAR_HEATER_OVERRIDE` | - | Revoke heater override |
 
 ---
 
@@ -93,11 +93,40 @@ on switchMode(Thermal.Mode.NoHeating)     → enter NO_HEATING
 on switchMode(Thermal.Mode.ActiveHeating) → enter ACTIVE_HEATING
 ```
 
+```mermaid
+stateDiagram-v2
+    [*] --> NO_HEATING
+    NO_HEATING --> ACTIVE_HEATING: switchMode(ActiveHeating)
+```
+
+**Returning to NO_HEATING:**
+
+```mermaid
+stateDiagram-v2
+    ACTIVE_HEATING --> NO_HEATING: switchMode(NoHeating)
+```
+
 Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions)
 
 ---
 
 ## 5. Notes
+
+**Subtopology wiring:**
+
+```mermaid
+flowchart LR
+    SSM["SatStateMachine"] -->|thermalModeOut| App["ThermalApplication"]
+
+    subgraph THERM["Thermal Subtopology"]
+        App
+        TempSensor["TemperatureSensorManager"]
+        Heater["HeaterManager"]
+
+        App -->|tempReadOut| TempSensor
+        App -->|heaterCmdOut| Heater
+    end
+```
 
 - `SatStateMachine` owns the translation from satellite state to `Thermal.Mode`. `ThermalApplication` has no knowledge of `Sat::StandbySubmode` or `Sat::Mode`.
 - The PID integrator is reset on entry to `NO_HEATING` and inline whenever a sensor reading is invalid, to prevent integrator windup.

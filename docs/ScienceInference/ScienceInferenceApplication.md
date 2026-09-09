@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-`ScienceInferenceApplication` is the Layer 3 Active component for the ScienceInference subtopology. It processes raw images stored on flash by running them through the HS2 science algorithms (LOST, FOUND, SCOPE). It operates on a scheduled polling cycle — finding unprocessed images, invoking the appropriate algorithm based on experiment metadata, storing results for downlink, compressing flagged images, and marking each image as processed.
+`ScienceInferenceApplication` is the Layer 3 Active component for the ScienceInference subtopology. It processes raw images stored on flash by running them through the HS2 science algorithms (LOST, FOUND, SCOPE). It operates on a scheduled polling cycle, finding unprocessed images, invoking the appropriate algorithm based on experiment metadata, storing results for downlink, compressing flagged images, and marking each image as processed.
 
 `ScienceInferenceApplication` is fully schedule-driven and receives no ground commands directly. It activates and deactivates based on mode commands from `SatStateMachine`.
 
@@ -63,7 +63,19 @@ If the incoming mode matches the current mode, the handler returns immediately (
 
 ### 3.4 Commands
 
-None. `ScienceInferenceApplication` is fully schedule-driven.
+| Mnemonic | Args | Description |
+|----------|------|-------------|
+| - | - | None. `ScienceInferenceApplication` is fully schedule-driven. |
+
+### 3.5 External Libraries
+
+| Library | Algorithm | Camera | Experiment Type |
+|---------|-----------|--------|----------------|
+| LOST | Lost-in-space star identification | Camera 1 | L&F |
+| FOUND | Follow-up optical navigation | Camera 2 | L&F |
+| SCOPE | Star catalog optical processing (runs LOST internally) | Camera 1 + 2 | Calibration |
+
+All libraries included via CMake. Invoked directly from `ScienceInferenceApplication` C++ implementation based on experiment type metadata stored with each image. SCOPE passes calibration images through LOST as an internal preprocessing stage. `ScienceInferenceApplication` passes calibration images to SCOPE only.
 
 ---
 
@@ -86,24 +98,43 @@ on switchMode(ScienceInference.Mode.ProcessImages) enter PROCESS_IMAGES
 
 **Per-image loop within `PROCESS_IMAGES`:** QUERYING → PROCESSING → STORING cycles for each unprocessed image found. On algorithm failure: log `WARNING_HI`, skip to next image.
 
+```mermaid
+stateDiagram-v2
+    [*] --> OFF
+    OFF --> PROCESS_IMAGES: switchMode(ProcessImages)
+
+    state PROCESS_IMAGES {
+        [*] --> QUERYING
+        QUERYING --> PROCESSING: unprocessed image found
+        PROCESSING --> STORING: algorithm complete
+        STORING --> QUERYING: next image
+        PROCESSING --> QUERYING: algorithm failure (WARNING_HI, skip)
+    }
+```
+
+**Returning to OFF:**
+
+```mermaid
+stateDiagram-v2
+    PROCESS_IMAGES --> OFF: switchMode(Off)
+```
+
 Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions), [FPP substates](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#substates)
 
 ---
 
-## 5. External Libraries
+## 5. Notes
 
-| Library | Algorithm | Camera | Experiment Type |
-|---------|-----------|--------|----------------|
-| LOST | Lost-in-space star identification | Camera 1 | L&F |
-| FOUND | Follow-up optical navigation | Camera 2 | L&F |
-| SCOPE | Star catalog optical processing (runs LOST internally) | Camera 1 + 2 | Calibration |
+**Subtopology wiring:**
 
-All libraries included via CMake. Invoked directly from `ScienceInferenceApplication` C++ implementation based on experiment type metadata stored with each image. SCOPE passes calibration images through LOST as an internal preprocessing stage — `ScienceInferenceApplication` passes calibration images to SCOPE only.
-
----
-
-## 6. Notes
+```mermaid
+flowchart LR
+    SSM["SatStateMachine"] -->|scienceInferenceModeOut| App["ScienceInferenceApplication"]
+    DCA["DataCollectionApplication<br/>(no direct port - via flash)"] -.->|images written| Flash["Flash storage<br/>(FileHandling)"]
+    Flash -->|storageQuery, imageRead| App
+    App -->|resultWrite, imageWrite| DP["DataProducts<br/>(DpManager/DpWriter/DpCatalog)"]
+```
 
 - `ScienceInferenceApplication` does not delete images. Image purge handled separately.
 - Flash polling rate is 0.1 Hz to avoid compute contention with other rate group work.
-- Images are written to flash by `DataCollectionApplication` and read here — no direct communication between the two application components.
+- Images are written to flash by `DataCollectionApplication` and read here. There is no direct communication between the two application components.

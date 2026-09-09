@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-`DataCollectionApplication` is the Layer 3 Active component for the DataCollection subtopology. It executes data collection experiments on command from `SatStateMachine` — powering on cameras, configuring them with experiment parameters from `PrmDb`, simultaneously acquiring images and navigation data, storing results to flash, and powering off all hardware upon completion.
+`DataCollectionApplication` is the Layer 3 Active component for the DataCollection subtopology. It executes data collection experiments on command from `SatStateMachine`, powering on cameras, configuring them with experiment parameters from `PrmDb`, simultaneously acquiring images and navigation data, storing results to flash, and powering off all hardware upon completion.
 
 It coordinates `Camera1Manager` and `Camera2Manager` (within its subtopology) and consumes attitude from `StarTrackerManager` and position from `GnssManager` (both top-level).
 
@@ -90,7 +90,7 @@ HEALTH_CHECK
 RUN_EXPERIMENT
   ├─ POWERING_ON     (power on Camera1Manager, Camera2Manager)
   ├─ CAPTURING       (simultaneous: Camera1 image, Camera2 image,
-  │                   StarTracker attitude, GNSS position — within 10ms window)
+  │                   StarTracker attitude, GNSS position, all within a 10ms window)
   ├─ STORING         (write images + metadata to flash with experiment ID + timestamp)
   └─ POWERING_OFF    (power off all cameras; on complete → enter OFF)
 
@@ -102,11 +102,60 @@ on switchMode(DataCollection.Mode.RunExperiment) enter RUN_EXPERIMENT
 
 **Storage check:** Performed at entry to `RUN_EXPERIMENT` before `POWERING_ON`. If flash is full, log `WARNING_HI` and transition directly to `OFF`.
 
+```mermaid
+stateDiagram-v2
+    [*] --> OFF
+    OFF --> HEALTH_CHECK: switchMode(HealthCheck)
+    OFF --> RUN_EXPERIMENT: switchMode(RunExperiment)
+
+    state HEALTH_CHECK {
+        [*] --> CHECKING
+    }
+    state RUN_EXPERIMENT {
+        [*] --> POWERING_ON
+        POWERING_ON --> CAPTURING: cameras powered on
+        CAPTURING --> STORING: capture complete
+        STORING --> POWERING_OFF: stored
+        POWERING_OFF --> [*]: enter OFF
+    }
+```
+
+**Returning to OFF:**
+
+```mermaid
+stateDiagram-v2
+    HEALTH_CHECK --> OFF: switchMode(Off)
+    RUN_EXPERIMENT --> OFF: switchMode(Off)
+```
+
 Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions), [FPP substates](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#substates)
 
 ---
 
 ## 5. Notes
+
+**Subtopology wiring:**
+
+```mermaid
+flowchart LR
+    SSM["SatStateMachine"] -->|dataColModeOut| App["DataCollectionApplication"]
+    StarTracker["StarTrackerManager<br/>(top-level, shared)"] -->|attitudeGet| App
+    Gnss["GnssManager<br/>(top-level, shared)"] -->|positionGet| App
+
+    subgraph DC["DataCollection Subtopology"]
+        App
+        subgraph CAMS["Cameras"]
+            direction TB
+            Cam1["Camera1Manager"]
+            Cam2["Camera2Manager"]
+        end
+        App -->|cameraPowerOn/Off, cameraCmd - one pair per camera| CAMS
+    end
+
+    App -->|imageWrite| DP["DataProducts<br/>(DpManager/DpWriter)"]
+    App -->|storageQuery| FH["FileHandling<br/>(flash storage query)"]
+    App -.->|images on flash| SIA["ScienceInferenceApplication<br/>(no direct port - via flash)"]
+```
 
 - `StarTrackerManager` and `GnssManager` are top-level components; connections wired at top-level topology.
 - Experiment type (L&F vs Calibration) is encoded in experiment parameters from `PrmDb`; `DataCollectionApplication` passes parameters to `CameraManagers` without distinguishing experiment type.
