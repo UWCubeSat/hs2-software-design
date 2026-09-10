@@ -1,7 +1,7 @@
 # Introduction and System Context
 
-This document defines the HuskySat-2 flight-software design and the interfaces between its software layers. It is written for a 3U CubeSat flight computer running Linux and F' (F Prime). The document introduces the platform and framework context first, then describes the Level 1 drivers, Level 2 hardware managers, Level 3 applications, and the future Level 4 satellite state machine.
+This document defines the HuskySat-2 flight-software design and the interfaces between its software layers. It is written for a 3U CubeSat flight computer running Linux and F' (F Prime). The document introduces the software context first, then describes the Level 1 drivers, Level 2 hardware managers, Level 3 applications, and Level 4 system-control components.
 
-HuskySat-2 uses optical-navigation experiments to validate the LOST, FOUND, and SCOPE algorithms. The design is expected to grow as camera, star-tracker, hardware-integration, and satellite-state-machine components are completed. Unfinished areas are marked TBA or represented with intentionally high-level topology placeholders rather than being described as complete designs.
+HuskySat-2 uses optical-navigation experiments to validate the LOST, FOUND, and SCOPE algorithms. The design is expected to grow as camera, star-tracker, and hardware-integration components are completed. Unfinished areas are marked TBA or represented with intentionally high-level topology diagrams rather than being described as complete designs.
 
-The pages that follow are all part of this introductory section. Each topic is kept as its own chapter so it can be reviewed and expanded independently of the component-level designs.
+The pages that follow begin with the document scope and system context. Each topic is kept as its own chapter so it can be reviewed and expanded independently of the component-level designs.

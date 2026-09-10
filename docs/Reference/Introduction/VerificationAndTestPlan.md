@@ -28,7 +28,7 @@ Examples include checking that ADCS algorithms produce safe actuator commands fr
 
 ## Integrated Topology Tests
 
-Integrated tests will exercise cross-subsystem data flow, shared CDH services, CCSDS uplink/downlink paths, file operations, data products, rate-group scheduling, and health monitoring. The final stage will include the `SatStateMachine` mode transitions once its design is available.
+Integrated tests will exercise cross-subsystem data flow, shared CDH services, CCSDS uplink/downlink paths, file operations, data products, rate-group scheduling, health monitoring, and the `SatStateMachine` mode transitions. Fatal-event routing and the application-owned targeted-reset path will be added to the integrated fault-response tests as those interfaces are finalized.
 
 ## Verification Evidence
 

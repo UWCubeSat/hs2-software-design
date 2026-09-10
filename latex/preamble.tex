@@ -9,6 +9,8 @@
 \usepackage{etoolbox}
 \usepackage{fvextra}
 \usepackage{url}
+\usepackage{xcolor}
+\usepackage[normalem]{ulem}
 
 \setlength{\tabcolsep}{2.5pt}
 \setlength{\emergencystretch}{3em}
@@ -32,3 +34,10 @@
 \AtBeginEnvironment{longtable}{\let\texttt\HSBreakableTexttt}
 \AtEndEnvironment{longtable}{\let\texttt\HSOriginalTexttt}
 \sloppy
+
+% Keep explicit document links visibly distinct while leaving TOC and other
+% internal structural links black through the Quarto configuration.
+\AtBeginDocument{%
+  \let\HSOriginalHref\href
+  \renewcommand{\href}[2]{\HSOriginalHref{#1}{\textcolor{blue}{\uline{#2}}}}%
+}

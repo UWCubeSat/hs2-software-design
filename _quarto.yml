@@ -7,86 +7,93 @@ book:
   output-file: "HS2-Software-Design-Document"
   chapters:
     - index.qmd
-    - docs/Introduction/Scope.md
-    - docs/Introduction/HardwarePlatformInventory.md
-    - docs/Introduction/ArchitectureOverview.qmd
-    - docs/Introduction/SubtopologyPlaceholders.qmd
-    - docs/Introduction/ExternalLibraryIntegration.md
-    - docs/Introduction/RadiationToleranceAndStorage.md
-    - docs/Introduction/FprimeContext.md
-    - docs/Introduction/VerificationAndTestPlan.md
+    - docs/Reference/Introduction/Scope.md
+    - docs/Reference/Introduction/HardwarePlatformInventory.md
+    - docs/Reference/Introduction/ArchitectureOverview.qmd
+    - docs/Reference/Introduction/SubtopologyDecomposition.qmd
+    - docs/Reference/Introduction/SoftwareTopology.qmd
+    - docs/Reference/Introduction/ExternalLibraryIntegration.md
+    - docs/Reference/Introduction/RadiationToleranceAndStorage.md
+    - docs/Reference/Introduction/FprimeContext.md
+    - docs/Reference/Introduction/VerificationAndTestPlan.md
 
     - part: "Level 1 - Drivers"
       chapters:
         - docs/Drivers/LinuxPwmDriver.md
-        - docs/Drivers/LinuxUartDriver.md
-        - docs/Drivers/LinuxI2cDriver.md
-        - docs/Drivers/LinuxSpiDriver.md
-        - docs/Drivers/LinuxGpioDriver.md
+        - docs/Reference/Drivers/LinuxUartDriver.md
+        - docs/Reference/Drivers/LinuxI2cDriver.md
+        - docs/Reference/Drivers/LinuxSpiDriver.md
+        - docs/Reference/Drivers/LinuxGpioDriver.md
+        - docs/Reference/OSAL/FileSystem.md
+        - docs/Reference/OSAL/Task.md
+        - docs/Reference/OSAL/Queue.md
+        - docs/Reference/OSAL/Mutex.md
+        - docs/Reference/OSAL/Time.md
 
     - part: "Level 2 - Hardware Managers"
       chapters:
-        - docs/Layer2/Adcs.md
-        - docs/Adcs/ImuManager.md
+        - docs/Reference/Layer2/Adcs.md
+        - docs/Adcs/ImmuManager.qmd
         - docs/Adcs/SunSensorManager.md
-        - docs/Adcs/MagnetorquerManager.md
-        - docs/Layer2/Communications.md
+        - docs/Adcs/MagnetorquerManager.qmd
+        - docs/Reference/Layer2/Communications.md
         - docs/Comms/TmtcRadioManager.md
-        - docs/Layer2/Payload.md
+        - docs/Reference/Layer2/Payload.md
         - docs/DataCollection/GnssManager.md
-        - docs/Layer2/Eps.md
+        - docs/Reference/Layer2/Eps.md
         - docs/EPS/CurrentSensorManager.md
         - docs/EPS/DeployPanelsManager.md
         - docs/EPS/MpptManager.md
         - docs/EPS/WatchdogPinger.md
-        - docs/Layer2/Thermal.md
-        - docs/Thermal/HeaterManager.md
-        - docs/Thermal/TemperatureSensorManager.md
+        - docs/Reference/Layer2/Thermal.md
+        - docs/Thermal/HeaterManager.qmd
+        - docs/Thermal/TemperatureSensorManager.qmd
 
     - part: "Level 3 - Application Layer"
       chapters:
-        - docs/Layer3/Fprime/CmdDispatcher.md
-        - docs/Layer3/Fprime/EventManager.md
-        - docs/Layer3/Fprime/TlmChan.md
-        - docs/Layer3/Fprime/TlmPacketizer.md
-        - docs/Layer3/Fprime/Health.md
-        - docs/Layer3/Fprime/RateGroupDriver.md
-        - docs/Layer3/Fprime/ActiveRateGroup.md
-        - docs/Layer3/Fprime/Version.md
-        - docs/Layer3/Fprime/AssertFatalAdapter.md
-        - docs/Layer3/Fprime/ComQueue.md
-        - docs/Layer3/Fprime/ComStub.md
-        - docs/Layer3/Fprime/FrameAccumulator.md
-        - docs/Layer3/Fprime/FprimeRouter.md
-        - docs/Layer3/Fprime/FprimeFramer.md
-        - docs/Layer3/Fprime/FprimeDeframer.md
-        - docs/Layer3/Fprime/CcsdsTmFramer.md
-        - docs/Layer3/Fprime/CcsdsTcDeframer.md
-        - docs/Layer3/Fprime/SpacePacketFramer.md
-        - docs/Layer3/Fprime/SpacePacketDeframer.md
-        - docs/Layer3/Fprime/ApidManager.md
-        - docs/Layer3/Fprime/ComAggregator.md
-        - docs/Layer3/Fprime/FileUplink.md
-        - docs/Layer3/Fprime/FileDownlink.md
-        - docs/Layer3/Fprime/FileManager.md
-        - docs/Layer3/Fprime/PrmDb.md
-        - docs/Layer3/Fprime/DpManager.md
-        - docs/Layer3/Fprime/DpWriter.md
-        - docs/Layer3/Fprime/DpCatalog.md
-        - docs/Adcs/AdcsApplication.md
-        - docs/DataCollection/DataCollectionApplication.md
+        - docs/Reference/Fprime/CmdDispatcher.md
+        - docs/Reference/Fprime/EventManager.md
+        - docs/Reference/Fprime/TlmChan.md
+        - docs/Reference/Fprime/TlmPacketizer.md
+        - docs/Reference/Fprime/Health.md
+        - docs/Reference/Fprime/RateGroupDriver.md
+        - docs/Reference/Fprime/ActiveRateGroup.md
+        - docs/Reference/Fprime/Version.md
+        - docs/Reference/Fprime/AssertFatalAdapter.md
+        - docs/Reference/Fprime/ComQueue.md
+        - docs/Reference/Fprime/ComStub.md
+        - docs/Reference/Fprime/FrameAccumulator.md
+        - docs/Reference/Fprime/FprimeRouter.md
+        - docs/Reference/Fprime/FprimeFramer.md
+        - docs/Reference/Fprime/FprimeDeframer.md
+        - docs/Reference/Fprime/CcsdsTmFramer.md
+        - docs/Reference/Fprime/CcsdsTcDeframer.md
+        - docs/Reference/Fprime/SpacePacketFramer.md
+        - docs/Reference/Fprime/SpacePacketDeframer.md
+        - docs/Reference/Fprime/ApidManager.md
+        - docs/Reference/Fprime/ComAggregator.md
+        - docs/Reference/Fprime/FileUplink.md
+        - docs/Reference/Fprime/FileDownlink.md
+        - docs/Reference/Fprime/FileManager.md
+        - docs/Reference/Fprime/PrmDb.md
+        - docs/Reference/Fprime/DpManager.md
+        - docs/Reference/Fprime/DpWriter.md
+        - docs/Reference/Fprime/DpCatalog.md
+        - docs/Adcs/AdcsApplication.qmd
+        - docs/DataCollection/DataCollectionApplication.qmd
         - docs/Comms/ComApplication.md
         - docs/EPS/EPSApplication.md
-        - docs/ScienceInference/ScienceInferenceApplication.md
-        - docs/Thermal/ThermalApplication.md
+        - docs/ScienceInference/ScienceInferenceApplication.qmd
+        - docs/Thermal/ThermalApplication.qmd
         - docs/Adcs/AttitudeFilter.md
         - docs/Adcs/BDotAlgorithm.md
         - docs/Adcs/QuaternionPdAlgorithm.md
         - docs/Adcs/SlewRateAlgorithm.md
 
-    - part: "Level 4 - SatStateMachine Layer"
+    - part: "Level 4 - System Control Layer"
       chapters:
-        - docs/Layer4/SatStateMachine.md
+        - docs/Core/SatStateMachine.qmd
+        - docs/Reference/Fprime/FatalHandler.qmd
 
 format:
   pdf:
@@ -105,6 +112,6 @@ format:
     geometry: margin=0.65in
     colorlinks: true
     linkcolor: black
-    urlcolor: black
+    urlcolor: blue
     citecolor: black
     filecolor: black

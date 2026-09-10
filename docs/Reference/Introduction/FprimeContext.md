@@ -43,6 +43,14 @@ The deployment topology is responsible for more than simply listing components. 
 
 HuskySat-2 should preserve the same component interfaces when moving from a GDS deployment to the BeagleBone Black flight deployment. That keeps application and manager tests independent of the final physical bus wiring.
 
+## OSAL and Linux on the BeagleBone Black
+
+F' uses an operating-system abstraction layer (OSAL) so framework code can request common services without embedding a particular operating system into every component. The OSAL provides wrappers for tasks, queues, mutexes, time, files, directories, and related operating-system resources. The Level 1 driver boundary similarly provides typed F' interfaces for Linux serial and bus access.
+
+On the BeagleBone Black, these abstractions are implemented with Linux and POSIX facilities. Flight components therefore use F' and OSAL interfaces for scheduling, synchronization, timing, and file access, while Linux-specific details remain in the driver or deployment layer. This keeps the application and hardware-manager code testable in GDS and on a host system, while still allowing the deployed topology to use the BeagleBone's UART, I2C, SPI, GPIO, PWM, and filesystem resources.
+
+The OSAL is not a substitute for a device manager. It can open a file or serial endpoint and provide a task or queue, but a Level 2 manager still owns the device protocol, register meanings, initialization sequence, and hardware-specific recovery policy.
+
 ## Pre-Built Services and Subtopologies
 
 F' provides reusable components and importable subtopologies. A subtopology is a pre-wired group of component instances and connections, while its individual components still have their own behavior and interfaces. HuskySat-2 documents the individual F' components used by the Level 3 application layer so their role is visible without reproducing the entire upstream repository summary.

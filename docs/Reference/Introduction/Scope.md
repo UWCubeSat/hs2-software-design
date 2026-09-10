@@ -11,4 +11,4 @@ The document covers:
 - integration of the LOST, FOUND, and SCOPE mission libraries;
 - the staged verification path from unit tests through GDS, subsystem, and integrated deployment testing.
 
-The detailed design for `SatStateMachine`, camera managers, star-tracker management, radiation tolerance, and storage/data-retention policy will be added when those designs are available. `HardwareResetManager` remains a future system-infrastructure component and is not classified as part of the Level 4 mission-orchestration layer.
+The detailed design for camera managers, star-tracker management, radiation tolerance, and storage/data-retention policy will be added when those designs are available. The Level 4 system-control layer is limited to the satellite state machine and F' fatal handling; hardware-reset ownership remains with the application-manager interfaces described in that layer.

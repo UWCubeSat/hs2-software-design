@@ -1,6 +1,6 @@
-# Subtopology Placeholders
+# Subtopology Decomposition
 
-These diagrams are intentionally high-level placeholders. They identify subsystem boundaries and the expected relationship between applications, hardware managers, drivers, and shared services. Detailed FPP instances, ports, and connections will be added with each subsystem's topology design.
+Each subsystem will be assembled as an F' subtopology containing its application, hardware managers, and driver connections. The diagrams below show the intended software boundaries. Detailed FPP instances, ports, and connections remain TBA until the corresponding topology designs are finalized.
 
 ## ADCS
 
