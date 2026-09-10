@@ -1,4 +1,4 @@
-# LinuxPwmDriver SDD
+# LinuxPwmDriver
 
 ## 1. Overview
 

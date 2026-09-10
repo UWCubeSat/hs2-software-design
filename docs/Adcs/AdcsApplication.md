@@ -1,4 +1,4 @@
-# AdcsApplication SDD
+# AdcsApplication
 
 ## 1. Overview
 

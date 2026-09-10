@@ -1,4 +1,4 @@
-# MpptManager SDD
+# MpptManager
 
 ## 1. Overview
 

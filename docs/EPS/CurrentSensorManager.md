@@ -1,4 +1,4 @@
-# CurrentSensorManager SDD
+# CurrentSensorManager
 
 ## 1. Overview
 

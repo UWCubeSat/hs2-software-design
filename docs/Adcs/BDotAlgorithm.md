@@ -1,4 +1,4 @@
-# BDotAlgorithm SDD
+# BDotAlgorithm
 
 ## 1. Overview
 

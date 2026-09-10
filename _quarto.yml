@@ -3,56 +3,90 @@ project:
   output-dir: build
 
 book:
-  title: "HS2 Satellite Flight Software - Software Design Document"
+  title: "HuskySat-2 Software Design Document"
   output-file: "HS2-Software-Design-Document"
   chapters:
-    - index.md
+    - index.qmd
+    - docs/Introduction/Scope.md
+    - docs/Introduction/HardwarePlatformInventory.md
+    - docs/Introduction/ArchitectureOverview.qmd
+    - docs/Introduction/SubtopologyPlaceholders.qmd
+    - docs/Introduction/ExternalLibraryIntegration.md
+    - docs/Introduction/RadiationToleranceAndStorage.md
+    - docs/Introduction/FprimeContext.md
+    - docs/Introduction/VerificationAndTestPlan.md
 
-    - part: "ADCS"
+    - part: "Level 1 - Drivers"
       chapters:
-        - docs/Adcs/AdcsApplication.md
-        - docs/Adcs/AttitudeFilter.md
-        - docs/Adcs/BDotAlgorithm.md
+        - docs/Drivers/LinuxPwmDriver.md
+        - docs/Drivers/LinuxUartDriver.md
+        - docs/Drivers/LinuxI2cDriver.md
+        - docs/Drivers/LinuxSpiDriver.md
+        - docs/Drivers/LinuxGpioDriver.md
+
+    - part: "Level 2 - Hardware Managers"
+      chapters:
+        - docs/Layer2/Adcs.md
         - docs/Adcs/ImuManager.md
-        - docs/Adcs/MagnetorquerManager.md
-        - docs/Adcs/QuaternionPdAlgorithm.md
-        - docs/Adcs/SlewRateAlgorithm.md
         - docs/Adcs/SunSensorManager.md
-
-    - part: "Communications"
-      chapters:
-        - docs/Comms/ComApplication.md
+        - docs/Adcs/MagnetorquerManager.md
+        - docs/Layer2/Communications.md
         - docs/Comms/TmtcRadioManager.md
-
-    - part: "Data Collection"
-      chapters:
-        - docs/DataCollection/DataCollectionApplication.md
+        - docs/Layer2/Payload.md
         - docs/DataCollection/GnssManager.md
-
-    - part: "Electrical Power System"
-      chapters:
-        - docs/EPS/EPSApplication.md
+        - docs/Layer2/Eps.md
         - docs/EPS/CurrentSensorManager.md
         - docs/EPS/DeployPanelsManager.md
         - docs/EPS/MpptManager.md
         - docs/EPS/WatchdogPinger.md
-
-    - part: "Science Inference"
-      chapters:
-        - docs/ScienceInference/ScienceInferenceApplication.md
-
-    - part: "Thermal"
-      chapters:
-        - docs/Thermal/ThermalApplication.md
+        - docs/Layer2/Thermal.md
         - docs/Thermal/HeaterManager.md
         - docs/Thermal/TemperatureSensorManager.md
 
-    - part: "Supporting Material"
+    - part: "Level 3 - Application Layer"
       chapters:
-        - context/CONOPS.md
-        - context/fprime-repo-summary.md
-        - docs/Core/HardwareResetManager.md
-        - docs/Drivers/LinuxPwmDriver.md
+        - docs/Layer3/Fprime/CmdDispatcher.md
+        - docs/Layer3/Fprime/EventManager.md
+        - docs/Layer3/Fprime/TlmChan.md
+        - docs/Layer3/Fprime/TlmPacketizer.md
+        - docs/Layer3/Fprime/Health.md
+        - docs/Layer3/Fprime/RateGroupDriver.md
+        - docs/Layer3/Fprime/ActiveRateGroup.md
+        - docs/Layer3/Fprime/Version.md
+        - docs/Layer3/Fprime/AssertFatalAdapter.md
+        - docs/Layer3/Fprime/ComQueue.md
+        - docs/Layer3/Fprime/ComStub.md
+        - docs/Layer3/Fprime/FrameAccumulator.md
+        - docs/Layer3/Fprime/FprimeRouter.md
+        - docs/Layer3/Fprime/FprimeFramer.md
+        - docs/Layer3/Fprime/FprimeDeframer.md
+        - docs/Layer3/Fprime/CcsdsTmFramer.md
+        - docs/Layer3/Fprime/CcsdsTcDeframer.md
+        - docs/Layer3/Fprime/SpacePacketFramer.md
+        - docs/Layer3/Fprime/SpacePacketDeframer.md
+        - docs/Layer3/Fprime/ApidManager.md
+        - docs/Layer3/Fprime/ComAggregator.md
+        - docs/Layer3/Fprime/FileUplink.md
+        - docs/Layer3/Fprime/FileDownlink.md
+        - docs/Layer3/Fprime/FileManager.md
+        - docs/Layer3/Fprime/PrmDb.md
+        - docs/Layer3/Fprime/DpManager.md
+        - docs/Layer3/Fprime/DpWriter.md
+        - docs/Layer3/Fprime/DpCatalog.md
+        - docs/Adcs/AdcsApplication.md
+        - docs/DataCollection/DataCollectionApplication.md
+        - docs/Comms/ComApplication.md
+        - docs/EPS/EPSApplication.md
+        - docs/ScienceInference/ScienceInferenceApplication.md
+        - docs/Thermal/ThermalApplication.md
+        - docs/Adcs/AttitudeFilter.md
+        - docs/Adcs/BDotAlgorithm.md
+        - docs/Adcs/QuaternionPdAlgorithm.md
+        - docs/Adcs/SlewRateAlgorithm.md
+
+    - part: "Level 4 - SatStateMachine Layer"
+      chapters:
+        - docs/Layer4/SatStateMachine.md
 
 format:
   pdf:
@@ -62,6 +96,7 @@ format:
       - .
       - docs/Comms
     toc: true
+    toc-title: "Table of Contents"
     toc-depth: 3
     number-sections: false
     mermaid-format: png
@@ -69,5 +104,7 @@ format:
     fontsize: 10pt
     geometry: margin=0.65in
     colorlinks: true
-    linkcolor: blue
-    urlcolor: blue
+    linkcolor: black
+    urlcolor: black
+    citecolor: black
+    filecolor: black

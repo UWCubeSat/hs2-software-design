@@ -1,0 +1,22 @@
+# Architecture Overview
+
+HuskySat-2 follows the F' App-Manager-Driver separation. Each software layer has a distinct responsibility and communicates through typed component ports.
+
+| Level | Responsibility |
+|-------|----------------|
+| Level 1 | Passive Linux-backed drivers expose buses and operating-system resources without device knowledge. |
+| Level 2 | Hardware managers own device protocols, initialization, recovery, and device-specific telemetry. |
+| Level 3 | Applications implement subsystem behavior and coordinate managers, framework services, and mission work. |
+| Level 4 | `SatStateMachine` will coordinate satellite modes by sending typed commands to Level 3 applications. |
+
+The five top-level document sections are shown below. The first establishes context for the four runtime software layers that follow.
+
+```{mermaid}
+flowchart TB
+    I["Introduction and System Context"] --> L1["Level 1 - Drivers"]
+    L1 --> L2["Level 2 - Hardware Managers"]
+    L2 --> L3["Level 3 - Application Layer"]
+    L3 --> L4["Level 4 - SatStateMachine Layer"]
+```
+
+`CdhCore` supplies shared command, event, health, version, and fatal-handling services around the application topology. Framework services used by the Level 3 layer are described individually in that section rather than reproduced as a separate repository summary.

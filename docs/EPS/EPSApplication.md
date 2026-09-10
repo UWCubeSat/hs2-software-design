@@ -1,4 +1,4 @@
-# EPSApplication SDD
+# EPSApplication
 
 ## 1. Overview
 

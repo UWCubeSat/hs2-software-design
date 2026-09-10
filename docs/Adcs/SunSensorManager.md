@@ -1,4 +1,4 @@
-# SunSensorManager SDD
+# SunSensorManager
 
 ## 1. Overview
 

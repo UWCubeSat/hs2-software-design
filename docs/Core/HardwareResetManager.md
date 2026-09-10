@@ -1,4 +1,4 @@
-# HardwareResetManager SDD
+# HardwareResetManager
 
 ## 1. Overview
 

@@ -1,4 +1,4 @@
-# ComApplication SDD
+# ComApplication
 
 ## 1. Overview
 

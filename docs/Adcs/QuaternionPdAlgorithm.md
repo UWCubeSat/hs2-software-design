@@ -1,4 +1,4 @@
-# QuaternionPdAlgorithm SDD
+# QuaternionPdAlgorithm
 
 ## 1. Overview
 

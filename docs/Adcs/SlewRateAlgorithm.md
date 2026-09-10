@@ -1,4 +1,4 @@
-# SlewRateAlgorithm SDD
+# SlewRateAlgorithm
 
 ## 1. Overview
 

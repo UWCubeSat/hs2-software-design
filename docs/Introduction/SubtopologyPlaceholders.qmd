@@ -1,0 +1,50 @@
+# Subtopology Placeholders
+
+These diagrams are intentionally high-level placeholders. They identify subsystem boundaries and the expected relationship between applications, hardware managers, drivers, and shared services. Detailed FPP instances, ports, and connections will be added with each subsystem's topology design.
+
+## ADCS
+
+```{mermaid}
+flowchart TB
+    A[AdcsApplication] --> B[ADCS hardware managers]
+    B --> C[Linux drivers]
+    A -. mode command .-> D[SatStateMachine]
+```
+
+## Payload and Data Collection
+
+```{mermaid}
+flowchart TB
+    A[DataCollectionApplication] --> B[Payload hardware managers]
+    A --> C[Data products and storage]
+    B --> D[Linux drivers]
+```
+
+GNSS is treated as a payload/data-collection hardware manager for this document. Camera and star-tracker manager designs remain TBA.
+
+## Communications
+
+```{mermaid}
+flowchart TB
+    A[ComApplication] --> B[TmtcRadioManager]
+    B --> C[LinuxUartDriver]
+    A --> D[CCSDS service components]
+```
+
+## Electrical Power System
+
+```{mermaid}
+flowchart TB
+    A[EPSApplication] --> B[EPS hardware managers]
+    B --> C[Linux I2C and GPIO drivers]
+```
+
+## Thermal
+
+```{mermaid}
+flowchart TB
+    A[ThermalApplication] --> B[TemperatureSensorManager]
+    A --> C[HeaterManager]
+    B --> D[LinuxI2cDriver]
+    C --> E[LinuxPwmDriver]
+```

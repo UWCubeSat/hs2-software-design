@@ -1,4 +1,4 @@
-# GnssManager SDD
+# GnssManager
 
 ## 1. Overview
 

@@ -1,4 +1,4 @@
-# DeployPanelsManager SDD
+# DeployPanelsManager
 
 ## 1. Overview
 

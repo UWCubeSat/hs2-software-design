@@ -1,4 +1,4 @@
-# TmtcRadioManager SDD
+# TmtcRadioManager
 
 ## 1. Overview
 `TmtcRadioManager` is the layer 2 passive component for the Comms subtopology. It directly interacts with the Endurosat S-band transceiver through a UART interface. `The `TmtcRadioManager` is one of many layer 2 hardware managers as described in `sdd.md`.

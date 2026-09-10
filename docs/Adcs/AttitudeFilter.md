@@ -1,4 +1,4 @@
-# AttitudeFilter SDD
+# AttitudeFilter
 
 ## 1. Overview
 

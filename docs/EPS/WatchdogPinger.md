@@ -1,4 +1,4 @@
-# WatchdogPinger SDD
+# WatchdogPinger
 
 ## 1. Overview
 

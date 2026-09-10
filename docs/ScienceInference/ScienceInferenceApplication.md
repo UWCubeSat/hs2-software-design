@@ -1,109 +1,91 @@
-# ScienceInferenceApplication SDD
+# Science::ScienceApplication
 
-## 1. Overview
+ScienceApplication is the Layer 3 active component for the Science subtopology. On a schedule, it
+reads a manifest of imaging opportunities logged on the external disk, finds the first one that
+has every image type a ground-configured algorithm chain needs, and runs that chain against it.
 
-`ScienceInferenceApplication` is the Layer 3 Active component for the ScienceInference subtopology. It processes raw images stored on flash by running them through the HS2 science algorithms (LOST, FOUND, SCOPE). It operates on a scheduled polling cycle — finding unprocessed images, invoking the appropriate algorithm based on experiment metadata, storing results for downlink, compressing flagged images, and marking each image as processed.
+The component is driven by two synchronous input ports:
 
-`ScienceInferenceApplication` is fully schedule-driven and receives no ground commands directly. It activates and deactivates based on mode commands from `SatStateMachine`.
+- `schedIn` (`Svc.Sched`) — a rate-group tick. All manifest scanning and processing happens here.
+- `modeIn` (`Sat.ScienceModePort`, carrying `Science.Mode`) — mode commands from `SatStateMachine`. `Off` holds the component idle; `ProcessImages` starts the per-tick scanning loop.
 
-***
+**File system**\
+The partition holds two things: a manifest, and one subdirectory per `Science.ImageType` integer value. `<imagePartitionDir>/experiments.csv` logs imaging opportunities.
 
-## 2. Requirements
+Each experiment opportunity has:
+
+- `time` as `HH:MM:SS`, 
+-  `date` as `DD:MM:YYYY`, 
+-  `positionKnown` as `bool`,
+-  `position` as `x:y:z`
+-  `attidue` as `x:y:z:w` (quaternion),
+-  `availableImageTypes` a `U16` bitmask representing `Science.ImageType` 
+-  `experimentID` as a `U16`
+
+`<imagePartitionDir>/1/` holds `STARS` images,
+`<imagePartitionDir>/2/` holds `HORIZON` images, etc.\
+`fileName` is the experiment ID
+
+
+
+## Requirements
 
 | ID | Requirement | Verification |
-|----|-------------|-------------|
-| HS2-SIA-001 | ScienceInferenceApplication shall poll flash storage for unprocessed images when in ProcessImages mode | Inspection |
-| HS2-SIA-002 | ScienceInferenceApplication shall process each unprocessed image with its designated algorithm (LOST, FOUND, or SCOPE) based on experiment type metadata | Inspection |
-| HS2-SIA-003 | ScienceInferenceApplication shall store algorithm outputs for downlink with matching experiment ID and timestamp | Inspection |
-| HS2-SIA-004 | ScienceInferenceApplication shall compress flagged images for downlink | Inspection |
-| HS2-SIA-005 | ScienceInferenceApplication shall mark each image as processed upon successful algorithm completion | Inspection |
-| HS2-SIA-006 | ScienceInferenceApplication shall assert WARNING_HI if algorithm processing fails for an image and continue to the next | Inspection |
-| HS2-SIA-007 | ScienceInferenceApplication shall switch operating mode on command from SatStateMachine | Inspection |
-| HS2-SIA-008 | ScienceInferenceApplication shall respond to health ping within the required deadline | Inspection |
+|---|---|---|
+| HS2-SIA-001 | ScienceApplication shall process at most one `experiments.csv` opportunity per `schedIn` tick while in `ProcessImages` mode | Unit test |
+| HS2-SIA-002 | Ground shall be able to set and clear individual algorithm-topology slots (0-9) via `SET_ALGORITHM`/`CLEAR_ALGORITHM`, rejecting an out-of-range index with `VALIDATION_ERROR`, and clear the whole topology at once via `CLEAR_SCIENCE_TOPOLOGY` | Unit test |
+| HS2-SIA-003 | ScienceApplication shall find the first `experiments.csv` line whose `availableImageTypes` bitmask covers every configured algorithm's `inputImage`, and run the configured chain, in slot order, against it | Unit test |
+| HS2-SIA-004 | ScienceApplication shall preserve a copy of an algorithm's image content in `processed/` *before* running it, since the algorithm may overwrite that same path in place | Unit test |
+| HS2-SIA-005 | ScienceApplication shall log/telemeter each processed image's outcome (path, algorithm name, flagged) as part of the downlinked record | Unit test |
+| HS2-SIA-006 | ScienceApplication shall request compression for images the algorithm flags (external-process exit code 2) | Unit test |
+| HS2-SIA-007 | ScienceApplication shall emit `WARNING_HI` and leave the manifest line in `experiments.csv` if any algorithm in the chain fails | Unit test |
+| HS2-SIA-008 | ScienceApplication shall emit `WARNING_HI` and leave the file in place if it cannot preserve the pre-run image content in `processed/`, retrying on a later tick | Unit test |
+| HS2-SIA-009 | ScienceApplication shall switch between `Off` and `ProcessImages` on command from `SatStateMachine`, logging `StateChanged` on every mode command | Unit test |
+| HS2-SIA-010 | ScienceApplication shall respond to `pingIn` immediately on `pingOut` with the same key | Unit test |
+| HS2-SIA-011 | Once every configured algorithm has succeeded against an experiment, ScienceApplication shall move that experiment's manifest line from `experiments.csv` to `completeExperiments.csv`, tagged with the ordered list of algorithms that ran | Unit test |
 
-***
+## Design
 
-## 3. Design
+### Ports
 
-### 3.1 Component Type
+| Port | Kind | Direction | Type | Usage |
+|---|---|---|---|---|
+| `modeIn` | sync | input | `Sat.ScienceModePort` | Mode command from `SatStateMachine`. |
+| `schedIn` | sync | input | `Svc.Sched` | Rate-group tick; sends `tick` to the state machine on every call. |
+| `compressRequestOut` | — | output | `Science.CompressRequest` | Requests compression of a flagged image, by its (single, shared) image path. |
+| `pingIn` / `pingOut` | sync / — | in / out | `Svc.Ping` | Health monitoring; every `pingIn` is echoed immediately on `pingOut`. |
+| `timeCaller`, `Fw.Command`, `Fw.Event`, `Fw.Channel` | standard AC ports | — | — | Boilerplate command/event/telemetry/time wiring. |
 
-Active component with internal hierarchical F' state machine (`Fw::Sm`).
+### Commands
 
-### 3.2 Mode Interface
+| Name | Arguments | Effect |
+|---|---|---|
+| `SET_ALGORITHM` | `index: U8`, `algorithm: Science.Algorithm` | Sets topology slot `index` to `algorithm` |
+| `SET_ALGORITHM_PRESET` | `index: U8`, `preset: Science.AlgorithmPreset`, `inputImage: Science.ImageType`, `camera: Science.Camera` | Sets topology slot `index` to a named predefined algorithm |
+| `CLEAR_ALGORITHM` | `index: U8` | Resets topology slot `index` to an unconfigured `Science.Algorithm`. |
+| `CLEAR_SCIENCE_TOPOLOGY` | — | Resets every one of the 10 topology slots to a default `Science.Algorithm` |
 
-`ScienceInferenceApplication` receives its operating mode from `SatStateMachine` via a typed port:
+### State Machine
 
-```fpp
-sync input port modeIn: Sat.ScienceInferenceModePort   # carries ScienceInference.Mode
+`sciAppStateMachine` (`Science_ScienceApplicationStateMachine_t`, defined in
+`ScienceApplicationStateMachine.fpp`) tracks operating mode.
+
+```mermaid
+stateDiagram-v2
+  state "PROCESS_IMAGES
+    tick: runNextAvailableExperiment
+  " as PROCESS_IMAGES
+
+  [*] --> INIT
+  INIT --> OFF: tick
+  OFF --> PROCESS_IMAGES: activate
+  PROCESS_IMAGES --> OFF: deactivate
 ```
 
-Mode enum (owned by this component's module):
+| State | Meaning | On `tick` |
+|---|---|---|
+| `INIT` | Idle until the first `schedIn` tick, which transitions out immediately without touching any output port. | (transitions to `OFF`) |
+| `OFF` | Idle: `experiments.csv` is never read, no images processed. | ignored |
+| `PROCESS_IMAGES` | Steady state: at most one experiment is found and its full algorithm chain processed per tick. | `runNextAvailableExperiment` |
 
-```fpp
-module ScienceInference {
-    enum Mode { Off, ProcessImages }
-}
-```
 
-If the incoming mode matches the current mode, the handler returns immediately (idempotent).
-
-### 3.3 Ports
-
-| Port | Direction | Type | Purpose |
-|------|-----------|------|---------|
-| `modeIn` | Input | `Sat.ScienceInferenceModePort` | Mode command from SatStateMachine |
-| `schedIn` | Input | `Svc.Sched` | Rate group tick (0.1 Hz) |
-| `storageQuery` | Output | `Fw.Cmd` | Query flash for unprocessed images |
-| `imageRead` | Output | `Fw.Dp` | Read image data from flash |
-| `resultWrite` | Output | `Fw.Dp` | Write algorithm outputs to flash for downlink |
-| `imageWrite` | Output | `Fw.Dp` | Write compressed flagged images to flash for downlink |
-| `pingIn` / `pingOut` | In/Out | `Svc.Ping` | Health monitoring |
-| `logOut` | Output | `Fw.Log` | Event logging |
-| `tlmOut` | Output | `Fw.Tlm` | Telemetry (images processed, failures) |
-
-### 3.4 Commands
-
-None. `ScienceInferenceApplication` is fully schedule-driven.
-
-***
-
-## 4. State Machine
-
-`ScienceInferenceApplication` uses a hierarchical F' state machine. Mode is the top-level state; operational substates are nested inside each mode. A single `switchMode: ScienceInference.Mode` signal defined at the top level is inherited by all leaf states.
-
-```
-OFF
-
-PROCESS_IMAGES
-  ├─ QUERYING        (on tick: poll flash for unprocessed images)
-  ├─ PROCESSING      (invoke LOST, FOUND, or SCOPE per image metadata)
-  └─ STORING         (write results + compressed flagged images to flash)
-
-# Inherited by all leaf states:
-on switchMode(ScienceInference.Mode.Off)           enter OFF
-on switchMode(ScienceInference.Mode.ProcessImages) enter PROCESS_IMAGES
-```
-
-**Per-image loop within `PROCESS_IMAGES`:** QUERYING → PROCESSING → STORING cycles for each unprocessed image found. On algorithm failure: log `WARNING_HI`, skip to next image.
-
-Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions), [FPP substates](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#substates)
-
-***
-
-## 5. External Libraries
-
-| Library | Algorithm | Camera | Experiment Type |
-|---------|-----------|--------|----------------|
-| LOST | Lost-in-space star identification | Camera 1 | L&F |
-| FOUND | Follow-up optical navigation | Camera 2 | L&F |
-| SCOPE | Star catalog optical processing (runs LOST internally) | Camera 1 + 2 | Calibration |
-
-All libraries included via CMake. Invoked directly from `ScienceInferenceApplication` C++ implementation based on experiment type metadata stored with each image. SCOPE passes calibration images through LOST as an internal preprocessing stage — `ScienceInferenceApplication` passes calibration images to SCOPE only.
-
-***
-
-## 6. Notes
-
-- `ScienceInferenceApplication` does not delete images. Image purge handled separately.
-- Flash polling rate is 0.1 Hz to avoid compute contention with other rate group work.
-- Images are written to flash by `DataCollectionApplication` and read here — no direct communication between the two application components.
