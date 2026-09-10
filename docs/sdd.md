@@ -27,7 +27,7 @@ All algorithms are included as external C++ libraries via CMake. Science results
 | IMU | SPI/I2C | AdcsApplication |
 | Sun Sensors | I2C/GPIO | AdcsApplication, SatStateMachine (sun/eclipse detection) |
 | Magnetorquers | PWM | AdcsApplication |
-| EPS Board | I2C/UART | EPSApplication, MpptIcManager, SatStateMachine |
+| EPS Board | I2C/UART | EPSApplication, MpptIcManager, CurrentSensorManager, SatStateMachine |
 | EnduroSat S-band Radio | UART | CommsApplication |
 | External Flash | SPI | FileHandling subtopology |
 | Temperature Sensors | I2C | ThermalApplication (via TemperatureSensorManager) |
@@ -102,9 +102,9 @@ Layer 3 — Application components (*Application)
 Layer 2 — Hardware Managers (*Manager)
     Camera1Manager | Camera2Manager | StarTrackerManager | GnssManager
     ImuManager | SunSensorManager | MagnetorquerManager
-    MpptIcManager | WatchdogPinger | DeployPanelsManager
+    MpptIcManager | CurrentSensorManager | WatchdogPinger | DeployPanelsManager
     TemperatureSensorManager | HeaterManager
-    EnduroSatManager
+    TmtcRadioManager
 
 Layer 1 — F' Native Bus Drivers (*Driver)
     LinuxI2cDriver | LinuxSpiDriver | LinuxUartDriver | LinuxGpioDriver
@@ -120,7 +120,7 @@ Layer 1 — F' Native Bus Drivers (*Driver)
 
 **Drivers** (Layer 1) are passive bus drivers with no device knowledge.
 
-`StarTrackerManager`, `GnssManager`, and `EnduroSatManager` are instantiated at the **top-level topology** because they are shared across multiple subtopologies. All other hardware managers are instantiated inside their primary subtopology.
+`StarTrackerManager`, `GnssManager`, and `TmtcRadioManager` are instantiated at the **top-level topology** because they are shared across multiple subtopologies. All other hardware managers are instantiated inside their primary subtopology.
 
 ---
 
@@ -281,7 +281,7 @@ Top-level `switchMode: Adcs.Mode` signal inherited by all leaf states.
 | Component | Type | Purpose |
 |-----------|------|---------|
 | `CommsApplication` | Active | Hierarchical SM; receives mode from `SatStateMachine`; manages radio operating mode |
-| `EnduroSatManager` | Active (worker) | State machine: RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN / error→RESET. Bridges ComCcsds to the S-band radio. |
+| `TmtcRadioManager` | Active (worker) | State machine: RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN / error→RESET. Bridges ComCcsds to the S-band radio. |
 
 **CommsApplication modes (received via `Sat.CommsModePort`):**
 
@@ -290,18 +290,19 @@ Top-level `switchMode: Adcs.Mode` signal inherited by all leaf states.
 | `OmniOnly` | Low-rate omni telemetry only. Small packets. Always available. |
 | `HighGainDownlink` | Full high-rate downlink. Requires `AntennaPointing` from `AdcsApplication`. |
 
-**Health monitoring:** `CommsApplication` is health-monitored. `EnduroSatManager` excluded.
+**Health monitoring:** `CommsApplication` is health-monitored. `TmtcRadioManager` excluded.
 
 ### 5.7 EPS Subtopology
 
-**Purpose:** Monitors battery and power system health, accepts power configuration and panel deployment commands from ground and `SatStateMachine`, and publishes power state to `SatStateMachine` for submode decisions. Runs continuously independent of satellite mode.
+**Purpose:** Monitors battery and power-system health (battery/IC state from `MpptIcManager`, per-rail voltage and current from `CurrentSensorManager`), accepts panel deployment commands from ground, and publishes power state to `SatStateMachine` for submode decisions. BQ25756 register access is commanded directly on `MpptIcManager`. Runs continuously independent of satellite mode.
 
 **Components:**
 
 | Component | Type | Purpose |
 |-----------|------|---------|
-| `EPSApplication` | Active | Command-driven orchestrator; reads battery state from `MpptIcManager`; exposes `powerStateGet` synchronous get port read by `SatStateMachine`; forwards `SET_IC_REGISTER` commands to `MpptIcManager` via `setRegister` port; forwards deploy command to `DeployPanelsManager`. No mode interface. |
-| `MpptIcManager` | Active (worker) | Sole owner of BQ25756 IC over I2C; custom two-state SM: UNINITIALIZED → RUNNING; reads measurements each tick; handles IC fault recovery via INT interrupt |
+| `EPSApplication` | Active | Health monitor / state cache; reads battery state from `MpptIcManager` and rail state from `CurrentSensorManager`; exposes `powerStateGet` synchronous get port read by `SatStateMachine`; forwards deploy command to `DeployPanelsManager`. No mode interface. |
+| `MpptIcManager` | Queued (worker) | Sole owner of BQ25756 IC over I2C; flat four-state SM: RESET → WAIT_RESET → CONFIGURE → RUN (ADC enabled in CONFIGURE); reads measurements/status/flags and publishes their telemetry each tick; receives the six `MPPT_*` register-access commands directly from ground |
+| `CurrentSensorManager` | Queued (worker) | Sole owner of INA3221 triple-rail current/voltage monitor on the PDS board over I2C; flat four-state hardware-manager SM: RESET → WAIT_RESET → CONFIGURE → RUN; publishes per-rail voltage/current to `EPSApplication` and as telemetry each tick; receives the three `CURRENT_SENSOR_*` register-access commands directly from ground |
 | `WatchdogPinger` | Passive | Toggles hardware watchdog GPIO pin on each rate group tick |
 | `DeployPanelsManager` | Active | Two-state SM: NOT_DEPLOYED → DEPLOYED; executes burn wire sequence in both states; emits WARNING_HI on re-attempt in DEPLOYED state |
 
@@ -343,7 +344,7 @@ Top-level `switchMode: Adcs.Mode` signal inherited by all leaf states.
 | Rate Group | Frequency | Scheduled Components |
 |------------|-----------|---------------------|
 | `RateGroup1` | 10 Hz | `AdcsApplication`, `ImuManager`, `SunSensorManager`, `MagnetorquerManager`, `WatchdogPinger` |
-| `RateGroup2` | 1 Hz | `SatStateMachine`, `EPSApplication`, `MpptIcManager`, `ThermalApplication`, `TemperatureSensorManager`, `HeaterManager`, `DataCollectionApplication` (availability check), `Health` |
+| `RateGroup2` | 1 Hz | `SatStateMachine`, `EPSApplication`, `MpptIcManager`, `CurrentSensorManager`, `ThermalApplication`, `TemperatureSensorManager`, `HeaterManager`, `DataCollectionApplication` (availability check), `Health` |
 | `RateGroup3` | 0.1 Hz | `StarTrackerManager`, `GnssManager`, `ScienceInferenceApplication`, `SystemResources`, `FileDownlink` |
 
 ---
@@ -452,7 +453,7 @@ Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fpr
 | `SatStateMachine.dataColModeOut` | `DataCollectionApplication` | Mode command (`DataCollection.Mode`) |
 | `SatStateMachine.scienceInferenceModeOut` | `ScienceInferenceApplication` | Mode command (`ScienceInference.Mode`) |
 | `SatStateMachine.commsModeOut` | `CommsApplication` | Mode command (`Comms.Mode`) |
-| `EnduroSatManager` | `ComCcsds` | Uplink/downlink byte stream |
+| `TmtcRadioManager` | `ComCcsds` | Uplink/downlink byte stream |
 | `DataCollection` | `DataProducts` | Science result data products |
 | `DataCollection` | `FileHandling` | Flagged image files |
 
