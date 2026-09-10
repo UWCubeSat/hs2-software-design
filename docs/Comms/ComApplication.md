@@ -223,6 +223,14 @@ After the `Svc.TmFramer` wraps a CCSDS Space Packet into a CCSDS TM Transfer fra
 
 From here, the `TmtcRadioManager` component will send all downlink data (received from the `Svc.ComQueue`'s framing topology) through it's `drvSendOut` output port and into the `ComDriver`, which is a passive `LinuxUartDriver` component to be sent to the S-band transceiver for transmission.
 
+### 6.4 Communication Security
+The downlink and uplink data paths will utilize the F'-provided `ComCcsdsSdls` subtopology to encrypt downlink data and decrypt uplinked data on a frame-by-frame basis. The following list clarifies the components used and their respective purposes:
+
+- `CcsdsSdlsFramer`: Sits inbetween the `SpacePacketFramer` and `TmFramer` to add a security header and trailer to the CCSDS TM transfer frame's data field (Encryption)
+- `CcsdsSdlsDeframer`: Sits inbetween the `TcDeframer` and `SpacePacketDeframer` to remove security header and trailer from the CCSDS TM transfer frame's data field (Decryption)
+- `SdlsSaRouter`: Routes CCSDS SDLS encryption and decryption requests to downstream crypto components (encryptors or decryptors).
+
+
 ## 7. Notes
 
 - The `ComApplication` will be a part of another subtopology, titled [TBD], that also wraps the `ComCCSDS` framing subtopology and the `TmtcRadioManager` component.
