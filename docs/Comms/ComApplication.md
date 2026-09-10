@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-`ComApplication` is the Layer 3 Active component for the Comms subtopology. It manages the EnduroSat S-band radio operating mode — switching between `BEACON` to transmit real-time SOH telemetry at 1Hz, `STANDARD_DOWNLINK` mode to transmit all real-time telemetry including payload experiment data, `STORED_PLAYBACK` mode to downlink stored and real-time SOH telemetry concurrently, and `NO_DOWNLINK` to cease transmission upon command.
+`ComApplication` is the Layer 3 Active component for the Comms subtopology. It manages the EnduroSat S-band radio operating mode, switching between `BEACON` to transmit real-time SOH telemetry at 1Hz, `STANDARD_DOWNLINK` mode to transmit all real-time telemetry including payload experiment data, `STORED_PLAYBACK` mode to downlink stored and real-time SOH telemetry concurrently, and `NO_DOWNLINK` to cease transmission upon command.
 
 ---
 
@@ -49,9 +49,9 @@ module Comms {
 
 If the incoming mode matches the current mode, the handler returns immediately (idempotent).
 
-#### 3.2.1 `Beacon` Mode
+#### 3.2.1 `BEACON` Mode
 
-During this mode, only SOH telemetry shall be transmitted. This mode is intended for the satellite to establish a connection with the ground station, particularly when detumbling or when outside of a communication window. In `Beacon` mode, the satellite shall only transmit a single SOH telemetry packet at 1Hz to ensure minimum power draw.
+During this mode, only SOH telemetry shall be transmitted. This mode is intended for the satellite to establish a connection with the ground station, particularly when detumbling or when outside of a communication window. In `BEACON` mode, the satellite shall only transmit a single SOH telemetry packet at 1Hz to ensure minimum power draw.
 
 This mode will set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `SILENCED`. 
 
@@ -103,7 +103,7 @@ BEACON
   entry: Set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `SILENCED`. Set `downlinkMode` telemetry to be `BEACON`.
 
 STORED_PLAYBACK
-  entry: Set SOH telemetry in the `TlmPacketizer` to have a `RateLogic` of `EVERY_MAX`. Set `downlinkMode` telemetry to be `STORED_PLAYBACK`
+  entry: Set SOH telemetry in the `TlmPacketizer` to have a `RateLogic` of `EVERY_MAX`. Set `downlinkMode` telemetry to be `STORED_PLAYBACK`.
 
 STANDARD_DOWNLINK
   entry: set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `ON_CHANGE_MIN`. Set `downlinkMode` telemetry to be `STANDARD_DOWNLINK`.
@@ -201,7 +201,7 @@ The `Svc.FileDownlink` component forwards file packets from the `bufferSendOut` 
 
 ---
 
-#### 6.3.4 Downlink Framing
+#### 6.3.3 Downlink Framing
 ![Downlink Framing](./images/DownlinkFraming.png)
 
 The `Svc.ComQueue` component processes `Fw::ComPacket`s and `Fw::Buffer`s to downlink telemetry/events and files from its internal queues when it is in the `READY` state (no queued buffers and is ready for sending to the communication adapter) and when the `TmtcRadioManager` indicates it is ready for another packet through the `ComQueue.comStatusIn` input port.
@@ -211,7 +211,7 @@ NOTE: The `TmtcRadioManager` must send `Fw::Success::SUCCESS` over the `comStatu
 The data sent out from the `ComQueues` `dataOut` port is first sent to the `Svc.SpacePacketFramer` which wraps the downlink data in the payload of a CCSDS Space Packet. From there, the data is sent on the `Svc.SpacePacketFramer`'s `dataOut` port to the `Svc.ComAggregator`'s `dataIn` port to aggregate data for a CCSDS TM Transfer frame. Once the internal buffer is full, it is forwarded from the `dataOut` port into the `Svc.TmFramer` component's `dataIn` port.
 
 ---
-#### 6.3.5 TmtcRadioManager Downlink
+#### 6.3.4 TmtcRadioManager Downlink
 ![ComStubFramerConnections](./images/ComStubFramerConnections.png)
 
 After the `Svc.TmFramer` wraps a CCSDS Space Packet into a CCSDS TM Transfer frame, the data is sent out of the `dataOut` port and into the `TmtcRadioManager`'s `dataIn` port.
@@ -233,8 +233,20 @@ The downlink and uplink data paths will utilize the F'-provided `ComCcsdsSdls` s
 
 ## 7. Notes
 
+**Subtopology wiring (summary - see §6 for the detailed hop-by-hop diagrams):**
+
+```mermaid
+flowchart LR
+    SSM["SatStateMachine"] -->|commsModeOut| App["ComApplication"]
+    App -->|commsReadyIn| SSM
+    App -->|configureGroupRate| TlmPk["Svc.TlmPacketizer"]
+    TlmPk --> CCSDS["ComCcsds<br/>(framing chain + ComQueue)"]
+    CCSDS --> TRM["TmtcRadioManager"]
+    TRM --> ComDriver["LinuxUartDriver"]
+```
+
 - The `ComApplication` will be a part of another subtopology, titled [TBD], that also wraps the `ComCCSDS` framing subtopology and the `TmtcRadioManager` component.
-- `STANDARD_DOWNLINK` and `STORED_PLAYBACK` require `AdcsApplication` to be in `AntennaPointing` mode. `SatStateMachine` is responsible for commanding both simultaneously via the translation table — `ComApplication` does not check ADCS state directly.
+- `STANDARD_DOWNLINK` and `STORED_PLAYBACK` require `AdcsApplication` to be in `AntennaPointing` mode. `SatStateMachine` is responsible for commanding both simultaneously via the translation table. `ComApplication` does not check ADCS state directly.
 - `TmtcRadioManager` interface to be defined during detailed design.  
 - The `TlmPacketizer` component gives the `ComApplication` capabilities to configure the rate at which certain packets are sent for the various operating modes.
 - For downlinking event, there are two log files to maintain: The first is for the last [TBD] minutes of events (refreshed/overwritten every [TBD] / 2 minutes) and the other which stores the last [TBD] minutes of events after the most recent `FATAL` exception. Ground can send commands to the `Svc::FileDownlink` component to retrieve these logs files held in non-volatile memory.

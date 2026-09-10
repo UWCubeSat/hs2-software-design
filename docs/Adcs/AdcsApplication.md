@@ -136,6 +136,16 @@ on switchMode(Adcs.Mode.EarthLimbPointing) enter EARTH_LIMB_POINTING
 on switchMode(Adcs.Mode.AttitudeHold)      enter ATTITUDE_HOLD
 ```
 
+```mermaid
+stateDiagram-v2
+    [*] --> OFF
+    OFF --> DETUMBLE: switchMode(Detumble)
+    OFF --> SUN_POINTING: switchMode(SunPointing)
+    OFF --> ANTENNA_POINTING: switchMode(AntennaPointing)
+    OFF --> EARTH_LIMB_POINTING: switchMode(EarthLimbPointing)
+    OFF --> ATTITUDE_HOLD: switchMode(AttitudeHold)
+```
+
 Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions), [FPP substates](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#substates)
 
 ---

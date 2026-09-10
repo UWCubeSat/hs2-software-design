@@ -6,7 +6,7 @@
 
 On each rate group tick in `RUN` state, `MpptManager` reads all relevant measurement, status, and flag registers over I2C (voltages, currents, charging status, charger/fault flags), assembles the data into a state struct, calls `EPSApplication`'s `batteryStateIn` port, and emits telemetry for the values it just read. If any abnormal charger/fault flag bit is set, it emits a `WARNING_HI` event.
 
-`MpptManager` receives register-access commands directly from ground via the command dispatcher — six commands split by register width and operation. Each command performs the corresponding I2C transaction against the named register and emits a confirmation event.
+`MpptManager` receives register-access commands directly from ground via the command dispatcher, split into six commands by register width and operation. Each command performs the corresponding I2C transaction against the named register and emits a confirmation event.
 
 ---
 
@@ -14,11 +14,11 @@ On each rate group tick in `RUN` state, `MpptManager` reads all relevant measure
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
-| HS2-MIM-001 | MpptManager shall be the sole flight-software owner of the BQ25756 IC. | Inspection |
-| HS2-MIM-002 | MpptManager shall publish the BQ25756 measurement, charging status, and flag state on batteryStateOut each rate group tick. | Inspection |
-| HS2-MIM-003 | MpptManager shall perform the commanded register write, set, or clear transaction over I2C on receipt of a register-access command. | Inspection |
-| HS2-MIM-004 | MpptManager shall read the charger and fault flag registers each rate group tick and emit a WARNING_HI event when any abnormal status bit is set. | Inspection |
-| HS2-MIM-005 | MpptManager shall emit telemetry channels for vbatt, ibatt, vac, iac, and charging status. | Inspection |
+| HS2-MPT-001 | MpptManager shall be the sole flight-software owner of the BQ25756 IC. | Inspection |
+| HS2-MPT-002 | MpptManager shall publish the BQ25756 measurement, charging status, and flag state on batteryStateOut each rate group tick. | Inspection |
+| HS2-MPT-003 | MpptManager shall perform the commanded register write, set, or clear transaction over I2C on receipt of a register-access command. | Inspection |
+| HS2-MPT-004 | MpptManager shall read the charger and fault flag registers each rate group tick and emit a WARNING_HI event when any abnormal status bit is set. | Inspection |
+| HS2-MPT-005 | MpptManager shall emit telemetry channels for vbatt, ibatt, vac, iac, and charging status. | Inspection |
 
 ---
 
@@ -103,7 +103,24 @@ RUN
 
 Fault handling is done by the per-tick flag read: `CHARGER_FLAG_1/2` and `FAULT_FLAG` are cleared-on-read, so each tick captures the events that occurred since the previous tick. An abnormal flag emits a warning event but does not change state; the IC continues running. Only I2C bus errors self-heal by returning to `RESET`.
 
-**Command behavior outside RUN:** register-access commands received while in `RESET`, `WAIT_RESET`, or `CONFIGURE` are queued and execute once the component processes them — ordering against the reset/configure writes is TBD during detailed design.
+**Command behavior outside RUN:** register-access commands received while in `RESET`, `WAIT_RESET`, or `CONFIGURE` are queued and execute once the component processes them. Ordering against the reset/configure writes is TBD during detailed design.
+
+```mermaid
+stateDiagram-v2
+    [*] --> RESET
+    RESET --> WAIT_RESET: busWrite OK
+    WAIT_RESET --> CONFIGURE: settled
+    CONFIGURE --> RUN: writes OK
+```
+
+**Error recovery:** `RESET` retries itself on a busWrite error; `CONFIGURE` and `RUN` return to `RESET` on their own bus errors.
+
+```mermaid
+stateDiagram-v2
+    RESET --> RESET: busWrite error
+    CONFIGURE --> RESET: error
+    RUN --> RESET: busWriteRead error
+```
 
 Reference: [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc)
 
