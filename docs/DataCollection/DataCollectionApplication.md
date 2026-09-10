@@ -42,9 +42,9 @@ The component is driven by two synchronous input ports:
 
 ### Commands
 
-| Mnemonic | Args | Description |
+| Name | Args | Description |
 |----------|------|-------------|
-| `RUN_EXPERIMENT` | `expId: U8`, `imageTypeCode: Types.ImageType`, `cameraCode: Types.Camera` | The only way a capture happens. If the state machine is `RUN_ARMED`, starts immediately; if an experiment is already in flight, queued instead (see Queueing below); otherwise rejected with `VALIDATION_ERROR`. |
+| `RUN_EXPERIMENT` | `expId: U8`, `imageTypeCode: Types.ImageTypes` | Takes an image of each requested type and tags them with the specified experiment ID. If the state machine is `RUN_ARMED`, starts immediately; if an experiment is already in flight, queued instead; otherwise rejected with `VALIDATION_ERROR`. |
 
 ***
 
