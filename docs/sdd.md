@@ -101,7 +101,7 @@ Layer 3, Application components (*Application)
 
 Layer 2, Hardware Managers (*Manager)
     Camera1Manager | Camera2Manager | StarTrackerManager | GnssManager
-    ImuManager | SunSensorManager | MagnetorquerManager
+    ImmuManager | SunSensorManager | MagnetorquerManager
     MpptManager | CurrentSensorManager | WatchdogPinger | DeployPanelsManager
     TemperatureSensorManager | HeaterManager
     TmtcRadioManager
@@ -229,7 +229,7 @@ Top-level `switchMode` signal inherited by all leaf states, so mode switches are
 | Component | Type | Purpose |
 |-----------|------|---------|
 | `AdcsApplication` | Active (high priority) | Hierarchical SM; receives mode from `SatStateMachine`; runs attitude control loop |
-| `ImuManager` | Queued (worker) | State machine: RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN / error→RESET |
+| `ImmuManager` | Queued (worker) | State machine: RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN / error→RESET |
 | `SunSensorManager` | Queued (worker) | State machine: RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN / error→RESET |
 | `MagnetorquerManager` | Queued (worker) | State machine: RESET → WAIT_RESET → CONFIGURE → RUN / error→RESET; drives six `LinuxPwmDriver` channels (two per axis) |
 
@@ -330,7 +330,7 @@ Top-level `switchMode: Adcs.Mode` signal inherited by all leaf states.
 flowchart TB
     subgraph ADCS["ADCS Subtopology"]
         AdcsApp["AdcsApplication"]
-        Imu["ImuManager"]
+        Imu["ImmuManager"]
         SunSensor["SunSensorManager"]
         Mtq["MagnetorquerManager"]
         AdcsApp --> Imu
@@ -442,7 +442,7 @@ flowchart TB
 
 | Rate Group | Frequency | Scheduled Components |
 |------------|-----------|---------------------|
-| `RateGroup1` | 10 Hz | `AdcsApplication`, `ImuManager`, `SunSensorManager`, `MagnetorquerManager`, `WatchdogPinger` |
+| `RateGroup1` | 10 Hz | `AdcsApplication`, `ImmuManager`, `SunSensorManager`, `MagnetorquerManager`, `WatchdogPinger` |
 | `RateGroup2` | 1 Hz | `SatStateMachine`, `EPSApplication`, `MpptManager`, `CurrentSensorManager`, `ThermalApplication`, `TemperatureSensorManager`, `HeaterManager`, `DataCollectionApplication` (availability check), `GnssManager`, `Health` |
 | `RateGroup3` | 0.1 Hz | `StarTrackerManager`, `ScienceInferenceApplication`, `SystemResources`, `FileDownlink` |
 

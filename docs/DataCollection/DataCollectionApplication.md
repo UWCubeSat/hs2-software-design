@@ -1,163 +1,170 @@
-# DataCollectionApplication SDD
+# DataCollection::DataCollectionApplication
 
-## 1. Overview
+`DataCollectionApplication` is the Layer 3 active component for the DataCollection subtopology.
+Every image capture is a ground-commanded event: ground sends `RUN_EXPERIMENT` with a complete set
+of experiment parameters
 
-`DataCollectionApplication` is the Layer 3 Active component for the DataCollection subtopology. It executes data collection experiments on command from `SatStateMachine`, powering on cameras, configuring them with experiment parameters from `PrmDb`, simultaneously acquiring images and navigation data, storing results to flash, and powering off all hardware upon completion.
+**File system**\
+The partition holds two things: a manifest, and one subdirectory per `Science.ImageType` integer value. `<imagePartitionDir>/experiments.csv` logs imaging opportunities.
 
-It coordinates `Camera1Manager` and `Camera2Manager` (within its subtopology) and consumes attitude from `StarTrackerManager` and position from `GnssManager` (both top-level).
+Each experiment opportunity has:
 
----
+- `time` as `HH:MM:SS`, 
+-  `date` as `DD:MM:YYYY`, 
+-  `positionKnown` as `bool`,
+-  `position` as `x:y:z`
+-  `attidue` as `x:y:z:w` (quaternion),
+-  `availableImageTypes` a `U16` bitmask representing `Science.ImageType`
+-  `experimentID` as a `U16`
 
-## 2. Requirements
+`<imagePartitionDir>/1/` holds `STARS` images,
+`<imagePartitionDir>/2/` holds `HORIZON` images, etc.\
+`fileName` is the experiment ID
+
+The component is driven by two synchronous input ports:
+
+- `schedIn` (`Svc.Sched`) — a rate-group tick, used only for `pingIn`/`pingOut` liveness and polling camera status
+- `modeIn` (`DataCollection.DataColModePort`, carrying `Types.DataColMode`) — mode commands from
+  `SatStateMachine`
+
+## Requirements
 
 | ID | Requirement | Verification |
 |----|-------------|-------------|
-| HS2-DCA-001 | DataCollectionApplication shall capture data as defined by experiment parameters from PrmDb | Inspection |
-| HS2-DCA-002 | DataCollectionApplication shall power on all cameras prior to an experiment | Inspection |
-| HS2-DCA-003 | DataCollectionApplication shall perform a health check on all cameras before running an experiment and assert WARNING_HI if any check fails | Inspection |
-| HS2-DCA-004 | DataCollectionApplication shall simultaneously acquire images, attitude, and position within 10ms | Inspection |
-| HS2-DCA-005 | DataCollectionApplication shall store all captured images to flash with experiment ID and timestamp | Inspection |
-| HS2-DCA-006 | DataCollectionApplication shall not perform an experiment if flash data storage is full | Inspection |
-| HS2-DCA-007 | DataCollectionApplication shall power off all cameras upon experiment completion or error | Inspection |
+| HS2-DCA-001 | DataCollectionApplication shall capture data only in response to a ground-issued `RUN_EXPERIMENT` command, using that command's own arguments — never automatically or on a schedule | Inspection |
+| HS2-DCA-002 | DataCollectionApplication shall power on both cameras prior to a commanded experiment | Inspection |
+| HS2-DCA-003 | DataCollectionApplication shall perform a health check on both cameras before running an experiment and reject the command with `WARNING_HI` if any check fails | Inspection |
+| HS2-DCA-004 | DataCollectionApplication shall simultaneously acquire images, attitude, and position within 50ms of each other | Inspection |
+| HS2-DCA-005 | DataCollectionApplication shall write each captured image into Science's image partition under its `Types.ImageType`/camera-prefix path, and append one row describing the opportunity to `experiments.csv` | Inspection |
+| HS2-DCA-006 | DataCollectionApplication shall reject a `RUN_EXPERIMENT` command with `WARNING_HI` and take no images if the image-partition mount is at or above its configured full threshold | Inspection |
+| HS2-DCA-007 | DataCollectionApplication shall power off both cameras upon experiment completion or error | Inspection |
 | HS2-DCA-008 | DataCollectionApplication shall report experiment success or failure upon completion | Inspection |
 | HS2-DCA-009 | DataCollectionApplication shall switch operating mode on command from SatStateMachine | Inspection |
 | HS2-DCA-010 | DataCollectionApplication shall respond to health ping within the required deadline | Inspection |
 
----
+***
 
-## 3. Design
-
-### 3.1 Component Type
-
-Active component with internal hierarchical F' state machine (`Fw::Sm`).
-
-### 3.2 Mode Interface
-
-`DataCollectionApplication` receives its operating mode from `SatStateMachine` via a typed port:
-
-```fpp
-sync input port modeIn: Sat.DataColModePort   # carries DataCollection.Mode
-```
-
-Mode enum (owned by this component's module):
-
-```fpp
-module DataCollection {
-    enum Mode { Off, HealthCheck, RunExperiment }
-}
-```
-
-If the incoming mode matches the current mode, the handler returns immediately (idempotent).
-
-### 3.3 Ports
+### Ports
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
-| `modeIn` | Input | `Sat.DataColModePort` | Mode command from SatStateMachine |
-| `schedIn` | Input | `Svc.Sched` | Rate group tick |
-| `cameraPowerOn[2]` | Output | `Fw.Cmd` | Power on Camera1/Camera2Manager |
-| `cameraPowerOff[2]` | Output | `Fw.Cmd` | Power off Camera1/Camera2Manager |
-| `cameraCmd[2]` | Output | `Fw.Cmd` | Configure and capture commands to CameraManagers |
-| `attitudeGet` | Output | `Fw.Dp` | Request attitude snapshot from StarTrackerManager |
-| `positionGet` | Output | `Fw.Dp` | Request position snapshot from GnssManager |
-| `storageQuery` | Output | `Fw.Cmd` | Query flash storage availability |
-| `imageWrite` | Output | `Fw.Dp` | Write captured image and metadata to flash |
-| `pingIn` / `pingOut` | In/Out | `Svc.Ping` | Health monitoring |
-| `prmGet` | Output | `Fw.PrmGet` | Load experiment parameters from PrmDb |
-| `logOut` | Output | `Fw.Log` | Event logging |
-| `tlmOut` | Output | `Fw.Tlm` | Telemetry (experiment state, storage status) |
+| `modeIn` | Input | `DataCollection.DataColModePort` | Mode command from SatStateMachine, carrying `Types.DataColMode`. |
+| `schedIn` | Input | `Svc.Sched` | Rate group tick; drives `pingIn`/`pingOut` and the state machine's `tick` signal  |
+| `cameraPower[2]` | Output | `DataCollection.CameraPower(camera, powerOn) -> Types.CameraStatus` | Power `lostCameraManager`/`foundCameraManager` (port index 0/1) on or off. |
+| `cameraCheckup[2]` | Output | `DataCollection.CameraCheckup(camera) -> Types.CameraStatus` | Per-camera health check, used by `HealthCheck` mode's `checkup` action. |
+| `cameraCapture[2]` | Output | `DataCollection.CameraCapture(camera, imageType) -> Types.CameraStatus` | Triggers one camera's capture of the current experiment's `imageType`.  |
+| `positionGet` | Output | `DataCollection.PostionGet() -> Types.PositionData` | Requests the current estimated position vector |
+| `attitudeGet` | Output | `DataCollection.AttitudeGet() -> Types.Quaternion` | Requests the current estimated attitude quaternion. |
+| `attitudeRequest` | Output | `DataCollection.AttitudeRequest() -> Types.Quaternion` | Requests an attitude quaternion. |
+| `pingIn` / `pingOut` | In/Out | `Svc.Ping` | Health monitoring. |
 
-### 3.4 Commands
+### Commands
 
-| Mnemonic | Args | Description |
+| Name | Args | Description |
 |----------|------|-------------|
-| `RUN_EXPERIMENT` | `expId: U8` | Manually trigger a data collection run (ground override) |
+| `RUN_EXPERIMENT` | `expId: U8`, `imageTypeCode: Types.ImageTypes` | Takes an image of each requested type and tags them with the specified experiment ID. If the state machine is `RUN_ARMED`, starts immediately; if an experiment is already in flight, queued instead; otherwise rejected with `VALIDATION_ERROR`. |
 
----
+Once an experiment is commanded, Data Collection calculates and requests an attitude from ADCS based on the required image types. Data Collection then polls the current attitude until the request is satisfied. If no attitude can satisfy the requirements at the current position in orbit, a warning is thrown and Data Collection caches the request to keep working through the queue.
 
-## 4. State Machine
+***
 
-`DataCollectionApplication` uses a hierarchical F' state machine. Mode is the top-level state; operational substates are nested inside each mode. A single `switchMode: DataCollection.Mode` signal defined at the top level is inherited by all leaf states, making mode switches valid from any nested substate.
+## State Machine
 
-Entry/exit actions follow the FPP Least Common Ancestor rule. Every mode re-entry starts from its `initial` substate.
+```mermaid
+stateDiagram
+    [*] --> INIT
+    INIT --> OFF : tick
+
+    state OFF_SWITCH_MODE <<choice>>
+    OFF --> OFF_SWITCH_MODE : switchMode
+    OFF_SWITCH_MODE --> HEALTH_CHECK
+    OFF_SWITCH_MODE --> RUN
+
+    state HEALTH_CHECK_SWITCH_MODE <<choice>>
+    HEALTH_CHECK --> OFF
+
+    state RUN_SWITCH_MODE <<choice>>
+    RUN --> RUN_SWITCH_MODE : switchMode
+    RUN_SWITCH_MODE --> OFF
+    RUN_SWITCH_MODE --> HEALTH_CHECK
+
+    state RUN {
+        [*] --> ENABLE
+
+        RESET --> ENABLE : resetSuccess
+        ENABLE --> ARMED : powerOnSuccess
+        ENABLE --> RESET : powerFailure
+
+        state STORAGE_CHECK <<choice>>
+        ARMED --> STORAGE_CHECK : executeExperiment
+        STORAGE_CHECK --> CAPTURE : storageAvailable
+        STORAGE_CHECK --> DISABLE : else
+
+        CAPTURE --> STORE : captureSuccess
+        CAPTURE --> DISABLE : captureFailure
+        STORE --> ARMED : storeSuccess
+        STORE --> DISABLE : storeFailure
+
+        DISABLE --> [*] : disableSuccess
+    }
+    RUN --> OFF : disableSuccess
+```
 
 ```
+[*] --> INIT
+INIT --> OFF : tick
+
 OFF
+  entry: declare
+  on switchMode --> OFF_SWITCH_MODE (choice)
+    if modeIsHealthCheck --> HEALTH_CHECK
+    else                 --> RUN          
 
 HEALTH_CHECK
-  └─ CHECKING        (power on cameras → verify → power off → report)
+  entry: powerOn                        
+  on powerFailure:   powerOff, --> OFF
+  on checkupSuccess: powerOff, --> OFF
+  on checkupFailure: powerOff, --> OFF
+  on switchMode:     powerOff, --> HEALTH_CHECK_SWITCH_MODE (choice)
+    if modeIsOff --> OFF
+    else         --> RUN                  
 
-RUN_EXPERIMENT
-  ├─ POWERING_ON     (power on Camera1Manager, Camera2Manager)
-  ├─ CAPTURING       (simultaneous: Camera1 image, Camera2 image,
-  │                   StarTracker attitude, GNSS position, all within a 10ms window)
-  ├─ STORING         (write images + metadata to flash with experiment ID + timestamp)
-  └─ POWERING_OFF    (power off all cameras; on complete → enter OFF)
+RUN
+  initial --> ENABLE
+  on switchMode: powerOff, --> RUN_SWITCH_MODE (choice)   [inherited by every substate below]
+    if modeIsOff --> OFF                                   
+    else         --> HEALTH_CHECK                          
 
-# Inherited by all leaf states:
-on switchMode(DataCollection.Mode.Off)           enter OFF
-on switchMode(DataCollection.Mode.HealthCheck)   enter HEALTH_CHECK
-on switchMode(DataCollection.Mode.RunExperiment) enter RUN_EXPERIMENT
+  RESET
+    entry: powerOff
+    on resetSuccess --> ENABLE
+
+  ENABLE
+    entry: powerOn
+    on powerOnSuccess --> ARMED
+    on powerFailure   --> RESET
+
+  ARMED
+    entry: (none beyond declare)
+    on executeExperiment --> STORAGE_CHECK
+
+  STORAGE_CHECK (choice)
+    if storageAvailable --> CAPTURE
+    else                --> DISABLE
+
+  CAPTURE
+    entry: captureData
+    on captureSuccess --> STORE
+    on captureSlow    --> CAPTURE  
+    on captureFailure --> DISABLE
+
+  STORE
+    entry: storeFiles
+    on retryStore   --> STORE        
+    on storeSuccess --> ARMED
+    on storeFailure --> DISABLE
+
+  DISABLE
+    entry: declare, powerOff
+    on disableSuccess --> OFF       
 ```
-
-**Storage check:** Performed at entry to `RUN_EXPERIMENT` before `POWERING_ON`. If flash is full, log `WARNING_HI` and transition directly to `OFF`.
-
-```mermaid
-stateDiagram-v2
-    [*] --> OFF
-    OFF --> HEALTH_CHECK: switchMode(HealthCheck)
-    OFF --> RUN_EXPERIMENT: switchMode(RunExperiment)
-
-    state HEALTH_CHECK {
-        [*] --> CHECKING
-    }
-    state RUN_EXPERIMENT {
-        [*] --> POWERING_ON
-        POWERING_ON --> CAPTURING: cameras powered on
-        CAPTURING --> STORING: capture complete
-        STORING --> POWERING_OFF: stored
-        POWERING_OFF --> [*]: enter OFF
-    }
-```
-
-**Returning to OFF:**
-
-```mermaid
-stateDiagram-v2
-    HEALTH_CHECK --> OFF: switchMode(Off)
-    RUN_EXPERIMENT --> OFF: switchMode(Off)
-```
-
-Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions), [FPP substates](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#substates)
-
----
-
-## 5. Notes
-
-**Subtopology wiring:**
-
-```mermaid
-flowchart LR
-    SSM["SatStateMachine"] -->|dataColModeOut| App["DataCollectionApplication"]
-    StarTracker["StarTrackerManager<br/>(top-level, shared)"] -->|attitudeGet| App
-    Gnss["GnssManager<br/>(top-level, shared)"] -->|positionGet| App
-
-    subgraph DC["DataCollection Subtopology"]
-        App
-        subgraph CAMS["Cameras"]
-            direction TB
-            Cam1["Camera1Manager"]
-            Cam2["Camera2Manager"]
-        end
-        App -->|cameraPowerOn/Off, cameraCmd - one pair per camera| CAMS
-    end
-
-    App -->|imageWrite| DP["DataProducts<br/>(DpManager/DpWriter)"]
-    App -->|storageQuery| FH["FileHandling<br/>(flash storage query)"]
-    App -.->|images on flash| SIA["ScienceInferenceApplication<br/>(no direct port - via flash)"]
-```
-
-- `StarTrackerManager` and `GnssManager` are top-level components; connections wired at top-level topology.
-- Experiment type (L&F vs Calibration) is encoded in experiment parameters from `PrmDb`; `DataCollectionApplication` passes parameters to `CameraManagers` without distinguishing experiment type.
-- Images stored to flash are subsequently processed by `ScienceInferenceApplication`.
-- Mid-operation mode switch behavior (e.g., mode switch arriving during `CAPTURING`) to be defined during detailed design.

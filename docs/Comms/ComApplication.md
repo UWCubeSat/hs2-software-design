@@ -111,24 +111,7 @@ STANDARD_DOWNLINK
 NO_DOWNLINK
   entry: Set all packets in `TlmPacketizer` to have a `RateLogic` of `SILENCED`. Set `downlinkMode` telemetry to `NO_DOWNLINK`.
 
-# Inherited by all four states:
-on switchMode(Comms.Mode.BEACON)           → enter BEACON
-on switchMode(Comms.Mode.STANDARD_DOWNLINK) → enter STANDARD_DOWNLINK
-on switchMode(Comms.Mode.STORED_PLAYBACK)   → enter STORED_PLAYBACK
-on switchMode(Comms.Mode.NO_DOWNLINK)       → enter NO_DOWNLINK
 ```
-
-`NO_DOWNLINK` is the initial state - its entry action (silence all packets) is the satellite's safe default before any downlink mode has been commanded.
-
-```mermaid
-stateDiagram-v2
-    [*] --> NO_DOWNLINK
-    NO_DOWNLINK --> BEACON: switchMode(BEACON)
-    NO_DOWNLINK --> STANDARD_DOWNLINK: switchMode(STANDARD_DOWNLINK)
-    NO_DOWNLINK --> STORED_PLAYBACK: switchMode(STORED_PLAYBACK)
-```
-
-Any state can reach any other state directly via the inherited `switchMode` signal (all four `on switchMode(...)` handlers above apply regardless of current state); the diagram shows entry from the initial `NO_DOWNLINK` default rather than the full peer-to-peer mesh.
 
 Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions), [FPP substates](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#substates)
 
@@ -239,6 +222,14 @@ After the `Svc.TmFramer` wraps a CCSDS Space Packet into a CCSDS TM Transfer fra
 ![TmtcRadioManager Connections](./images/comStubConnections.png)
 
 From here, the `TmtcRadioManager` component will send all downlink data (received from the `Svc.ComQueue`'s framing topology) through it's `drvSendOut` output port and into the `ComDriver`, which is a passive `LinuxUartDriver` component to be sent to the S-band transceiver for transmission.
+
+### 6.4 Communication Security
+The downlink and uplink data paths will utilize the F'-provided `ComCcsdsSdls` subtopology to encrypt downlink data and decrypt uplinked data on a frame-by-frame basis. The following list clarifies the components used and their respective purposes:
+
+- `CcsdsSdlsFramer`: Sits inbetween the `SpacePacketFramer` and `TmFramer` to add a security header and trailer to the CCSDS TM transfer frame's data field (Encryption)
+- `CcsdsSdlsDeframer`: Sits inbetween the `TcDeframer` and `SpacePacketDeframer` to remove security header and trailer from the CCSDS TM transfer frame's data field (Decryption)
+- `SdlsSaRouter`: Routes CCSDS SDLS encryption and decryption requests to downstream crypto components (encryptors or decryptors).
+
 
 ## 7. Notes
 
