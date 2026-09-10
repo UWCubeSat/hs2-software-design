@@ -1,8 +1,8 @@
-# FrameAccumulator
+# Svc::FrameAccumulator
 
 ## Overview
 
-`FrameAccumulator` is an F' passive component that accumulates incoming bytes until a complete communications frame is available for deframing.
+`Svc::FrameAccumulator` is an F' passive component that accumulates incoming bytes until a complete communications frame is available for deframing.
 
 ## HuskySat-2 Use
 

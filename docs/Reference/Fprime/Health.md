@@ -1,8 +1,8 @@
-# Health
+# Svc::Health
 
 ## Overview
 
-`Health` is an F' queued component that pings active components, detects missed responses, and provides the framework health-monitoring path.
+`Svc::Health` is an F' queued component that pings active components, detects missed responses, and provides the framework health-monitoring path.
 
 ## HuskySat-2 Use
 

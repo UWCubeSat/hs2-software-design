@@ -1,8 +1,8 @@
-# FileDownlink
+# Svc::FileDownlink
 
 ## Overview
 
-`FileDownlink` is an F' active component that reads files from onboard storage and queues them for downlink.
+`Svc::FileDownlink` is an F' active component that reads files from onboard storage and queues them for downlink.
 
 ## HuskySat-2 Use
 

@@ -1,8 +1,8 @@
-# Ccsds::SpacePacketDeframer
+# Svc::Ccsds::SpacePacketDeframer
 
 ## Overview
 
-`Ccsds::SpacePacketDeframer` is an F' passive component that validates and extracts CCSDS space packets from received telecommand frames.
+`Svc::Ccsds::SpacePacketDeframer` is an F' passive component that validates and extracts CCSDS space packets from received telecommand frames.
 
 ## HuskySat-2 Use
 

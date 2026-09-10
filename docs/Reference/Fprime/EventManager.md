@@ -1,8 +1,8 @@
-# EventManager
+# Svc::EventManager
 
 ## Overview
 
-`EventManager` is an F' active component that collects component events, applies event filtering, and packages events for downlink.
+`Svc::EventManager` is an F' active component that collects component events, applies event filtering, and packages events for downlink.
 
 ## HuskySat-2 Use
 

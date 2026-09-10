@@ -1,8 +1,8 @@
-# LinuxI2cDriver
+# Drv::LinuxI2cDriver
 
 ## Overview
 
-`LinuxI2cDriver` is an F' Level 1 passive driver that exposes Linux I2C transactions through typed F' ports. It provides bus access while leaving register maps, device initialization, and recovery policy to the connected hardware manager.
+`Drv::LinuxI2cDriver` is an F' Level 1 passive driver that exposes Linux I2C transactions through typed F' ports. It provides bus access while leaving register maps, device initialization, and recovery policy to the connected hardware manager.
 
 ## HuskySat-2 Use
 

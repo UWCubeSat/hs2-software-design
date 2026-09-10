@@ -1,19 +1,25 @@
 # Hardware and Platform Inventory
 
-The BeagleBone Black is the on-board Linux flight computer. It runs the F' deployment, hosts the flight-software topology, and accesses spacecraft hardware through Linux-backed F' drivers. Linux provides the operating-system abstractions for UART, I2C, SPI, GPIO, PWM, timing, and file storage; device-specific behavior belongs in the higher-level manager or application that owns the hardware.
+The BeagleBone Black is the on-board Linux flight computer. It runs the F' deployment, hosts the spacecraft software topology, and accesses spacecraft hardware through Linux-backed F' drivers. Linux provides the operating-system abstractions for UART, I2C, SPI, GPIO, PWM, timing, USB, and file storage; device-specific behavior belongs in the higher-level manager or application that owns the hardware.
 
-| Hardware | Interface | Primary software owner |
-|----------|-----------|------------------------|
-| Camera 1 and Camera 2 | SPI/I2C | Data collection subsystem |
-| Star tracker | UART | Data collection and ADCS subsystems |
-| aGNSS receiver | UART | Payload / data collection subsystem |
-| IMU | SPI/I2C | ADCS subsystem |
-| Sun sensors | I2C/GPIO | ADCS subsystem |
-| Magnetorquers | PWM | ADCS subsystem |
-| EPS board | I2C/UART | EPS subsystem |
-| EnduroSat S-band radio | UART | Communications subsystem |
-| External flash | SPI | File and data-product services |
-| Temperature sensors | I2C | Thermal subsystem |
-| Heaters | PWM | Thermal subsystem |
+The inventory below is derived from the current hardware-manager interfaces. Where a device is still referenced by an application without a corresponding manager page, its ownership is marked TBA.
+
+| Hardware or device | Interface to BeagleBone Black | Owning software |
+|--------------------|-------------------------------|-----------------|
+| LOST camera | USB | `DataCollectionApplication` |
+| FOUND camera | USB | `DataCollectionApplication` |
+| Star tracker | UART; manager TBA | ADCS and data collection |
+| SkyFox piNAV-NG GNSS receiver | UART; reset GPIO; VPP/PPS GPIO input | `GnssManager` |
+| VectorNav VN-100 IMU/AHRS | RS-232/UART | `Adcs::IMMUManager` |
+| Six sun photodiodes and MCP3208 ADC | SPI; chip-select GPIO | `SunSensorManager` |
+| Two torque rods and one air coil | PWM duty cycle and direction outputs | `Adcs::MagnetorquerManager` |
+| INA3221 three-channel current monitor | I2C | `CurrentSensorManager` |
+| BQ25756 MPPT/battery charger | I2C | `MpptManager` |
+| Solar-panel deployment burn wire | GPIO | `DeployPanelsManager` |
+| EPS hardware watchdog | GPIO pulse | `WatchdogPinger` |
+| EnduroSat S-band transceiver | UART | `TmtcRadioManager` |
+| Temperature sensors | SPI; sensor-select GPIO; DRDY input | `Thermals::TemperatureSensorManager` |
+| Heaters | PWM | `Thermals::HeaterManager` |
+| External flash / onboard storage | SPI and Linux filesystem services | F' file and data-product services |
 
 The BeagleBone Black and Linux are platform services rather than mission components. The driver layer exposes their operating-system interfaces; hardware managers interpret device registers and protocols; applications coordinate subsystem behavior.

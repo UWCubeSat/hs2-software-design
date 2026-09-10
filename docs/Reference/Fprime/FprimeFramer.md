@@ -1,8 +1,8 @@
-# FprimeFramer
+# Svc::FprimeFramer
 
 ## Overview
 
-`FprimeFramer` is an F' passive component that wraps outgoing packets in the native F' framing format.
+`Svc::FprimeFramer` is an F' passive component that wraps outgoing packets in the native F' framing format.
 
 ## HuskySat-2 Use
 

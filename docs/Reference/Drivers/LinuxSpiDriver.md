@@ -1,8 +1,8 @@
-# LinuxSpiDriver
+# Drv::LinuxSpiDriver
 
 ## Overview
 
-`LinuxSpiDriver` is an F' Level 1 passive driver that exposes Linux SPI transactions through typed F' ports. It owns access to a configured SPI device but does not interpret the bytes exchanged with that device.
+`Drv::LinuxSpiDriver` is an F' Level 1 passive driver that exposes Linux SPI transactions through typed F' ports. It owns access to a configured SPI device but does not interpret the bytes exchanged with that device.
 
 ## HuskySat-2 Use
 

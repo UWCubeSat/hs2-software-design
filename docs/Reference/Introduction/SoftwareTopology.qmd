@@ -7,13 +7,14 @@ The diagram is a software dependency view rather than a literal list of every FP
 ```{mermaid}
 %%{init: {'theme': 'base', 'themeVariables': {'fontSize': '12px'}}}%%
 flowchart TB
-    subgraph L4["Level 4 - System Control"]
+    subgraph L4["Level 4 - System Services and Control"]
         SS["SatStateMachine"]
         FH["Svc::FatalHandler"]
+        SYS["Svc::CmdDispatcher, Svc::EventManager, Svc::TlmChan<br/>Svc::TlmPacketizer, Svc::Health, Svc::RateGroupDriver<br/>Svc::ActiveRateGroup, Svc::Version, Svc::AssertFatalAdapter"]
     end
 
     subgraph L3["Level 3 - Applications"]
-        APP["AdcsApplication, DataCollectionApplication, ComApplication<br/>EPSApplication, ScienceInferenceApplication, ThermalApplication<br/>ADCS algorithms and F' application services"]
+        APP["AdcsApplication, DataCollectionApplication, ComApplication<br/>EPSApplication, ScienceInferenceApplication, ThermalApplication<br/>ADCS algorithms and F' communications/data services"]
     end
 
     subgraph L2["Level 2 - Hardware Managers"]
@@ -26,6 +27,7 @@ flowchart TB
 
     SS --> APP
     FH -. fatal events .-> APP
+    SYS --> APP
     APP --> MGR
     MGR --> DRV
 ```

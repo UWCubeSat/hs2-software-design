@@ -1,8 +1,8 @@
-# Ccsds::ApidManager
+# Svc::Ccsds::ApidManager
 
 ## Overview
 
-`Ccsds::ApidManager` is an F' passive component that manages CCSDS application-process identifiers and packet sequence information used by the communications path.
+`Svc::Ccsds::ApidManager` is an F' passive component that manages CCSDS application-process identifiers and packet sequence information used by the communications path.
 
 ## HuskySat-2 Use
 

@@ -28,7 +28,7 @@ F' supports four important port execution styles:
 | Asynchronous input | Queues work for an active component's execution context. | Commands and longer-running work. |
 | Guarded input | Executes synchronously while protecting shared state with a mutex. | Thread-safe access to shared data. |
 
-The main F' data interfaces are commands, events, telemetry channels, and parameters. Commands represent uplinked operator instructions and are routed through `CmdDispatcher`. Events record component activity and faults and are routed through `EventManager`. Telemetry channels represent current state and are collected by `TlmChan` and `TlmPacketizer`. Parameters hold configurable values and may be persisted by `PrmDb`.
+The main F' data interfaces are commands, events, telemetry channels, and parameters. Commands represent uplinked operator instructions and are routed through `Svc::CmdDispatcher`. Events record component activity and faults and are routed through `Svc::EventManager`. Telemetry channels represent current state and are collected by `Svc::TlmChan` and `Svc::TlmPacketizer`. Parameters hold configurable values and may be persisted by `Svc::PrmDb`.
 
 ## Topology Assembly
 
@@ -70,11 +70,11 @@ Applications own mission behavior, managers translate device-specific protocols 
 
 ### Rate Groups
 
-`RateGroupDriver` divides a primary clock into multiple rates, while `ActiveRateGroup` invokes configured components at those rates. Control loops, telemetry collection, and background work can therefore have separate scheduling requirements. Blocking work in a passive rate group can delay other work; active rate groups isolate execution at the cost of thread scheduling and possible jitter.
+`Svc::RateGroupDriver` divides a primary clock into multiple rates, while `Svc::ActiveRateGroup` invokes configured components at those rates. Control loops, telemetry collection, and background work can therefore have separate scheduling requirements. Blocking work in a passive rate group can delay other work; active rate groups isolate execution at the cost of thread scheduling and possible jitter.
 
 ### Health Checking
 
-`Health` periodically pings critical active components through their ping ports. Components echo the ping key promptly; missed responses become warning or fatal health events according to configured thresholds. Background workers and components without mission-critical liveness obligations may be excluded.
+`Svc::Health` periodically pings critical active components through their ping ports. Components echo the ping key promptly; missed responses become warning or fatal health events according to configured thresholds. Background workers and components without mission-critical liveness obligations may be excluded.
 
 ### Manager-Worker
 
@@ -92,6 +92,6 @@ The F' ground interface is two-sided and layered. The uplink path follows the ge
 
 The downlink path follows:
 
-`EventManager/TlmChan -> ComQueue -> Framer -> Driver`
+`Svc::EventManager/Svc::TlmChan -> Svc::ComQueue -> Framer -> Driver`
 
 HuskySat-2's CCSDS service components fill in the framing and packet-routing stages around `TmtcRadioManager` and `LinuxUartDriver`.

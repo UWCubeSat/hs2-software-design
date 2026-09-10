@@ -1,8 +1,8 @@
-# Version
+# Svc::Version
 
 ## Overview
 
-`Version` is an F' passive component that reports flight-software version and build information through the CDH telemetry path.
+`Svc::Version` is an F' passive component that reports flight-software version and build information through the CDH telemetry path.
 
 ## HuskySat-2 Use
 

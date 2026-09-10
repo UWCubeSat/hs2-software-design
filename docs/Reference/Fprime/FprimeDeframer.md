@@ -1,8 +1,8 @@
-# FprimeDeframer
+# Svc::FprimeDeframer
 
 ## Overview
 
-`FprimeDeframer` is an F' passive component that removes native F' framing from received packets and forwards the decoded payload.
+`Svc::FprimeDeframer` is an F' passive component that removes native F' framing from received packets and forwards the decoded payload.
 
 ## HuskySat-2 Use
 

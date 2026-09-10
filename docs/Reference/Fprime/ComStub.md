@@ -1,12 +1,12 @@
-# ComStub
+# Svc::ComStub
 
 ## Overview
 
-`ComStub` is an F' passive communications bridge between packet-oriented F' components and a byte-stream driver.
+`Svc::ComStub` is an F' passive communications bridge between packet-oriented F' components and a byte-stream driver.
 
 ## HuskySat-2 Use
 
-The CCSDS communications path uses `ComStub` to connect framing and deframing components to `LinuxUartDriver` through the radio manager and the configured radio interface.
+The CCSDS communications path uses `Svc::ComStub` to connect framing and deframing components to `LinuxUartDriver` through the radio manager and the configured radio interface.
 
 ## F' Reference
 

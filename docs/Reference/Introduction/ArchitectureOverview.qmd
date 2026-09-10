@@ -4,8 +4,8 @@ This page describes the HuskySat-2 software architecture only. It does not descr
 
 | Level | Software responsibility |
 |-------|-------------------------|
-| Level 4 - System Control | Coordinates satellite-wide modes and handles system-level fatal responses. |
-| Level 3 - Applications | Implements subsystem behavior, mission operations, communications policy, and algorithm selection. |
+| Level 4 - System Services and Control | Provides deployment-wide F' command, event, telemetry, health, timing, version, and fatal-response services; coordinates satellite-wide modes. |
+| Level 3 - Applications | Implements subsystem behavior, mission operations, communications policy, data products, and algorithm selection. |
 | Level 2 - Hardware Managers | Owns device protocols, initialization, device-specific state, telemetry, and recovery requests. |
 | Level 1 - Drivers and OSAL | Exposes Linux buses, GPIO/PWM, serial devices, files, tasks, queues, synchronization, and time. |
 
@@ -13,7 +13,7 @@ The abstraction relationship is intentionally top-down: Level 4 depends on appli
 
 ```{mermaid}
 flowchart TB
-    L4["Level 4 - System Control<br/>SatStateMachine + Svc::FatalHandler"]
+    L4["Level 4 - System Services and Control<br/>SatStateMachine, Svc::FatalHandler<br/>Shared Svc services"]
     L3["Level 3 - Applications<br/>Mission and subsystem behavior"]
     L2["Level 2 - Hardware Managers<br/>Device protocols and recovery"]
     L1["Level 1 - Drivers and OSAL<br/>Linux and hardware access"]

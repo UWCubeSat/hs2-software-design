@@ -1,8 +1,8 @@
-# DpCatalog
+# Svc::DpCatalog
 
 ## Overview
 
-`DpCatalog` is an F' active component that catalogs stored data products and manages their availability for later operations such as downlink.
+`Svc::DpCatalog` is an F' active component that catalogs stored data products and manages their availability for later operations such as downlink.
 
 ## HuskySat-2 Use
 

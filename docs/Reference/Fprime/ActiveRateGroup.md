@@ -1,8 +1,8 @@
-# ActiveRateGroup
+# Svc::ActiveRateGroup
 
 ## Overview
 
-`ActiveRateGroup` is an F' active component that receives a rate-group signal and invokes a configured list of components at that rate.
+`Svc::ActiveRateGroup` is an F' active component that receives a rate-group signal and invokes a configured list of components at that rate.
 
 ## HuskySat-2 Use
 

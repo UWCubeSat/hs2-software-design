@@ -1,8 +1,8 @@
-# Ccsds::TcDeframer
+# Svc::Ccsds::TcDeframer
 
 ## Overview
 
-`Ccsds::TcDeframer` is an F' passive component that validates and removes CCSDS telecommand framing from received frames.
+`Svc::Ccsds::TcDeframer` is an F' passive component that validates and removes CCSDS telecommand framing from received frames.
 
 ## HuskySat-2 Use
 

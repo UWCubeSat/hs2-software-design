@@ -1,8 +1,8 @@
-# Ccsds::SpacePacketFramer
+# Svc::Ccsds::SpacePacketFramer
 
 ## Overview
 
-`Ccsds::SpacePacketFramer` is an F' passive component that constructs CCSDS space packets from outgoing F' packet data.
+`Svc::Ccsds::SpacePacketFramer` is an F' passive component that constructs CCSDS space packets from outgoing F' packet data.
 
 ## HuskySat-2 Use
 

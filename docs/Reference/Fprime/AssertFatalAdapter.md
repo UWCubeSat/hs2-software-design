@@ -1,8 +1,8 @@
-# AssertFatalAdapter
+# Svc::AssertFatalAdapter
 
 ## Overview
 
-`AssertFatalAdapter` is an F' passive component that converts framework assertions into FATAL events for the CDH fault-handling path.
+`Svc::AssertFatalAdapter` is an F' passive component that converts framework assertions into FATAL events for the CDH fault-handling path.
 
 ## HuskySat-2 Use
 

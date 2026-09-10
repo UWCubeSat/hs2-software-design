@@ -1,8 +1,8 @@
-# ComAggregator
+# Svc::ComAggregator
 
 ## Overview
 
-`ComAggregator` is an F' passive component that combines outgoing packet streams before they enter the configured communications framing path.
+`Svc::ComAggregator` is an F' passive component that combines outgoing packet streams before they enter the configured communications framing path.
 
 ## HuskySat-2 Use
 

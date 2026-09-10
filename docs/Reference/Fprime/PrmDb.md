@@ -1,8 +1,8 @@
-# PrmDb
+# Svc::PrmDb
 
 ## Overview
 
-`PrmDb` is an F' active component that stores and retrieves persistent component parameters.
+`Svc::PrmDb` is an F' active component that stores and retrieves persistent component parameters.
 
 ## HuskySat-2 Use
 

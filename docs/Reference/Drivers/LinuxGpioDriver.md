@@ -1,8 +1,8 @@
-# LinuxGpioDriver
+# Drv::LinuxGpioDriver
 
 ## Overview
 
-`LinuxGpioDriver` is an F' Level 1 passive driver for Linux GPIO lines. It exposes digital inputs and outputs without assigning meaning to a particular enable, reset, interrupt, or status signal.
+`Drv::LinuxGpioDriver` is an F' Level 1 passive driver for Linux GPIO lines. It exposes digital inputs and outputs without assigning meaning to a particular enable, reset, interrupt, or status signal.
 
 ## HuskySat-2 Use
 

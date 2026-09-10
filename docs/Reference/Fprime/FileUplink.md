@@ -1,8 +1,8 @@
-# FileUplink
+# Svc::FileUplink
 
 ## Overview
 
-`FileUplink` is an F' active component that receives file-transfer packets and reconstructs files in the onboard filesystem.
+`Svc::FileUplink` is an F' active component that receives file-transfer packets and reconstructs files in the onboard filesystem.
 
 ## HuskySat-2 Use
 

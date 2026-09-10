@@ -1,8 +1,8 @@
-# TlmPacketizer
+# Svc::TlmPacketizer
 
 ## Overview
 
-`TlmPacketizer` is an F' active component that groups telemetry channels into packets according to configured packet definitions and rate logic.
+`Svc::TlmPacketizer` is an F' active component that groups telemetry channels into packets according to configured packet definitions and rate logic.
 
 ## HuskySat-2 Use
 

@@ -1,8 +1,8 @@
-# RateGroupDriver
+# Svc::RateGroupDriver
 
 ## Overview
 
-`RateGroupDriver` is an F' passive component that divides the primary system tick into scheduled rate-group signals.
+`Svc::RateGroupDriver` is an F' passive component that divides the primary system tick into scheduled rate-group signals.
 
 ## HuskySat-2 Use
 

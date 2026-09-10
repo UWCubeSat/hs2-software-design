@@ -1,8 +1,8 @@
-# LinuxUartDriver
+# Drv::LinuxUartDriver
 
 ## Overview
 
-`LinuxUartDriver` is an F' Level 1 passive driver that exposes a Linux serial device through F' byte-stream ports. It owns operating-system access to a configured UART but does not interpret the protocol carried over that UART.
+`Drv::LinuxUartDriver` is an F' Level 1 passive driver that exposes a Linux serial device through F' byte-stream ports. It owns operating-system access to a configured UART but does not interpret the protocol carried over that UART.
 
 ## HuskySat-2 Use
 

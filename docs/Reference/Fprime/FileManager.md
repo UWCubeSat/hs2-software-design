@@ -1,8 +1,8 @@
-# FileManager
+# Svc::FileManager
 
 ## Overview
 
-`FileManager` is an F' active component that provides commands and services for manipulating files in the onboard filesystem.
+`Svc::FileManager` is an F' active component that provides commands and services for manipulating files in the onboard filesystem.
 
 ## HuskySat-2 Use
 

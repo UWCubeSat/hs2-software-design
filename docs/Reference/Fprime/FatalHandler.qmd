@@ -1,12 +1,12 @@
-# FatalHandler
+# Svc::FatalHandler
 
-`Svc::FatalHandler` is an F' system-service component that receives fatal conditions and applies the deployment's terminal fatal-response policy. It is placed in the Level 4 system-control layer because its response is satellite-wide rather than specific to one hardware subsystem. F' provides the component documentation [here](https://fprime.jpl.nasa.gov/latest/Svc/FatalHandler/docs/sdd/).
+`Svc::FatalHandler` is an F' system-service component that receives fatal conditions and applies the deployment's terminal fatal-response policy. It is placed in the Level 4 system-services and control layer because its response is satellite-wide rather than specific to one hardware subsystem. F' provides the component documentation [here](https://fprime.jpl.nasa.gov/latest/Svc/FatalHandler/docs/sdd/).
 
 ## HuskySat-2 fatal-event ownership
 
 Hardware managers remain responsible for detecting device-specific failures and reporting them through typed events. A hardware-related fatal event can carry a unique opcode identifying the affected hardware. The owning Level 3 application receives the fault, maps the opcode to the appropriate manager, and issues that manager's reset command. This preserves the App-Manager-Driver boundary: the application decides what recovery action is appropriate, the manager owns the device-specific reset sequence, and the driver only exposes the low-level interface.
 
-`FatalHandler` should remain the final system-level path for unhandled or escalated fatal conditions. It does not replace a hardware manager or become a central hardware-reset owner. If an event cannot be mapped safely to an owning application or hardware opcode, the deployment can escalate it to `FatalHandler` according to the spacecraft fault-response policy.
+`Svc::FatalHandler` should remain the final system-level path for unhandled or escalated fatal conditions. It does not replace a hardware manager or become a central hardware-reset owner. If an event cannot be mapped safely to an owning application or hardware opcode, the deployment can escalate it to `Svc::FatalHandler` according to the spacecraft fault-response policy.
 
 ## Proposed hardware-fault pipeline
 
@@ -15,7 +15,7 @@ The following is a proposed event and recovery flow. The exact event ports, opco
 ```{mermaid}
 flowchart TB
     M["Hardware manager detects fault"] --> E["Hardware fatal event<br/>unique hardware opcode"]
-    E --> EM["EventManager<br/>event routing and filtering"]
+    E --> EM["Svc::EventManager<br/>event routing and filtering"]
     EM --> A["Owning Level 3 application<br/>interprets opcode"]
     A --> C["Targeted reset command<br/>to selected manager"]
     C --> M

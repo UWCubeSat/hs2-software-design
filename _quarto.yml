@@ -51,15 +51,6 @@ book:
 
     - part: "Level 3 - Application Layer"
       chapters:
-        - docs/Reference/Fprime/CmdDispatcher.md
-        - docs/Reference/Fprime/EventManager.md
-        - docs/Reference/Fprime/TlmChan.md
-        - docs/Reference/Fprime/TlmPacketizer.md
-        - docs/Reference/Fprime/Health.md
-        - docs/Reference/Fprime/RateGroupDriver.md
-        - docs/Reference/Fprime/ActiveRateGroup.md
-        - docs/Reference/Fprime/Version.md
-        - docs/Reference/Fprime/AssertFatalAdapter.md
         - docs/Reference/Fprime/ComQueue.md
         - docs/Reference/Fprime/ComStub.md
         - docs/Reference/Fprime/FrameAccumulator.md
@@ -90,9 +81,18 @@ book:
         - docs/Adcs/QuaternionPdAlgorithm.md
         - docs/Adcs/SlewRateAlgorithm.md
 
-    - part: "Level 4 - System Control Layer"
+    - part: "Level 4 - System Services and Control Layer"
       chapters:
         - docs/Core/SatStateMachine.qmd
+        - docs/Reference/Fprime/CmdDispatcher.md
+        - docs/Reference/Fprime/EventManager.md
+        - docs/Reference/Fprime/TlmChan.md
+        - docs/Reference/Fprime/TlmPacketizer.md
+        - docs/Reference/Fprime/Health.md
+        - docs/Reference/Fprime/RateGroupDriver.md
+        - docs/Reference/Fprime/ActiveRateGroup.md
+        - docs/Reference/Fprime/Version.md
+        - docs/Reference/Fprime/AssertFatalAdapter.md
         - docs/Reference/Fprime/FatalHandler.qmd
 
 format:

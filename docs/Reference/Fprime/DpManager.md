@@ -1,8 +1,8 @@
-# DpManager
+# Svc::DpManager
 
 ## Overview
 
-`DpManager` is an F' active component that allocates and manages memory for data-product containers.
+`Svc::DpManager` is an F' active component that allocates and manages memory for data-product containers.
 
 ## HuskySat-2 Use
 
