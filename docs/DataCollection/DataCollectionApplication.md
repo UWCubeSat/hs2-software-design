@@ -38,6 +38,7 @@ The component is driven by two synchronous input ports:
 | `cameraCapture[2]` | Output | `DataCollection.CameraCapture(camera, imageType) -> Types.CameraStatus` | Triggers one camera's capture of the current experiment's `imageType`.  |
 | `positionGet` | Output | `DataCollection.PostionGet() -> Types.PositionData` | Requests the current estimated position vector |
 | `attitudeGet` | Output | `DataCollection.AttitudeGet() -> Types.Quaternion` | Requests the current estimated attitude quaternion. |
+| `attitudeRequest` | Output | `DataCollection.AttitudeRequest() -> Types.Quaternion` | Requests an attitude quaternion. |
 | `pingIn` / `pingOut` | In/Out | `Svc.Ping` | Health monitoring. |
 
 ### Commands
@@ -45,6 +46,8 @@ The component is driven by two synchronous input ports:
 | Name | Args | Description |
 |----------|------|-------------|
 | `RUN_EXPERIMENT` | `expId: U8`, `imageTypeCode: Types.ImageTypes` | Takes an image of each requested type and tags them with the specified experiment ID. If the state machine is `RUN_ARMED`, starts immediately; if an experiment is already in flight, queued instead; otherwise rejected with `VALIDATION_ERROR`. |
+
+Once an experiment is commanded, Data Collection calculates and requests an attitude from ADCS based on the required image types. Data Collection then polls the current attitude until the request is satisfied. If no attitude can satisfy the requirements at the current position in orbit, a warning is thrown and Data Collection caches the request to keep working through the queue.
 
 ***
 
