@@ -4,6 +4,23 @@
 Every image capture is a ground-commanded event: ground sends `RUN_EXPERIMENT` with a complete set
 of experiment parameters
 
+**File system**\
+The partition holds two things: a manifest, and one subdirectory per `Science.ImageType` integer value. `<imagePartitionDir>/experiments.csv` logs imaging opportunities.
+
+Each experiment opportunity has:
+
+- `time` as `HH:MM:SS`, 
+-  `date` as `DD:MM:YYYY`, 
+-  `positionKnown` as `bool`,
+-  `position` as `x:y:z`
+-  `attidue` as `x:y:z:w` (quaternion),
+-  `availableImageTypes` a `U16` bitmask representing `Science.ImageType`
+-  `experimentID` as a `U16`
+
+`<imagePartitionDir>/1/` holds `STARS` images,
+`<imagePartitionDir>/2/` holds `HORIZON` images, etc.\
+`fileName` is the experiment ID
+
 The component is driven by two synchronous input ports:
 
 - `schedIn` (`Svc.Sched`) — a rate-group tick, used only for `pingIn`/`pingOut` liveness and polling camera status
