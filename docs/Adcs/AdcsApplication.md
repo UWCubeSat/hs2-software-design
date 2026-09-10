@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-`AdcsApplication` is the Layer 3 Active component for the ADCS subsystem. It owns the attitude control loop and switches operating mode on command from `SatStateMachine`. It dispatches sensor requests and actuator commands to Layer 2 hardware managers (`ImuManager`, `SunSensorManager`, `MagnetorquerManager`) and consumes attitude from `StarTrackerManager` and timing from `GnssManager` (both top-level).
+`AdcsApplication` is the Layer 3 Active component for the ADCS subsystem. It owns the attitude control loop and switches operating mode on command from `SatStateMachine`. It dispatches sensor requests and actuator commands to Layer 2 hardware managers (`IMMUManager`, `SunSensorManager`, `MagnetorquerManager`) and consumes attitude from `StarTrackerManager` and timing from `GnssManager` (both top-level).
 
 ***
 
@@ -15,6 +15,8 @@
 | HS2-ADC-003 | AdcsApplication shall maintain a slew rate under 0.04 degrees per second upon command | Inspection |
 | HS2-ADC-004 | AdcsApplication shall respond to health pings within the required deadline | Inspection |
 | HS2-ADC-005 | AdcsApplication shall assert WARNING_HI events followed by a FATAL if hardware is unable to recover from errors | Inspection |
+| HS2-ADC-006 | AdcsApplication shall answer IMMUManager's `configureDataRequest` with connection port name, accel/gyro and magnetometer data rates, and startup wait time | Inspection |
+| HS2-ADC-007 | AdcsApplication shall lock MagnetorquerManager and assert the IMMUManager magnetic disturbance flag together, and unlock/clear them together | Inspection |
 
 ***
 
@@ -48,18 +50,19 @@ If the incoming mode matches the current mode, the handler returns immediately (
 |------|-----------|------|---------|
 | `modeIn` | Input | `Sat.AdcsModePort` | Mode command from SatStateMachine |
 | `schedIn` | Input | `Svc.Sched` | Rate group tick (10 Hz) |
-| `imuControl` | Output | `Adcs.ManagerControlPort` | ON/OFF command to ImuManager |
+| `imuConfigureGet` | Input (sync) | `immuConfigurationParameters_p` → `Adcs.ConfigureParameters` | Answers IMMUManager's `configureDataRequest` |
 | `sunSensorControl` | Output | `Adcs.ManagerControlPort` | ON/OFF command to SunSensorManager |
-| `magnetorquerControl` | Output | `Adcs.ManagerControlPort` | ON/OFF command to MagnetorquerManager |
+| `magnetorquerLock` | Output | `mtToggle_p` (`is_locked: bool`) | Lock/unlock command to MagnetorquerManager |
+| `imuDisturbanceOut` | Output | `mtToggle_p` (`is_locked: bool`) | Magnetic disturbance flag to IMMUManager; asserted/cleared together with `magnetorquerLock` |
 | `filterAttitudeGet` | Output | `Adcs.AttitudePort` | Query AttitudeFilter for estimated attitude quaternion |
 | `filterAngularRateGet` | Output | `Adcs.AngularRatePort` | Query AttitudeFilter for estimated angular rate |
 | `filterBFieldGet` | Output | `Adcs.BFieldPort` | Query AttitudeFilter for previous B-field measurement |
 | `filterImuTimestampGet` | Output | `Adcs.TimestampPort` | Query AttitudeFilter for IMU data staleness |
 | `filterSunTimestampGet` | Output | `Adcs.TimestampPort` | Query AttitudeFilter for sun vector staleness |
 | `filterStarTimestampGet` | Output | `Adcs.TimestampPort` | Query AttitudeFilter for star tracker staleness |
-| `bDotCompute` | Output | `Adcs.BDotInputPort` | Call BDotAlgorithm |
-| `quaternionPdCompute` | Output | `Adcs.QuaternionPdInputPort` | Call QuaternionPdAlgorithm |
-| `slewRateCompute` | Output | `Adcs.SlewRateInputPort` | Call SlewRateAlgorithm |
+| `bDotCompute` | Output | `Adcs.BDotInputPort` | Call BDotAlgorithm; returns a magnetic moment vector |
+| `quaternionPdCompute` | Output | `Adcs.QuaternionPdInputPort` | Call QuaternionPdAlgorithm; returns a magnetic moment vector |
+| `slewRateCompute` | Output | `Adcs.SlewRateInputPort` | Call SlewRateAlgorithm; returns a slew-limited magnetic moment vector |
 | `momentVectorOut` | Output | `Adcs.MomentVectorPort` | Send computed moment vector to MagnetorquerManager |
 | `positionGet` | Output | `Fw.Dp` | Request position/timing from GnssManager |
 | `pingIn` / `pingOut` | In/Out | `Svc.Ping` | Health monitoring |
@@ -82,8 +85,10 @@ Entry/exit actions follow the FPP Least Common Ancestor rule. Every mode re-entr
 
 ```
 OFF
-  entry: send ManagerControl.OFF via imuControl, sunSensorControl, magnetorquerControl
-  exit:  send ManagerControl.ON  via imuControl, sunSensorControl, magnetorquerControl
+  entry: send ManagerControl.OFF via sunSensorControl
+         call magnetorquerLock(true) and imuDisturbanceOut(true)
+  exit:  send ManagerControl.ON  via sunSensorControl
+         call magnetorquerLock(false) and imuDisturbanceOut(false)
 
 DETUMBLE
   └─ RUNNING
@@ -137,9 +142,43 @@ Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/doc
 
 ## 5. Notes
 
+**Subtopology wiring - sensor inputs:**
+
+```mermaid
+flowchart LR
+    SSM["SatStateMachine"] -->|adcsModeOut| App["AdcsApplication"]
+    Gnss["GnssManager<br/>(top-level, shared)"] -->|positionGet| App
+    StarTracker["StarTrackerManager<br/>(top-level, shared)"] -->|attitudeIn| Filter["AttitudeFilter"]
+    Filter -->|getIMUData, getMagnetometer| Imu["IMMUManager"]
+    Sun["SunSensorManager"] -->|sunVectorIn| Filter
+    Imu -->|configureDataRequest| App
+    App -->|imuConfigureGet| Imu
+```
+
+**Subtopology wiring - control loop dispatch:**
+
+```mermaid
+flowchart LR
+    App["AdcsApplication"] -->|filter*Get, 6 ports| Filter["AttitudeFilter"]
+    App -->|bDotCompute| BDot["BDotAlgorithm"]
+    App -->|quaternionPdCompute| QPd["QuaternionPdAlgorithm"]
+    App -->|slewRateCompute| Slew["SlewRateAlgorithm"]
+    App -->|momentVectorOut| Mtq["MagnetorquerManager"]
+```
+
+**Subtopology wiring - hardware power/lock sequencing:**
+
+```mermaid
+flowchart LR
+    App["AdcsApplication"] -->|sunSensorControl| Sun["SunSensorManager"]
+    App -->|magnetorquerLock| Mtq["MagnetorquerManager"]
+    App -->|imuDisturbanceOut| Imu["IMMUManager"]
+```
+
 - `StarTrackerManager` and `GnssManager` are top-level components shared with `DataCollectionApplication`; connections are wired at the top-level topology.
-- Hardware managers (`ImuManager`, `SunSensorManager`, `MagnetorquerManager`) and Layer 2.5 components (`AttitudeFilter`, `BDotAlgorithm`, `QuaternionPdAlgorithm`, `SlewRateAlgorithm`) are all instantiated inside the ADCS subtopology.
-- `AdcsApplication` controls which hardware managers are active via `ManagerControlPort` output ports. Managers that are off do not push data to `AttitudeFilter`.
+- Hardware managers (`IMMUManager`, `SunSensorManager`, `MagnetorquerManager`) and Layer 2.5 components (`AttitudeFilter`, `BDotAlgorithm`, `QuaternionPdAlgorithm`, `SlewRateAlgorithm`) are all instantiated inside the ADCS subtopology.
+- `AdcsApplication` controls `SunSensorManager` via `ManagerControlPort` ON/OFF. `MagnetorquerManager` and `IMMUManager` are controlled via the lock/disturbance pair instead; neither has an ON/OFF port.
 - `EarthLimbPointing` uses star tracker for precision attitude knowledge — `StarTrackerManager` must be operational and `filterStarTimestampGet` must return a fresh timestamp.
 - Mid-operation mode switch behavior (e.g., mode switch arriving mid-maneuver) to be defined during detailed design.
-- B-field source for `BDotAlgorithm` is deferred: if the IMU is 9-axis, B-field arrives via `imuDataIn` on `AttitudeFilter`. If not, a separate magnetometer manager is required.
+- `BDotAlgorithm`, `QuaternionPdAlgorithm`, and `SlewRateAlgorithm` each return a magnetic moment vector; `QuaternionPdAlgorithm` computes a PD torque internally and converts it to moment itself using its own B-field input before returning. `momentVectorOut` sends this moment to `MagnetorquerManager`.
+- `MagnetorquerManager`'s own design (per Senuka's update) expects a torque vector on `getDesiredTorque` and does its own torque-to-moment conversion via `getCurrentB`. Sending it the moment `momentVectorOut` already produces would run that conversion a second time. This is unresolved and needs to be reconciled before the two are wired together — either `MagnetorquerManager` accepts a moment directly, or the algorithm components stop converting internally and return the raw PD torque instead.
