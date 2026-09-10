@@ -4,7 +4,7 @@
 
 `WatchdogPinger` is a Layer 2 Passive component that satisfies the hardware watchdog on the EPS board by toggling a dedicated GPIO pin on each rate group tick. It has no satellite mode awareness and no state machine.
 
----
+***
 
 ## 2. Requirements
 
@@ -12,7 +12,7 @@
 |----|-------------|--------------|
 | HS2-WDP-001 | WatchdogPinger shall pulse the watchdog GPIO on each rate group tick. | Test |
 
----
+***
 
 ## 3. Design
 
@@ -31,13 +31,13 @@ Passive component. No queue, no thread, no state machine.
 
 None.
 
----
+***
 
 ## 4. Operational Behavior
 
 On each `schedIn` tick, `WatchdogPinger` asserts then deasserts `watchdogPing` to produce a pulse satisfying the EPS hardware watchdog timer. If this component stops being scheduled — due to a software hang or rate group slip — the hardware watchdog will expire and reset the system.
 
----
+***
 
 ## 5. Notes
 

@@ -6,7 +6,7 @@
 
 The PWM period is fixed at topology assembly time as a C++ constructor argument — it is not a runtime parameter.
 
----
+***
 
 ## 2. Requirements
 
@@ -18,7 +18,7 @@ The PWM period is fixed at topology assembly time as a C++ constructor argument 
 | HS2-HTM-004 | HeaterManager shall clamp heater output to zero in all non-RUN states | Inspection |
 | HS2-HTM-005 | HeaterManager shall emit WARNING_HI, disable the PWM channel, and self-heal to RESET on any PWM write failure | Inspection |
 
----
+***
 
 ## 3. Design
 
@@ -41,7 +41,7 @@ Queued component. No dedicated thread. All sync input port handlers execute on t
 
 No command ports. No health monitoring. No PrmDb parameters — PWM period is a topology constant passed as a constructor argument.
 
----
+***
 
 ## 4. State Machine
 
@@ -58,7 +58,7 @@ RESET → CONFIGURE → RUN
 | `CONFIGURE` | Call `pwmSetPeriod` with the configured period. Call `pwmSetDutyCycle(0)` to zero the output. Call `pwmEnable(HIGH)` to activate the channel. Signal → `RUN` on success, → `RESET` on any PWM error. |
 | `RUN` | On `heaterCmdIn`: convert duty percent to nanoseconds and call `pwmSetDutyCycleOut`. On any `PWM_WRITE_ERR`: log `WARNING_HI`, call `pwmEnable(LOW)`, signal → `RESET`. |
 
----
+***
 
 ## 5. Notes
 

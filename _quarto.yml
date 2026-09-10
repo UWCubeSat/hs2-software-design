@@ -1,0 +1,73 @@
+project:
+  type: book
+  output-dir: build
+
+book:
+  title: "HS2 Satellite Flight Software - Software Design Document"
+  output-file: "HS2-Software-Design-Document"
+  chapters:
+    - index.md
+
+    - part: "ADCS"
+      chapters:
+        - docs/Adcs/AdcsApplication.md
+        - docs/Adcs/AttitudeFilter.md
+        - docs/Adcs/BDotAlgorithm.md
+        - docs/Adcs/ImuManager.md
+        - docs/Adcs/MagnetorquerManager.md
+        - docs/Adcs/QuaternionPdAlgorithm.md
+        - docs/Adcs/SlewRateAlgorithm.md
+        - docs/Adcs/SunSensorManager.md
+
+    - part: "Communications"
+      chapters:
+        - docs/Comms/ComApplication.md
+        - docs/Comms/TmtcRadioManager.md
+
+    - part: "Data Collection"
+      chapters:
+        - docs/DataCollection/DataCollectionApplication.md
+        - docs/DataCollection/GnssManager.md
+
+    - part: "Electrical Power System"
+      chapters:
+        - docs/EPS/EPSApplication.md
+        - docs/EPS/CurrentSensorManager.md
+        - docs/EPS/DeployPanelsManager.md
+        - docs/EPS/MpptManager.md
+        - docs/EPS/WatchdogPinger.md
+
+    - part: "Science Inference"
+      chapters:
+        - docs/ScienceInference/ScienceInferenceApplication.md
+
+    - part: "Thermal"
+      chapters:
+        - docs/Thermal/ThermalApplication.md
+        - docs/Thermal/HeaterManager.md
+        - docs/Thermal/TemperatureSensorManager.md
+
+    - part: "Supporting Material"
+      chapters:
+        - context/CONOPS.md
+        - context/fprime-repo-summary.md
+        - docs/Core/HardwareResetManager.md
+        - docs/Drivers/LinuxPwmDriver.md
+
+format:
+  pdf:
+    pdf-engine: lualatex
+    include-in-header: latex/preamble.tex
+    resource-path:
+      - .
+      - docs/Comms
+    toc: true
+    toc-depth: 3
+    number-sections: false
+    mermaid-format: png
+    papersize: letter
+    fontsize: 10pt
+    geometry: margin=0.65in
+    colorlinks: true
+    linkcolor: blue
+    urlcolor: blue

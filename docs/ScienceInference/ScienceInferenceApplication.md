@@ -6,7 +6,7 @@
 
 `ScienceInferenceApplication` is fully schedule-driven and receives no ground commands directly. It activates and deactivates based on mode commands from `SatStateMachine`.
 
----
+***
 
 ## 2. Requirements
 
@@ -21,7 +21,7 @@
 | HS2-SIA-007 | ScienceInferenceApplication shall switch operating mode on command from SatStateMachine | Inspection |
 | HS2-SIA-008 | ScienceInferenceApplication shall respond to health ping within the required deadline | Inspection |
 
----
+***
 
 ## 3. Design
 
@@ -65,7 +65,7 @@ If the incoming mode matches the current mode, the handler returns immediately (
 
 None. `ScienceInferenceApplication` is fully schedule-driven.
 
----
+***
 
 ## 4. State Machine
 
@@ -88,7 +88,7 @@ on switchMode(ScienceInference.Mode.ProcessImages) enter PROCESS_IMAGES
 
 Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions), [FPP substates](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#substates)
 
----
+***
 
 ## 5. External Libraries
 
@@ -100,7 +100,7 @@ Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/doc
 
 All libraries included via CMake. Invoked directly from `ScienceInferenceApplication` C++ implementation based on experiment type metadata stored with each image. SCOPE passes calibration images through LOST as an internal preprocessing stage — `ScienceInferenceApplication` passes calibration images to SCOPE only.
 
----
+***
 
 ## 6. Notes
 

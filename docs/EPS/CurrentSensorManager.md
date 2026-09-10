@@ -6,7 +6,7 @@
 
 The INA3221 monitors three power rails (12 V, 5 V, 3.3 V), reporting bus voltage and current for each. `CurrentSensorManager` has no satellite mode awareness; it runs its startup and read loop unconditionally once initialized, driven entirely by the rate group tick. All bus access goes through the Layer 1 `LinuxI2cDriver` — `CurrentSensorManager` has no direct hardware knowledge beyond register addresses.
 
----
+***
 
 ## 2. Requirements
 
@@ -18,7 +18,7 @@ The INA3221 monitors three power rails (12 V, 5 V, 3.3 V), reporting bus voltage
 | HS2-CSM-004 | CurrentSensorManager shall emit telemetry channels for each rail's bus voltage and current. | Inspection |
 | HS2-CSM-005 | CurrentSensorManager shall log a WARNING_HI event and transition to RESET on any I2C bus error. | Inspection |
 
----
+***
 
 ## 3. Design
 
@@ -60,7 +60,7 @@ Queued component with internal flat F' state machine (`Fw::Sm`).
 | `CH3_VOLTAGE` | `U32` | 3.3 V rail bus voltage (mV) |
 | `CH3_CURRENT` | `F32` | 3.3 V rail current (mA) |
 
----
+***
 
 ## 4. State Machine
 
@@ -92,7 +92,7 @@ RUN
 
 Reference: [`INA3221Manager` (FeatherCdh)](https://github.com/UWCubeSat), [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc)
 
----
+***
 
 ## 5. Notes
 

@@ -6,7 +6,7 @@
 
 `GnssManager` is an **Active** component. The bus is **UART**, 9600 baud, 8N1, LVCMOS levels. All bus access goes through `LinuxUartDriver`, wired to the `ByteStreamDriverClient` port pattern like in `TmtcRadioManager`. The receiver's RXD line is unused so there's no command channel for that.
 
----
+***
 
 ## 2. Requirements
 
@@ -23,7 +23,7 @@
 | HS2-GNS-009 | GnssManager shall log a WARNING_HI event and increment a consecutive failure counter on error | Inspection |
 | HS2-GNS-010 | GnssManager shall force the receiver back into Cold Start when the elapsed time since the last Autonomous fix exceeds `DROP_MAX_AGE_TICKS` | Inspection |
 
----
+***
 
 ## 3. Design
 
@@ -64,7 +64,7 @@ Almost nothing about the receiver itself is changing at run. The baud rate, upda
 
 `GnssManager` accepts no ground commands as the receiver has no command channel. Not health monitored, same as the rest of Layer 2. All recovery is autonomous, self-healing, or escalated via telemetry.
 
----
+***
 
 ## 4. State Machine
 
@@ -110,7 +110,7 @@ RUN
 
 Reference: [`fprime-community/fprime-sensors` `ImuManager`](https://github.com/fprime-community/fprime-sensors/tree/devel/fprime-sensors/MpuImu/Components/ImuManager) (flat SM reference pattern), [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc)
 
----
+***
 
 ## 5. Notes
 

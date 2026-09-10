@@ -8,7 +8,7 @@ Each source's last received timestamp is tracked independently. `AdcsApplication
 
 `AttitudeFilter` also stores the previous B-field measurement for use by `BDotAlgorithm`. The B-field source is TBD pending confirmation of whether the IMU is a 9-axis device (with integrated magnetometer) or a separate magnetometer manager is required.
 
----
+***
 
 ## 2. Requirements
 
@@ -21,7 +21,7 @@ Each source's last received timestamp is tracked independently. `AdcsApplication
 | HS2-ATF-005 | AttitudeFilter shall return the most recently stored value for each getter port query | Inspection |
 | HS2-ATF-006 | AttitudeFilter shall store the previous B-field measurement for use by BDotAlgorithm | Inspection |
 
----
+***
 
 ## 3. Design
 
@@ -53,7 +53,7 @@ None.
 
 None.
 
----
+***
 
 ## 4. Notes
 

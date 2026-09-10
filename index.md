@@ -3,7 +3,7 @@
 **Framework:** F' (F Prime) — `nasa/fprime@devel`
 **Platform:** 3U CubeSat, single flight computer
 
----
+***
 
 ## 1. Mission Overview
 
@@ -14,7 +14,7 @@ HS2 is a 3U CubeSat scientific mission validating three optical navigation algor
 
 All algorithms are included as external C++ libraries via CMake. Science results are always stored as F' data products. Raw images are stored to external flash when flagged by the science algorithms. The flight software is implemented in F' and organized into custom and pre-built subtopologies.
 
----
+***
 
 ## 2. Hardware Inventory
 
@@ -33,7 +33,7 @@ All algorithms are included as external C++ libraries via CMake. Science results
 | Temperature Sensors | I2C | ThermalApplication (via TemperatureSensorManager) |
 | Heater | PWM | ThermalApplication (via HeaterManager) |
 
----
+***
 
 ## 3. Operational Modes
 
@@ -80,7 +80,7 @@ Evaluated each 1 Hz tick by `SatStateMachine` in priority order. The highest-pri
 | `EXPERIMENT_ENABLED` | Ground-set boolean enabling the Science submode |
 | `DOWNLINK_QUEUE_THRESHOLD` | Minimum queue depth (bytes) required to enter Downlink |
 
----
+***
 
 ## 4. Architecture Overview
 
@@ -122,7 +122,7 @@ Layer 1 — F' Native Bus Drivers (*Driver)
 
 `StarTrackerManager`, `GnssManager`, and `TmtcRadioManager` are instantiated at the **top-level topology** because they are shared across multiple subtopologies. All other hardware managers are instantiated inside their primary subtopology.
 
----
+***
 
 ## 5. Subtopology Decomposition
 
@@ -318,7 +318,7 @@ Top-level `switchMode: Adcs.Mode` signal inherited by all leaf states.
 | `TemperatureSensorManager` | Queued (worker) | State machine: RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN / error→RESET; owns all temperature sensors via `LinuxI2cDriver` |
 | `HeaterManager` | Queued (worker) | State machine: RESET → CONFIGURE → RUN / error→RESET; owns the PWM heater channel via `LinuxPwmDriver` |
 
----
+***
 
 ## 6. Top-Level Standalone Components
 
@@ -337,7 +337,7 @@ Top-level `switchMode: Adcs.Mode` signal inherited by all leaf states.
 | `LinuxUartDriver` (×N) | 1 | Passive | One instance per UART (star tracker, GNSS, radio) |
 | `LinuxGpioDriver` (×N) | 1 | Passive | One instance per GPIO group (watchdog, deploy panels) |
 
----
+***
 
 ## 7. Rate Group Scheduling
 
@@ -347,7 +347,7 @@ Top-level `switchMode: Adcs.Mode` signal inherited by all leaf states.
 | `RateGroup2` | 1 Hz | `SatStateMachine`, `EPSApplication`, `MpptIcManager`, `CurrentSensorManager`, `ThermalApplication`, `TemperatureSensorManager`, `HeaterManager`, `DataCollectionApplication` (availability check), `Health` |
 | `RateGroup3` | 0.1 Hz | `StarTrackerManager`, `GnssManager`, `ScienceInferenceApplication`, `SystemResources`, `FileDownlink` |
 
----
+***
 
 ## 8. SatStateMachine Design
 
@@ -399,7 +399,7 @@ Application components have no knowledge of `Sat::Mode` or `Sat::StandbySubmode`
 
 **Health checked:** Yes.
 
----
+***
 
 ## 9. Application Component State Machine Pattern
 
@@ -417,7 +417,7 @@ Each parent state requires one `initial` specifier per FPP rules ([`#substates`]
 
 **Exception:** `EPSApplication` does not follow this pattern. It has no mode port and no hierarchical SM. It operates continuously as a command-driven Active component with no satellite-mode-driven state transitions. See §5.6.
 
----
+***
 
 ## 10. Hardware Manager State Machine Pattern
 
@@ -436,7 +436,7 @@ RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN
 
 Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fprime-community/fprime-sensors/tree/devel/fprime-sensors/MpuImu/Components/ImuManager)
 
----
+***
 
 ## 11. Key Cross-Subtopology Wiring
 
@@ -457,7 +457,7 @@ Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fpr
 | `DataCollection` | `DataProducts` | Science result data products |
 | `DataCollection` | `FileHandling` | Flagged image files |
 
----
+***
 
 ## 12. Health Monitoring Summary
 
@@ -475,7 +475,7 @@ Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fpr
 
 All hardware managers and workers excluded from health monitoring.
 
----
+***
 
 ## 13. Design Pattern References
 
@@ -490,7 +490,7 @@ All hardware managers and workers excluded from health monitoring.
 | Callback Ports | Synchronized capture in DataCollectionApplication | `docs/user-manual/design-patterns/common-port-patterns.md` |
 | Data Products | Science algorithm results | `docs/user-manual/framework/data-products.md` |
 
----
+***
 
 ## 14. External Library Integration
 

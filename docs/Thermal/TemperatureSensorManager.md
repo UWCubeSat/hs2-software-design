@@ -4,7 +4,7 @@
 
 `TemperatureSensorManager` is a Layer 2 Queued worker component in the Thermal subtopology. It owns all onboard temperature sensors, managing their initialization and configuration via `LinuxI2cDriver`. On each rate group tick it advances its flat state machine. In `RUN` state it serves synchronous temperature read requests from `ThermalApplication`, returning an array of temperature values and validity flags cached from the most recent I2C reads.
 
----
+***
 
 ## 2. Requirements
 
@@ -17,7 +17,7 @@
 | HS2-TSM-005 | TemperatureSensorManager shall emit WARNING_HI and self-heal to RESET on any I2C bus error | Inspection |
 | HS2-TSM-006 | TemperatureSensorManager shall emit telemetry for all sensor readings each rate group tick in RUN state | Inspection |
 
----
+***
 
 ## 3. Design
 
@@ -36,7 +36,7 @@ Queued component. No dedicated thread. All sync input port handlers execute on t
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry (per-sensor temperature values, SM state) |
 | `timeGetOut` | Output | `Fw.Time` | Timestamps |
 
----
+***
 
 ## 4. State Machine
 
@@ -55,7 +55,7 @@ RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN
 | `CONFIGURE` | Write initialization sequence to each sensor over I2C (resolution, conversion rate, one-shot vs. continuous mode). Signal → `RUN` on success, → `RESET` on any I2C error. |
 | `RUN` | Read all sensors over I2C each tick; update cache and validity flags. Serve `tempReadIn` from cache. On I2C error: log `WARNING_HI`, mark all readings invalid, signal → `RESET`. |
 
----
+***
 
 ## 5. Notes
 

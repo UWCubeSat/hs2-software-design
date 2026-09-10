@@ -8,7 +8,7 @@ On each rate group tick in `RUN` state, `MpptManager` reads all relevant measure
 
 `MpptManager` receives register-access commands directly from ground via the command dispatcher — six commands split by register width and operation. Each command performs the corresponding I2C transaction against the named register and emits a confirmation event.
 
----
+***
 
 ## 2. Requirements
 
@@ -20,7 +20,7 @@ On each rate group tick in `RUN` state, `MpptManager` reads all relevant measure
 | HS2-MIM-004 | MpptManager shall read the charger and fault flag registers each rate group tick and emit a WARNING_HI event when any abnormal status bit is set. | Inspection |
 | HS2-MIM-005 | MpptManager shall emit telemetry channels for vbatt, ibatt, vac, iac, and charging status. | Inspection |
 
----
+***
 
 ## 3. Design
 
@@ -66,7 +66,7 @@ On success each command emits an activity event carrying the operation, register
 | `IAC_RAW` | `U16` | Input current raw ADC (scaling TBD) |
 | `CHARGING_STATE` | `BQ25756EChargingState` | Charging state from CHARGER_STATUS_1 bits [2:0] |
 
----
+***
 
 ## 4. State Machine
 
@@ -107,7 +107,7 @@ Fault handling is done by the per-tick flag read: `CHARGER_FLAG_1/2` and `FAULT_
 
 Reference: [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc)
 
----
+***
 
 ## 5. Notes
 

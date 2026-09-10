@@ -4,7 +4,7 @@
 
 `AdcsApplication` is the Layer 3 Active component for the ADCS subsystem. It owns the attitude control loop and switches operating mode on command from `SatStateMachine`. It dispatches sensor requests and actuator commands to Layer 2 hardware managers (`ImuManager`, `SunSensorManager`, `MagnetorquerManager`) and consumes attitude from `StarTrackerManager` and timing from `GnssManager` (both top-level).
 
----
+***
 
 ## 2. Requirements
 
@@ -16,7 +16,7 @@
 | HS2-ADC-004 | AdcsApplication shall respond to health pings within the required deadline | Inspection |
 | HS2-ADC-005 | AdcsApplication shall assert WARNING_HI events followed by a FATAL if hardware is unable to recover from errors | Inspection |
 
----
+***
 
 ## 3. Design
 
@@ -72,7 +72,7 @@ If the incoming mode matches the current mode, the handler returns immediately (
 |----------|------|-------------|
 | `RESET` | — | Force transition back to current mode's initial substate |
 
----
+***
 
 ## 4. State Machine
 
@@ -133,7 +133,7 @@ on switchMode(Adcs.Mode.AttitudeHold)      enter ATTITUDE_HOLD
 
 Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions), [FPP substates](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#substates)
 
----
+***
 
 ## 5. Notes
 

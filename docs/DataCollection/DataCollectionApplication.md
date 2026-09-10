@@ -6,7 +6,7 @@
 
 It coordinates `Camera1Manager` and `Camera2Manager` (within its subtopology) and consumes attitude from `StarTrackerManager` and position from `GnssManager` (both top-level).
 
----
+***
 
 ## 2. Requirements
 
@@ -23,7 +23,7 @@ It coordinates `Camera1Manager` and `Camera2Manager` (within its subtopology) an
 | HS2-DCA-009 | DataCollectionApplication shall switch operating mode on command from SatStateMachine | Inspection |
 | HS2-DCA-010 | DataCollectionApplication shall respond to health ping within the required deadline | Inspection |
 
----
+***
 
 ## 3. Design
 
@@ -73,7 +73,7 @@ If the incoming mode matches the current mode, the handler returns immediately (
 |----------|------|-------------|
 | `RUN_EXPERIMENT` | `expId: U8` | Manually trigger a data collection run (ground override) |
 
----
+***
 
 ## 4. State Machine
 
@@ -104,7 +104,7 @@ on switchMode(DataCollection.Mode.RunExperiment) enter RUN_EXPERIMENT
 
 Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions), [FPP substates](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#substates)
 
----
+***
 
 ## 5. Notes
 

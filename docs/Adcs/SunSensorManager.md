@@ -8,7 +8,7 @@
 
 The HS2 sun sensor array consists of six photodiode sensors mounted on the solar panels read through an **MCP3208 SPI ADC**. The MCP3208 is a 12-bit converter with no writable configuration registers of any kind (no reset, no enable/power, no resolution control; see datasheet DS21298E §5.0). Its entire interface is a single full-duplex SPI transaction: clock in a start bit + channel-select bits, clock back that channel's 12-bit conversion result in the same exchange. All bus access goes through the Layer 1 `LinuxSpiDriver`.
 
----
+***
 
 ## 2. Requirements
 
@@ -26,7 +26,7 @@ The HS2 sun sensor array consists of six photodiode sensors mounted on the solar
 | HS2-SSM-010 | SunSensorManager shall not perform any bus operations while in WAIT_RESET | Inspection |
 | HS2-SSM-011 | SunSensorManager shall expose the most recently cached calibrated channel intensities via a synchronous getter port, so a consumer can obtain the current values on demand rather than waiting for the next RUN publish cycle | Inspection |
 
----
+***
 
 ## 3. Design
 
@@ -63,7 +63,7 @@ Queued component with internal flat F' state machine (`Fw::Sm`). Has a message q
 
 `SunSensorManager` accepts no ground commands. It is not health-monitored. All recovery is handled autonomously by the self-healing SM or escalated via telemetry to `AdcsApplication`.
 
----
+***
 
 ## 4. State Machine
 
@@ -111,7 +111,7 @@ on error signal → RESET        # self-healing fallback
 
 Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fprime-community/fprime-sensors/tree/devel/fprime-sensors/MpuImu/Components/ImuManager), [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc), MCP3204/3208 datasheet DS21298E §3.7 (CS/SHDN behavior) and §5.0 (transaction framing)
 
----
+***
 
 ## 5. Notes
 

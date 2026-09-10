@@ -8,7 +8,7 @@ In `NoHeating` mode the heater is commanded off and the component monitors tempe
 
 PID setpoint, gains, and temperature alarm thresholds are F' parameters persisted via `PrmDb` and configurable by ground.
 
----
+***
 
 ## 2. Requirements
 
@@ -23,7 +23,7 @@ PID setpoint, gains, and temperature alarm thresholds are F' parameters persiste
 | HS2-THA-007 | ThermalApplication shall respond to health ping within the required deadline | Inspection |
 | HS2-THA-008 | ThermalApplication shall load setpoint, PID coefficients, and alarm thresholds from PrmDb | Inspection |
 
----
+***
 
 ## 3. Design
 
@@ -71,7 +71,7 @@ If the incoming mode matches the current mode, the handler returns immediately (
 | `SET_HEATER_OVERRIDE` | `dutyPercent: F32` | Force heater to a fixed duty cycle regardless of PID output |
 | `CLEAR_HEATER_OVERRIDE` |  —  | Revoke heater override |
 
----
+***
 
 ## 4. State Machine
 
@@ -95,7 +95,7 @@ on switchMode(Thermal.Mode.ActiveHeating) → enter ACTIVE_HEATING
 
 Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions)
 
----
+***
 
 ## 5. Notes
 

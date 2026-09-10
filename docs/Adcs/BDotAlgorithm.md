@@ -6,7 +6,7 @@
 
 `BDotAlgorithm` holds no internal state. All state required between calls is stored in `AttitudeFilter`. `AdcsApplication` calls this component synchronously on each 10 Hz tick while in `DETUMBLE` mode.
 
----
+***
 
 ## 2. Requirements
 
@@ -15,7 +15,7 @@
 | HS2-BDA-001 | BDotAlgorithm shall compute a magnetic moment vector from current B-field, previous B-field, and angular rate | Inspection |
 | HS2-BDA-002 | BDotAlgorithm shall maintain no internal state between calls | Inspection |
 
----
+***
 
 ## 3. Design
 
@@ -37,7 +37,7 @@ None.
 
 None.
 
----
+***
 
 ## 4. Notes
 

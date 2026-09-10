@@ -3,7 +3,7 @@
 ## 1. Overview
 `TmtcRadioManager` is the layer 2 passive component for the Comms subtopology. It directly interacts with the Endurosat S-band transceiver through a UART interface. `The `TmtcRadioManager` is one of many layer 2 hardware managers as described in `sdd.md`.
 
----
+***
 
 ## 2. Requirements
 | ID | Requirement | Verification |
@@ -12,7 +12,7 @@
 | HS2-ESM-002 | TmtcRadioManager shall forward CCSDS Space Protocol command packets received over UART to the `CommandDispatcher` for processing. | Inspection |
 | HS2-ESM-003| TmtcRadioManager shall maintain a status indicating the state of connection with the S-Band transceiver at all times | Inspection/Unit tests |
 
----
+***
 
 ## 3. Design
 

@@ -8,7 +8,7 @@
 
 Each H-bridge axis requires two PWM inputs for bidirectional current control: driving the positive-direction channel to the desired duty cycle while holding the negative-direction channel at zero produces current in one direction; swapping which channel is non-zero reverses the current. No GPIO pins are required. All bus access goes through six `LinuxPwmDriver` instances (one per PWM channel).
 
----
+***
 
 ## 2. Requirements
 
@@ -32,7 +32,7 @@ Each H-bridge axis requires two PWM inputs for bidirectional current control: dr
 | HS2-MTQ-016 | MagnetorquerManager shall re-enter RESET on receipt of an ON command via controlIn while in OFF | Inspection |
 | HS2-MTQ-017 | MagnetorquerManager OFF entry hardware shutdown sequence beyond coil zeroing is TBD pending H-bridge hardware selection | Deferred |
 
----
+***
 
 ## 3. Design
 
@@ -66,7 +66,7 @@ Queued component with internal flat F' state machine (`Fw::Sm`). Has a message q
 
 `MagnetorquerManager` accepts no ground commands. It is not health-monitored. All recovery is handled autonomously by the self-healing SM or escalated via telemetry to `AdcsApplication`.
 
----
+***
 
 ## 4. State Machine
 
@@ -135,7 +135,7 @@ on reconfigure signal → CONFIGURE
 
 Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fprime-community/fprime-sensors/tree/devel/fprime-sensors/MpuImu/Components/ImuManager), [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc)
 
----
+***
 
 ## 5. Notes
 

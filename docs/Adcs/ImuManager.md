@@ -8,7 +8,7 @@
 
 The IMU connects to the flight computer via SPI or I2C (bus assignment fixed at integration time). All bus access goes through the Layer 1 `LinuxSpiDriver` or `LinuxI2cDriver` — `ImuManager` has no direct hardware knowledge beyond register addresses.
 
----
+***
 
 ## 2. Requirements
 
@@ -25,7 +25,7 @@ The IMU connects to the flight computer via SPI or I2C (bus assignment fixed at 
 | HS2-IMU-009 | ImuManager shall apply updated F' parameter values by transitioning from RUN to CONFIGURE without a full reset | Inspection |
 | HS2-IMU-010 | ImuManager shall not perform any bus operations while in WAIT_RESET | Inspection |
 
----
+***
 
 ## 3. Design
 
@@ -63,7 +63,7 @@ Queued component with internal flat F' state machine (`Fw::Sm`). Has a message q
 
 `ImuManager` accepts no ground commands. It is not health-monitored. All recovery is handled autonomously by the self-healing SM or escalated via telemetry to `AdcsApplication`.
 
----
+***
 
 ## 4. State Machine
 
@@ -119,7 +119,7 @@ on reconfigure signal → CONFIGURE   # parameter update path from RUN
 
 Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fprime-community/fprime-sensors/tree/devel/fprime-sensors/MpuImu/Components/ImuManager), [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc)
 
----
+***
 
 ## 5. Notes
 
