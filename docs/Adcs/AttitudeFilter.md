@@ -37,7 +37,7 @@ None.
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
-| `imuDataIn` | Input (async) | `Adcs.ImuDataPort` | IMU angular rate + acceleration sample from ImuManager |
+| `imuDataIn` | Input (async) | `Adcs.ImuDataPort` | IMU angular rate + acceleration sample from ImmuManager |
 | `sunVectorIn` | Input (async) | `Adcs.SunVectorPort` | Body-frame sun vector from SunSensorManager (when active) |
 | `attitudeIn` | Input (async) | `Adcs.AttitudePort` | Absolute attitude quaternion from StarTrackerManager (when active) |
 | `estimatedAttitudeGet` | Input (sync) | `Adcs.AttitudePort` | Returns current estimated attitude quaternion |
