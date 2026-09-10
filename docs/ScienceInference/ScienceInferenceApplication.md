@@ -20,12 +20,12 @@ Each experiment opportunity has:
 -  `position` as `x:y:z`
 -  `attidue` as `x:y:z:w` (quaternion),
 -  `availableImageTypes` a `U16` bitmask representing `Science.ImageType` 
+-  `experimentID` as a `U16`
 
 `<imagePartitionDir>/1/` holds `STARS` images,
 `<imagePartitionDir>/2/` holds `HORIZON` images, etc.\
-`fileName` is derived from
-the experiment's `time`/`date` e.g.
-`time=10:00:00, date=01:01:2026` → `10-00-00_01-01-2026`
+`fileName` is the experiment ID
+
 
 
 ## Requirements
