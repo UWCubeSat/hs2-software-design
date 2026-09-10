@@ -65,5 +65,5 @@ Additionally, the `TmtcRadioManager` uses the `ByteStreamDriverClient` port inte
 |`drvSendOut`| Output | `Drv.ByteStreamSend`| Sends data to S-Band transceiver|
 
 ## 4. Notes
-- `TmtcRadioManager` is instantiated at the top-level topology (shared with `ComCcsds` subtopology); `ComApplication` connects to it via the top-level topology wiring.
+- `TmtcRadioManager` is instantiated at the top-level topology (shared with `ComCcsds` subtopology); `CommsApplication` connects to it via the top-level topology wiring.
 - Detailed high-gain link configuration and `TmtcRadioManager` interface to be defined during detailed design.
