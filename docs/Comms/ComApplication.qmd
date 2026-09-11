@@ -4,8 +4,6 @@
 
 `ComApplication` is the Layer 3 Active component for the Comms subtopology. It manages the EnduroSat S-band radio operating mode, switching between `BEACON` to transmit real-time SOH telemetry at 1Hz, `STANDARD_DOWNLINK` mode to transmit all real-time telemetry including payload experiment data, `STORED_PLAYBACK` mode to downlink stored and real-time SOH telemetry concurrently, and `NO_DOWNLINK` to cease transmission upon command.
 
----
-
 ## 1.1 Terminology
 | Term | Definition |
 |------|------------|
@@ -22,8 +20,6 @@
 | HS2-COM-005 | ComApplication shall enable the transmission of stored telemetry along with real-time telemetry when `STORED_PLAYBACK` downlink mode is activated | Inspection |
 | HS2-COM-006 | ComApplication shall enable the transmission of SOH telemetry only at a 1Hz rate when `BEACON` downlink mode is activated | Inspection |
 | HS2-COM-007 | ComApplication shall enable the transmission of all real-time telemetry when `STANDARD_DOWNLINK` downlink mode is activated | Inspection |
-
----
 
 ## 3. Design
 
@@ -82,16 +78,12 @@ During this mode, nothing will be transmitted from the satellite. Refer to requi
 | `logOut` | Output | `Fw.Log` | Event logging |
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry (current mode) that will be used in SOH packets |
 | `configureGroupRate` | Output | `Svc.ConfigureGroupRate`| Configure rate at which certain telemetry sections are transmitted as per the `Svc.TlmPacketizer` component |
----
-
 ### 3.4 ComApplication Telemetry
 The following telemetry will be used for the `ComApplication`:
 
 | Mnemonic | Type | Description |
 |----------|------|-------------|
 | `downlink_mode` | `Comms.Mode` | Downlink mode that will be set by `SatStateMachine`. Can be one of the following values: `BEACON`, `STORED_PLAYBACK`, `STANDARD_DOWNLINK`, or `NO_DOWNLINK` |
-
----
 
 ### 3.5 ComApplication Events
 The following events will be emitted by the `ComApplication`:
@@ -122,8 +114,6 @@ NO_DOWNLINK
 
 Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions), [FPP substates](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#substates)
 
----
-
 ## 5. Telemetry Groups
 
 [TBD] on Telemetry Groups.
@@ -131,7 +121,7 @@ Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/doc
 ## 6. Communications Connections
 The following diagrams highlight the routes in which uplink/downlink data (packets, data products, and events) are handled within our design:
 
----
+
 ### 6.1 TmtcRadioManager Connections
 
 ![TmtcRadioManager Connections](./images/comStubConnections.png)
@@ -140,20 +130,14 @@ Beginning with the `TmtcRadioManager` (replacing `comStub` in the diagram), it w
 
 The `comDriver` is the Linux UART driver responsible for delivering the uplinked bytes from the S-Band Transceiver over serial, to the `TmtcRadioManager` through its `recv` port into the `drvReceiveIn` input port. The `TmtcRadioManager` component will send downlink bytes through its `drvSendOut` to the `comDriver`'s `send` port.
 
----
-
 ### 6.2 Uplinked Data Connection Route
 The following diagrams detail the route of downlink data through the port topology of the software subsystems.
-
----
 
 #### 6.2.1 Receiving data from Transceiver
 The following diagrams outline the 
 ![ComStubFramerConnections](./images/ComStubFramerConnections.png)
 
 For uplinked data, after it has passed through the S-Band Transceiver and into the `TmtcRadioManager`, it is then passed to the `FrameAccumulator` component which is responsible for extracting full CCSDS TC Transfer Frames. The `TmtcRadioManager` will transmit these received frames over the `dataOut` port into the `frameAccumulator`'s `dataIn` port for it to handle.
-
----
 
 #### 6.2.2 FrameAccumulator
 
@@ -165,26 +149,22 @@ Next, the `TcDeframer` will unwrap CCSDS Space Packets from the CCSDS TC frame. 
 
 The `Svc::FPrimeRouter` supports two kinds of packets: `Fw::ComPacketType::FW_PACKET_COMMAND` and `Fw::ComPacketType::FW_PACKET_FILE`. Unknown packet types are forwarded on the `unknownDataOut` port.
 
----
+
 #### 6.2.3 Command Dispatching
 
 ![fprimeRouterToCmdDisp](./images/fprimeRouterToCmdDisp.png)
 
 Commands are sent from the `commandOut` port and to the `Svc::CmdDispatcher`'s `seqCmdBuff` input port.
 
----
+
 #### 6.2.4 Uplinked Files
 
 ![fprimeRouterToFileUplink](./images/fprimeRouterTofileUplink.png)
 
 Uplinked file packets are sent from the `fileOut` port to the `Svc::FileUplink`'s `bufferSendIn` input port for processing.
 
----
-
 ### 6.3 Downlinked Data Connection Route
 The following diagrams detail the route of downlink data through the port topology of the software subsystems.
-
----
 
 #### 6.3.1 Events and Telemetry Packets
 
@@ -196,7 +176,7 @@ Events are sent through the `Svc::EventManager`'s `PktSend` port as `ComBuffer` 
 
 Telemetry packets are sent from the `Svc::TlmPacketizer`'s `PktSend` output port into the `ComCCSDS::ComQueue`'s `comPacketQueueIn` port for processing on the internal com queue.
 
----
+
 #### 6.3.2 Downlinked Files
 ![Dp Catalog to File Downlink](./images/dpCatalogFileDownlink.png)
 
@@ -205,8 +185,6 @@ The `Svc.DpCatalog` component is responsible for maintaining catalogues of gener
 ![File Downlink to ComQueue](./images/fileDownlinkComQueue.png)
 
 The `Svc.FileDownlink` component forwards file packets from the `bufferSendOut` port to the `Svc.ComQueue`'s `bufferQueueIn` port to append the file packet to the `ComQueue`'s internal buffer queue.
-
----
 
 #### 6.3.3 Downlink Framing
 ![Downlink Framing](./images/DownlinkFraming.png)
@@ -217,13 +195,13 @@ NOTE: The `TmtcRadioManager` must send `Fw::Success::SUCCESS` over the `comStatu
 
 The data sent out from the `ComQueues` `dataOut` port is first sent to the `Svc.SpacePacketFramer` which wraps the downlink data in the payload of a CCSDS Space Packet. From there, the data is sent on the `Svc.SpacePacketFramer`'s `dataOut` port to the `Svc.ComAggregator`'s `dataIn` port to aggregate data for a CCSDS TM Transfer frame. Once the internal buffer is full, it is forwarded from the `dataOut` port into the `Svc.TmFramer` component's `dataIn` port.
 
----
+
 #### 6.3.4 TmtcRadioManager Downlink
 ![ComStubFramerConnections](./images/ComStubFramerConnections.png)
 
 After the `Svc.TmFramer` wraps a CCSDS Space Packet into a CCSDS TM Transfer frame, the data is sent out of the `dataOut` port and into the `TmtcRadioManager`'s `dataIn` port.
 
----
+
 <br>
 
 ![TmtcRadioManager Connections](./images/comStubConnections.png)

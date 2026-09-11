@@ -1,4 +1,4 @@
-# Thermals::ThermalApplication
+# ThermalApplication
 
 ThermalApplication is the Layer 3 active component for the Thermal subtopology. On a 1 Hz rate-group
 tick, it reads all onboard temperature sensors (via `TemperatureSensorManager`), runs a PID control
