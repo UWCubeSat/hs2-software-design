@@ -1,4 +1,4 @@
-# Adcs::MagnetorquerManager
+# MagnetorquerManager
 
 MagnetorquerManager is a Layer 2 Queued worker component in the ADCS subtopology. It owns the satellite's three magnetorquer actuators (two torque rods and one air coil), converting a desired torque vector into a per-actuator direction/duty-cycle command and enforcing a lock that zeroes all output while the actuators are disabled.
 
@@ -35,7 +35,7 @@ Actuator index `2` is treated as the air coil; indices `0` and `1` are the torqu
 
 ### State Machine
 
-```mermaid
+```{mermaid}
 stateDiagram-v2
   [*] --> UNLOCKED
   UNLOCKED --> LOCKED: toggle
@@ -60,4 +60,3 @@ stateDiagram-v2
 | `AIR_COIL_MAX_MOMENT` | `F32` | `1.0` (placeholder) | Actuator `2` |
 
 `TORQUE_ROD_MAX_MOMENT` / `AIR_COIL_MAX_MOMENT` are the dipole moment (A·m²) each actuator type produces at 100% duty cycle;
-

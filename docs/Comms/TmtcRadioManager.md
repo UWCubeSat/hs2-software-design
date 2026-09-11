@@ -1,9 +1,9 @@
-# TmtcRadioManager SDD
+# TmtcRadioManager
 
 ## 1. Overview
 `TmtcRadioManager` is the layer 2 passive component for the Comms subtopology. It directly interacts with the Endurosat S-band transceiver through a UART interface. `The `TmtcRadioManager` is one of many layer 2 hardware managers as described in `sdd.md`.
 
----
+***
 
 ## 2. Requirements
 | ID | Requirement | Verification |
@@ -12,7 +12,7 @@
 | HS2-ESM-002 | TmtcRadioManager shall forward CCSDS Space Protocol command packets received over UART to the `CommandDispatcher` for processing. | Inspection |
 | HS2-ESM-003| TmtcRadioManager shall maintain a status indicating the state of connection with the S-Band transceiver at all times | Inspection/Unit tests |
 
----
+***
 
 ## 3. Design
 
@@ -20,7 +20,7 @@
 Passive component that implements the F' `Communication Adapter Interface` that specifies both the ports and protocols used to operate with the standard F´ uplink and downlink components.
 
 ## 3.2 Communication Adapter Interface
-Any communication component (e.g. a radio component) that is intended for use with the standard F´ uplink and downlink stack should implement the Communication Adapter Interface. This interface specifies both the ports and protocols used to operate with the standard F´ uplink and downlink components.
+Any communication component (e.g. a radio component) that is intended for use with the standard F´ uplink and downlink stack will implement the Communication Adapter Interface. This interface specifies both the ports and protocols used to operate with the standard F´ uplink and downlink components.
 
 The communication adapter interface protocol is designed to work alongside the framer status protocol and the com queue protocol to ensure that data messages do not overload a communication interface. These protocols are discussed below.
 

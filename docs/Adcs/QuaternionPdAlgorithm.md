@@ -1,4 +1,4 @@
-# QuaternionPdAlgorithm SDD
+# QuaternionPdAlgorithm
 
 ## 1. Overview
 
@@ -6,7 +6,7 @@
 
 `QuaternionPdAlgorithm` holds no internal state. `AdcsApplication` calls this component synchronously each 10 Hz tick while in any pointing mode (`SUN_POINTING`, `ANTENNA_POINTING`, `EARTH_LIMB_POINTING`, `ATTITUDE_HOLD`), after `SlewRateAlgorithm` has confirmed the commanded slew is within limits.
 
----
+***
 
 ## 2. Requirements
 
@@ -15,7 +15,7 @@
 | HS2-QPD-001 | QuaternionPdAlgorithm shall compute a magnetic moment vector from estimated attitude, angular rate, and target quaternion | Inspection |
 | HS2-QPD-002 | QuaternionPdAlgorithm shall maintain no internal state between calls | Inspection |
 
----
+***
 
 ## 3. Design
 
@@ -37,7 +37,7 @@ None.
 
 None.
 
----
+***
 
 ## 4. Notes
 

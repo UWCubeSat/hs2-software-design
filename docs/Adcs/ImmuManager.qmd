@@ -1,6 +1,6 @@
-# Adcs::IMMUManager
+# ImmuManager
 
-IMMUManager is a Layer 2 Queued worker component in the ADCS subtopology. It owns the VN-100 IMU/AHRS sensor, bringing it up over a serial link through an internal state machine and serving cached accel/gyro/magnetometer/temperature readings to the rest of ADCS.
+ImmuManager is a Layer 2 Queued worker component in the ADCS subtopology. It owns the VN-100 IMU/AHRS sensor, bringing it up over a serial link through an internal state machine and serving cached accel/gyro/magnetometer/temperature readings to the rest of ADCS.
 
 ## Introduction
 
@@ -9,7 +9,7 @@ The component is driven by two asynchronous input ports:
 - `run` (`Svc.Sched`) — rate-group tick; every call sends `tick` to the state machine.
 - `Reset` (`Fw.Signal`) — zeroes `tickCount` and forces the state back to `RESET`.
 
-The sensor itself is a VectorNav VN-100, accessed through the vendor `VN::Sensor` C++ SDK over a serial (RS-232/UART) connection. Rather than calling `VN::Sensor` directly, IMMUManager talks to an `IImmuSensor` interface: `VnSensorAdapter` is the production implementation (it owns the real `VN::Sensor` plus its 64 KiB main / 2 KiB FB byte buffers and forwards each call), while unit tests inject a gmock `IImmuSensor` through the test-only constructor. `configureDataRequest` asks the owning application for the connection parameters to use.
+The sensor itself is a VectorNav VN-100, accessed through the vendor `VN::Sensor` C++ SDK over a serial (RS-232/UART) connection. Rather than calling `VN::Sensor` directly, ImmuManager talks to an `IImmuSensor` interface: `VnSensorAdapter` is the production implementation (it owns the real `VN::Sensor` plus its 64 KiB main / 2 KiB FB byte buffers and forwards each call), while unit tests inject a gmock `IImmuSensor` through the test-only constructor. `configureDataRequest` asks the owning application for the connection parameters to use.
 
 ## Requirements
 
@@ -40,7 +40,7 @@ The sensor itself is a VectorNav VN-100, accessed through the vendor `VN::Sensor
 
 `immuStateMachine` (`Adcs_IMMUStateMachine_t`, defined in `IMMUStateMachine.fpp`) owns bring-up and fault recovery. Its telemetered state is the `Adcs.ImmuState` enum, mirrored into the `SMstate` member by the `declare` action.
 
-```mermaid
+```{mermaid}
 stateDiagram-v2
   state "RESET
     entry: declare, resetImmu
@@ -92,4 +92,3 @@ These are not F´ parameters — they arrive at runtime from the owning applicat
 | `WAIT_SECONDS` | `U8` | Post-configure hold time before `ACTIVE`. |
 
 `immuPortHz` (the `run` port's tick rate) is currently hardcoded to `16` in the constructor, pending a shared constants file.
-

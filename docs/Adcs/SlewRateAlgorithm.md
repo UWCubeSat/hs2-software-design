@@ -1,4 +1,4 @@
-# SlewRateAlgorithm SDD
+# SlewRateAlgorithm
 
 ## 1. Overview
 
@@ -6,7 +6,7 @@
 
 `SlewRateAlgorithm` holds no internal state. `AdcsApplication` calls it synchronously each 10 Hz tick before calling `QuaternionPdAlgorithm` in any pointing mode, ensuring the spacecraft never exceeds the 0.04 °/s slew rate limit commanded per HS2-ADC-003.
 
----
+***
 
 ## 2. Requirements
 
@@ -15,7 +15,7 @@
 | HS2-SRA-001 | SlewRateAlgorithm shall compute a slew-rate-limited magnetic moment vector from estimated attitude, angular rate, target quaternion, and slew rate limit | Inspection |
 | HS2-SRA-002 | SlewRateAlgorithm shall maintain no internal state between calls | Inspection |
 
----
+***
 
 ## 3. Design
 
@@ -37,7 +37,7 @@ None.
 
 None.
 
----
+***
 
 ## 4. Notes
 

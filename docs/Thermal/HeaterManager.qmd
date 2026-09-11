@@ -1,6 +1,6 @@
-# Thermals::HeaterManager
+# HeaterManager
 
-HeaterManager is a Layer 2 Queued worker component in the Thermal subtopology. It owns the PWM-driven heater output channel, bringing the channel up through an internal state machine and translating duty-cycle commands from `Thermals::ThermalApplication` into PWM waveforms.
+HeaterManager is a Layer 2 Queued worker component in the Thermal subtopology. It owns the PWM-driven heater output channel, bringing the channel up through an internal state machine and translating duty-cycle commands from `ThermalApplication` into PWM waveforms.
 
 ## Introduction
 
@@ -47,7 +47,7 @@ Before start-up can proceed past `RESET`, the component asks the owning applicat
 
 `heaterManagerSM` (`Thermals_HeaterManagerStateMachine_t`, defined in `HeaterManagerStateMachine.fpp`) owns start-up and fault recovery. Its current state mirrors the `State` telemetry channel via the `HeaterManagerState` enum.
 
-```mermaid
+```{mermaid}
 stateDiagram-v2
   state "RESET
     entry: declare, clear, checkPowered
@@ -137,4 +137,3 @@ logs `HeaterCmdDropped` (`activity low`) and takes no other action.
 | `PwmDisableFailed` | warning high | The channel-disable write, attempted on every entry to `RESET` (via `clear`), itself failed — the channel may still be enabled. |
 | `SMsignalInvalid` | warning high | An unrecognized or initial-transition signal reached the state machine — indicates a state-machine bug, not a PWM fault. |
 | `HeaterCmdDropped` | activity low | A `heaterCmdIn` command arrived while not in `RUN` and was dropped. |
-

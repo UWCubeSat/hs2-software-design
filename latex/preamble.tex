@@ -1,0 +1,55 @@
+% Keep prose, tables, and long identifiers inside the printable page area.
+\usepackage{microtype}
+\usepackage{xurl}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{ragged2e}
+\usepackage{etoolbox}
+\usepackage{fvextra}
+\usepackage{url}
+\usepackage{xcolor}
+\usepackage[normalem]{ulem}
+\usepackage{graphicx}
+\usepackage{adjustbox}
+
+% Keep diagrams and other graphics compact while preserving their aspect ratio
+% and preventing wide or tall figures from being cut off.
+\setkeys{Gin}{width=\linewidth,keepaspectratio}
+\let\HSOriginalIncludeGraphics\includegraphics
+\renewcommand{\includegraphics}[2][]{%
+  \adjustbox{max width=.8\linewidth,max height=.55\textheight,keepaspectratio}{%
+    \HSOriginalIncludeGraphics[#1]{#2}%
+  }%
+}
+
+\setlength{\tabcolsep}{2.5pt}
+\setlength{\emergencystretch}{3em}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\setlength{\extrarowheight}{2pt}
+
+% Tables are information-dense in this document; slightly smaller table text
+% gives long cells room to wrap without changing the surrounding body text.
+\AtBeginEnvironment{longtable}{\footnotesize}
+\fvset{breaklines=true,breakanywhere=true}
+\RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines=true,breakanywhere=true}
+
+% Permit long inline code identifiers and paths to wrap inside table cells.
+\let\HSOriginalTexttt\texttt
+\def\HSCodeUrlBreaks{\do\.\do\@\do\\\do\/\do\!\do\_\do\|\do\;\do\>\do\]
+  \do\)\do\,\do\?\do\&\do\'\do+\do\=\do\#\do:
+  \do\A\do\B\do\C\do\D\do\E\do\F\do\G\do\H\do\I\do\J\do\K\do\L
+  \do\M\do\N\do\O\do\P\do\Q\do\R\do\S\do\T\do\U\do\V\do\W\do\X\do\Y\do\Z}
+\DeclareRobustCommand{\HSBreakableTexttt}[1]{\begingroup\def\UrlBreaks{\HSCodeUrlBreaks}\Urlmuskip=0mu\urlstyle{tt}\nolinkurl{#1}\endgroup}
+\AtBeginEnvironment{longtable}{\let\texttt\HSBreakableTexttt}
+\AtEndEnvironment{longtable}{\let\texttt\HSOriginalTexttt}
+\sloppy
+
+% Keep explicit document links visibly distinct while leaving TOC and other
+% internal structural links black through the Quarto configuration.
+\AtBeginDocument{%
+  \let\HSOriginalHref\href
+  \renewcommand{\href}[2]{\HSOriginalHref{#1}{\textcolor{blue}{\uline{#2}}}}%
+}

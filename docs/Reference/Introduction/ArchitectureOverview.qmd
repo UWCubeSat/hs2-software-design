@@ -1,0 +1,25 @@
+# Architecture Overview
+
+This page describes the HuskySat-2 software architecture only. It does not describe the spacecraft electrical architecture or the physical system. The software is organized as a set of abstraction layers: higher levels express more mission policy, while lower levels are closer to Linux and the hardware interface.
+
+| Level | Software responsibility |
+|-------|-------------------------|
+| Level 4 - System Services and Control | Provides deployment-wide F' command, event, telemetry, health, timing, version, and fatal-response services; coordinates satellite-wide modes. |
+| Level 3 - Applications | Implements subsystem behavior, mission operations, communications policy, data products, and algorithm selection. |
+| Level 2 - Hardware Managers | Owns device protocols, initialization, device-specific state, telemetry, and recovery requests. |
+| Level 1 - Drivers and OSAL | Exposes Linux buses, GPIO/PWM, serial devices, files, tasks, queues, synchronization, and time. |
+
+The abstraction relationship is intentionally top-down: Level 4 depends on application interfaces, applications depend on manager interfaces, and managers depend on drivers or F' OSAL services. A lower layer does not make mission decisions on behalf of a higher layer.
+
+```{mermaid}
+flowchart TB
+    L4["Level 4 - System Services and Control<br/>SatStateMachine, Svc::FatalHandler<br/>Shared Svc services"]
+    L3["Level 3 - Applications<br/>Mission and subsystem behavior"]
+    L2["Level 2 - Hardware Managers<br/>Device protocols and recovery"]
+    L1["Level 1 - Drivers and OSAL<br/>Linux and hardware access"]
+    L4 --> L3
+    L3 --> L2
+    L2 --> L1
+```
+
+The level names describe software abstraction, not task priority or physical placement. F' services used by the applications are documented individually in the Level 3 section; they remain reusable framework components rather than mission-specific hardware managers.

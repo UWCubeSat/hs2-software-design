@@ -1,4 +1,4 @@
-# LinuxPwmDriver SDD
+# LinuxPwmDriver
 
 ## 1. Overview
 
@@ -18,7 +18,7 @@ It uses the Linux PWM sysfs interface (`/sys/class/pwm/pwmchipN/pwmM/`). One dri
 | HS2-PWM-004 | LinuxPwmDriver shall report an open failure, an invalid request, or a runtime write failure to its caller. | Inspection |
 | HS2-PWM-005 | LinuxPwmDriver shall report open and runtime failures through F' events. | Inspection |
 
----
+***
 
 ## 3. Design
 
@@ -58,4 +58,4 @@ A manager configures a channel in this order:
 2. Set a duty cycle no greater than that period.
 3. Enable the channel.
 
-The manager owns actuator-safe behavior. For example, duty cycle should be set to 0 before enabling a channel or when dealing with an error.
+The manager owns actuator-safe behavior. For example, duty cycle will be set to 0 before enabling a channel or when dealing with an error.
