@@ -100,6 +100,13 @@ The following events will be emitted by the `ComApplication`:
 | DownlinkModeUpdateCmd | COMMAND | Emitted when ground issues a command to `ComApplication` to update downlink mode |
 | DownlinkModeSatStateUpdate | ACTIVITY_HI | Emitted when `SatStateMachine` updates the link mode through the `modeIn` input port |
 
+### 3.5 ComApplication Events
+The following events will be emitted by the `ComApplication`:
+| Event Name | Severity Level | Description |
+|------------|----------------|-------------|
+| DownlinkModeUpdateCmd | COMMAND | Emitted when ground issues a command to `ComApplication` to update downlink mode |
+| DownlinkModeSatStateUpdate | ACTIVITY_HI | Emitted when `SatStateMachine` updates the link mode through the `modeIn` input port |
+
 ## 4. State Machine
 
 `ComApplication` uses a hierarchical F' state machine with the following states: `BEACON`, `STORED_PLAYBACK`, `STANDARD_DOWNLINK`, `NO_DOWNLINK`. All states will only be commanded by the `SatStateMachine` as the `ComApplication` does not follow a traditional state-machine like a hardware-manager.
