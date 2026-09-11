@@ -37,28 +37,29 @@ All algorithms are included as external C++ libraries via CMake. Science results
 
 ## 3. Operational Modes
 
-The satellite operates in two main modes managed by `SatStateMachine`. Uplink commands are accepted in all modes via the always-active omni communications link.
+The satellite operates in five flat top-level states managed by `SatStateMachine`: `SafeSun`, `Safe`, `Downlink`, `Science`, and `Charge`. There is no wrapping "Standby" state. Uplink commands are accepted in all modes via the always-active omni communications link.
 
 | Mode | Description |
 |------|-------------|
-| **Safe** | Initial and emergency mode. Minimal operations. Detumble runs when power allows. Omni comms always active. |
-| **Standby** | Full autonomous operations. Entered after ground completes checkout. Submodes evaluated each 1 Hz tick. |
+| **SafeSun** | Boot/first-deploy mode. Detumbles, then points at the sun, both via `AdcsApplication`. Entered on deploy/reboot and remains the only safe mode reachable until checkout completes. Omni comms always active. |
+| **Safe** | Post-checkout emergency mode. Detumbles via `AdcsApplication`. Reached from `Downlink`/`Science`/`Charge` on a critical battery condition or ground command. Omni comms always active. |
+| **Downlink / Science / Charge** | Full autonomous operations, entered after ground completes checkout. Evaluated each 1 Hz tick in priority order. |
 
-### Safe Mode
+### SafeSun and Safe
 
-The satellite enters Safe mode on: deploy/reboot, critical battery condition reported by `EPSApplication` via `powerState` (vbatt below `CRITICAL_THRESHOLD`), or ground command `SAFE_MODE`. Exits to Standby on ground command `SAFE_EXIT` (only after checkout has been completed).
+The satellite boots into `SafeSun` on deploy/reboot. `AdcsApplication` is commanded into `Detumble` on entry, then into `SunPointing` once `DETUMBLE_DURATION_TICKS` ticks have elapsed (approximating the mission's estimated detumble duration, ~110 minutes per CONOPS, TBR). `SafeSun` exits to `Charge` only on ground command `SAFE_EXIT`, and only once `CHECKOUT_COMPLETE` has been received at least once.
 
-`AdcsApplication` runs detumble (magnetometer B-dot algorithm) when power allows. All other application components are inactive.
+Once checkout has completed, `SafeSun` becomes unreachable (`checkoutComplete` is a one-way latch); any later critical battery condition (vbatt below `CRITICAL_THRESHOLD`, reported by `EPSApplication` via `powerState`) or ground command `SAFE_MODE` instead enters plain `Safe`, which commands `AdcsApplication` into `Detumble` for its entire duration and exits back to `Charge` unconditionally on `SAFE_EXIT`.
 
-### Standby Mode Entry (Checkout)
+### Checkout
 
-Checkout is a one-time ground-commanded commissioning sequence performed before the satellite enters autonomous Standby operations. Ground commands subsystem verification and OKs the transition. After checkout completes the satellite enters Standby and does not return to a checkout mode.
+Checkout is a one-time ground-commanded commissioning sequence performed before the satellite enters autonomous Downlink/Science/Charge operations. Ground commands subsystem verification and sends `CHECKOUT_COMPLETE` to OK the transition. After checkout completes the satellite can reach `Downlink`/`Science`/`Charge` and no longer re-enters `SafeSun`.
 
-### Standby Submodes
+### Downlink / Science / Charge Selection
 
-Evaluated each 1 Hz tick by `SatStateMachine` in priority order. The highest-priority condition that is met determines the active submode.
+Evaluated each 1 Hz tick by `SatStateMachine` in priority order. The highest-priority condition that is met determines the active state.
 
-| Priority | Submode | Entry Condition |
+| Priority | State | Entry Condition |
 |----------|---------|-----------------|
 | 1 | **Downlink** | Over ground station AND downlink queue above `DOWNLINK_QUEUE_THRESHOLD` AND power OK AND `ComApplication` reports downlink readiness (`commsReadyIn`) |
 | 2 | **Science** | Power OK AND `EXPERIMENT_ENABLED` parameter set AND not Downlink |
@@ -239,10 +240,10 @@ Top-level `switchMode` signal inherited by all leaf states, so mode switches are
 |------|---------|-----------|-----|
 | `Off` | None | None | Inactive |
 | `Detumble` | IMU, Magnetorquers | Magnetorquers | Safe mode (B-dot algorithm) |
-| `SunPointing` | IMU, Sun Sensors | Magnetorquers | Standby/Charge (point panels at sun) |
-| `AntennaPointing` | IMU, GNSS | Magnetorquers | Standby/Downlink (point antenna at ground station) |
-| `EarthLimbPointing` | IMU, Star Tracker | Magnetorquers | Standby/Science (point FOUND camera at lit Earth limb, optimize solar) |
-| `AttitudeHold` | IMU | Magnetorquers | Reserved for holding current attitude. Not currently commanded by `SatStateMachine`'s translation table (Standby has no Eclipse submode), and retained for a future submode or ground-commanded use. |
+| `SunPointing` | IMU, Sun Sensors | Magnetorquers | Charge (point panels at sun); also commanded during SafeSun once detumble completes |
+| `AntennaPointing` | IMU, GNSS | Magnetorquers | Downlink (point antenna at ground station) |
+| `EarthLimbPointing` | IMU, Star Tracker | Magnetorquers | Science (point FOUND camera at lit Earth limb, optimize solar) |
+| `AttitudeHold` | IMU | Magnetorquers | Reserved for holding current attitude. Not currently commanded by `SatStateMachine`'s translation table, and retained for a future state or ground-commanded use. |
 
 **AdcsApplication hierarchical SM:**
 
@@ -274,7 +275,7 @@ Top-level `switchMode: Adcs.Mode` signal inherited by all leaf states.
 
 ### 5.6 Comms Subtopology
 
-**Purpose:** Manages the EnduroSat S-band radio for omni telemetry (always active) and high-gain downlink (Standby/Downlink mode only).
+**Purpose:** Manages the EnduroSat S-band radio for omni telemetry (always active) and high-gain downlink (Downlink mode only).
 
 **Components:**
 
@@ -466,7 +467,7 @@ module Sat {
 }
 ```
 
-Application components have no knowledge of `Sat::Mode` or `Sat::StandbySubmode`. They only receive and act on their own mode enum.
+Application components have no knowledge of `Sat::Mode`. They only receive and act on their own mode enum.
 
 ### Condition Inputs
 
@@ -476,26 +477,30 @@ Application components have no knowledge of `Sat::Mode` or `Sat::StandbySubmode`
 | `sunEclipseIn` | Input | Sun sensors + `GnssManager` | In sun / in eclipse |
 | `orbitStateIn` | Input | `GnssManager` | Over ground station flag |
 | `downlinkQueueDepthIn` | Input | `ComQueue` | Current queue depth (bytes) |
-| `commsReadyIn` | Input | `ComApplication` | Downlink readiness/permission flag; gates `Downlink` submode entry |
+| `commsReadyIn` | Input | `ComApplication` | Downlink readiness/permission flag; gates `Downlink` mode entry |
 
 ### Translation Table
 
+`SafeSun`, `Safe`, `Downlink`, `Science`, and `Charge` are flat top-level sibling states; there is no `Standby` wrapper. `SafeSun` is the boot/first-deploy state, reached only before `CHECKOUT_COMPLETE` has ever been received; `Safe` is the plain post-checkout safe state. `SafeSun` commands `AdcsApplication` through two phases over its own lifetime, `Detumble` on entry and `SunPointing` once `DETUMBLE_DURATION_TICKS` have elapsed, using only `AdcsApplication`'s existing modes.
+
 | Satellite State | `AdcsApplication` | `DataCollectionApplication` | `ScienceInferenceApplication` | `ComApplication` | `ThermalApplication` |
 |----------------|-------------------|----------------------------|-------------------------------|-------------------|----------------------|
-| Safe | Detumble | Off | Off | Beacon | ActiveHeating |
-| Standby/Downlink | AntennaPointing | Off | Off | StandardDownlink | NoHeating |
-| Standby/Science | EarthLimbPointing | RunExperiment | ProcessImages | Beacon | NoHeating |
-| Standby/Charge | SunPointing | Off | Off | Beacon | NoHeating |
+| SafeSun | Detumble, then SunPointing after `DETUMBLE_DURATION_TICKS` | Off | Off | Beacon | NoHeating |
+| Safe | Detumble | Off | Off | Beacon | NoHeating |
+| Downlink | AntennaPointing | Off | Off | StandardDownlink | ActiveHeating |
+| Science | EarthLimbPointing | RunExperiment | ProcessImages | Beacon | ActiveHeating |
+| Charge | SunPointing | Off | Off | Beacon | ActiveHeating |
 
 ### Mode Transitions
 
 | From | To | Trigger |
 |------|----|---------|
-| Safe | Standby | Ground command `SAFE_EXIT` (only after checkout completed) |
-| Any | Safe | Ground command `SAFE_MODE`; vbatt below `CRITICAL_THRESHOLD` in `powerState` from `EPSApplication` evaluated by `SatStateMachine` each 1 Hz tick. `EPSApplication` does not emit `FATAL`; the transition is a normal `SatStateMachine` mode change, not a `fatalHandler` reboot. Any `FATAL` from elsewhere (e.g. `AssertFatalAdapter`, health timeout) still routes through `EventManager.FatalAnnounce → fatalHandler` and reboots into Safe. |
-| Standby | submode | Condition evaluation each 1 Hz tick |
+| SafeSun | Charge | Ground command `SAFE_EXIT` (only after checkout completed) |
+| Safe | Charge | Ground command `SAFE_EXIT` (always succeeds; checkout is guaranteed complete to reach `Safe` at all) |
+| Downlink / Science / Charge | Safe | Ground command `SAFE_MODE`; vbatt below `CRITICAL_THRESHOLD` in `powerState` from `EPSApplication` evaluated by `SatStateMachine` each 1 Hz tick. `EPSApplication` does not emit `FATAL`; the transition is a normal `SatStateMachine` mode change, not a `fatalHandler` reboot. Any `FATAL` from elsewhere (e.g. `AssertFatalAdapter`, health timeout) still routes through `EventManager.FatalAnnounce → fatalHandler` and reboots into `SafeSun`/`Safe` depending on checkout status. |
+| Downlink / Science / Charge | Downlink / Science / Charge | Condition evaluation each 1 Hz tick, in priority order (Downlink, then Science, then Charge fallback) |
 
-**Events emitted:** mode and submode entry/exit events for every transition.
+**Events emitted:** mode entry/exit events for every transition.
 
 **Health checked:** Yes.
 
@@ -503,21 +508,26 @@ Application components have no knowledge of `Sat::Mode` or `Sat::StandbySubmode`
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Safe
-    Safe --> Standby: SAFE_EXIT (checkout complete)
-    Standby --> Safe: SAFE_MODE, or vbatt < CRITICAL_THRESHOLD
+    [*] --> SafeSun
+    SafeSun --> Charge: SAFE_EXIT (checkout complete)
+    Safe --> Charge: SAFE_EXIT
+    Charge --> Safe: SAFE_MODE, or vbatt < CRITICAL_THRESHOLD
 ```
 
-**Standby submode selection:**
+`Downlink` and `Science` behave identically to `Charge` here: each independently returns to `Safe` on `SAFE_MODE` or a critical battery condition, evaluated on its own 1 Hz tick. Only `Charge` is drawn, to avoid three edges with identical labels overlapping.
+
+**Downlink / Science / Charge selection, evaluated every 1 Hz tick:**
 
 ```mermaid
 flowchart TD
-    tick(["Standby: evaluated every 1 Hz tick"]) --> c1{"Over ground station AND<br/>queue > threshold AND<br/>power OK AND commsReady?"}
+    tick(["Downlink / Science / Charge: evaluated every 1 Hz tick"]) --> c1{"Over ground station AND<br/>queue > threshold AND<br/>power OK AND commsReady?"}
     c1 -->|yes| Downlink["Downlink"]
     c1 -->|no| c2{"Power OK AND<br/>EXPERIMENT_ENABLED?"}
     c2 -->|yes| Science["Science"]
     c2 -->|no| Charge["Charge (fallback)"]
 ```
+
+See `docs/Core/SatStateMachine.md` §4-5 for the full per-state entry/exit/tick logic, including the `SafeSun` detumble-then-sun-point timing.
 
 ---
 
@@ -548,25 +558,7 @@ RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN
   ↑_____________ error from any state ___________|
 ```
 
-```mermaid
-stateDiagram-v2
-    [*] --> RESET
-    RESET --> WAIT_RESET: on tick
-    WAIT_RESET --> ENABLE: wait elapsed
-    ENABLE --> CONFIGURE: enable OK
-    CONFIGURE --> RUN: writes OK
-    RUN --> CONFIGURE: reconfigure
-```
-
 **Error recovery:** any of `WAIT_RESET`, `ENABLE`, `CONFIGURE`, or `RUN` return directly to `RESET` on error.
-
-```mermaid
-stateDiagram-v2
-    WAIT_RESET --> RESET: error
-    ENABLE --> RESET: error
-    CONFIGURE --> RESET: error
-    RUN --> RESET: error
-```
 
 This is the canonical pattern; per-manager pages show their specific deviations (omitted states, added `OFF` state, etc.) rather than repeating this diagram.
 

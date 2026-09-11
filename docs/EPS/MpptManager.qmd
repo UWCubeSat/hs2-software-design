@@ -1,4 +1,4 @@
-# MpptManager
+# MpptManager SDD
 
 ## 1. Overview
 
@@ -8,7 +8,7 @@ On each rate group tick in `RUN` state, `MpptManager` reads all relevant measure
 
 `MpptManager` receives register-access commands directly from ground via the command dispatcher, split into six commands by register width and operation. Each command performs the corresponding I2C transaction against the named register and emits a confirmation event.
 
-***
+---
 
 ## 2. Requirements
 
@@ -20,7 +20,7 @@ On each rate group tick in `RUN` state, `MpptManager` reads all relevant measure
 | HS2-MPT-004 | MpptManager shall read the charger and fault flag registers each rate group tick and emit a WARNING_HI event when any abnormal status bit is set. | Inspection |
 | HS2-MPT-005 | MpptManager shall emit telemetry channels for vbatt, ibatt, vac, iac, and charging status. | Inspection |
 
-***
+---
 
 ## 3. Design
 
@@ -66,7 +66,7 @@ On success each command emits an activity event carrying the operation, register
 | `IAC_RAW` | `U16` | Input current raw ADC (scaling TBD) |
 | `CHARGING_STATE` | `BQ25756EChargingState` | Charging state from CHARGER_STATUS_1 bits [2:0] |
 
-***
+---
 
 ## 4. State Machine
 
@@ -105,26 +105,11 @@ Fault handling is done by the per-tick flag read: `CHARGER_FLAG_1/2` and `FAULT_
 
 **Command behavior outside RUN:** register-access commands received while in `RESET`, `WAIT_RESET`, or `CONFIGURE` are queued and execute once the component processes them. Ordering against the reset/configure writes is TBD during detailed design.
 
-```{mermaid}
-stateDiagram-v2
-    [*] --> RESET
-    RESET --> WAIT_RESET: busWrite OK
-    WAIT_RESET --> CONFIGURE: settled
-    CONFIGURE --> RUN: writes OK
-```
-
 **Error recovery:** `RESET` retries itself on a busWrite error; `CONFIGURE` and `RUN` return to `RESET` on their own bus errors.
-
-```{mermaid}
-stateDiagram-v2
-    RESET --> RESET: busWrite error
-    CONFIGURE --> RESET: error
-    RUN --> RESET: busWriteRead error
-```
 
 Reference: [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc)
 
-***
+---
 
 ## 5. Notes
 
