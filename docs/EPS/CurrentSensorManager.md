@@ -90,22 +90,7 @@ RUN
 
 **Error self-healing:** any bus error from `CONFIGURE` or `RUN` emits a `WARNING_HI` event and re-enters `RESET`, retrying the full startup sequence on subsequent ticks.
 
-```mermaid
-stateDiagram-v2
-    [*] --> RESET
-    RESET --> WAIT_RESET: on tick
-    WAIT_RESET --> CONFIGURE: settled
-    CONFIGURE --> RUN: write OK
-```
-
 **Error recovery:** any of `WAIT_RESET`, `CONFIGURE`, or `RUN` return directly to `RESET` on a bus error.
-
-```mermaid
-stateDiagram-v2
-    WAIT_RESET --> RESET: error
-    CONFIGURE --> RESET: error
-    RUN --> RESET: error
-```
 
 Reference: [`INA3221Manager` (FeatherCdh)](https://github.com/UWCubeSat), [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc)
 

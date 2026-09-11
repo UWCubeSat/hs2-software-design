@@ -104,21 +104,7 @@ RUN
     log WARNING_HI, assert /RESET to force an early Cold Start → RESET
 ```
 
-```mermaid
-stateDiagram-v2
-    [*] --> RESET
-    RESET --> WAIT_RESET: on tick
-    WAIT_RESET --> ENABLE: wait elapsed
-    ENABLE --> RUN: boot banner received
-```
-
 **Error recovery:** `ENABLE` returns to `RESET` on boot banner timeout; `RUN` returns to `RESET` on consecutive UART errors or a forced Cold Start.
-
-```mermaid
-stateDiagram-v2
-    ENABLE --> RESET: boot banner timeout
-    RUN --> RESET: consecutive UART errors, or forced Cold Start
-```
 
 **Errors:** UART error in `ENABLE` or `RUN` emits a throttled `WARNING_HI`, bumps `consecutiveFailures`, and enters `RESET`.
 

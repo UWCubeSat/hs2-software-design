@@ -233,18 +233,6 @@ The downlink and uplink data paths will utilize the F'-provided `ComCcsdsSdls` s
 
 ## 7. Notes
 
-**Subtopology wiring (summary - see §6 for the detailed hop-by-hop diagrams):**
-
-```mermaid
-flowchart LR
-    SSM["SatStateMachine"] -->|commsModeOut| App["ComApplication"]
-    App -->|commsReadyIn| SSM
-    App -->|configureGroupRate| TlmPk["Svc.TlmPacketizer"]
-    TlmPk --> CCSDS["ComCcsds<br/>(framing chain + ComQueue)"]
-    CCSDS --> TRM["TmtcRadioManager"]
-    TRM --> ComDriver["LinuxUartDriver"]
-```
-
 - The `ComApplication` will be a part of another subtopology, titled [TBD], that also wraps the `ComCCSDS` framing subtopology and the `TmtcRadioManager` component.
 - `STANDARD_DOWNLINK` and `STORED_PLAYBACK` require `AdcsApplication` to be in `AntennaPointing` mode. `SatStateMachine` is responsible for commanding both simultaneously via the translation table. `ComApplication` does not check ADCS state directly.
 - `TmtcRadioManager` interface to be defined during detailed design.  

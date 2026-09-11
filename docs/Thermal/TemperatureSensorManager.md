@@ -69,7 +69,6 @@ stateDiagram-v2
   RUN --> RESET: manualReset
 ```
 
-
 ```
 INIT
   on tick → RESET

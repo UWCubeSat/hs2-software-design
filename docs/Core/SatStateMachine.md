@@ -129,16 +129,6 @@ DOWNLINK / SCIENCE / CHARGE
      one already active)
 ```
 
-```mermaid
-stateDiagram-v2
-    [*] --> SAFE_SUN
-    SAFE_SUN --> CHARGE: SAFE_EXIT (checkout complete)
-    CHARGE --> SAFE: SAFE_MODE, or vbatt < CRITICAL_THRESHOLD
-    DOWNLINK --> SAFE: SAFE_MODE, or vbatt < CRITICAL_THRESHOLD
-    SCIENCE --> SAFE: SAFE_MODE, or vbatt < CRITICAL_THRESHOLD
-    SAFE --> CHARGE: SAFE_EXIT
-```
-
 **Downlink / Science / Charge selection, evaluated every 1 Hz tick:**
 
 ```mermaid

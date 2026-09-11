@@ -136,15 +136,9 @@ on switchMode(Adcs.Mode.EarthLimbPointing) enter EARTH_LIMB_POINTING
 on switchMode(Adcs.Mode.AttitudeHold)      enter ATTITUDE_HOLD
 ```
 
-```mermaid
-stateDiagram-v2
-    [*] --> OFF
-    OFF --> DETUMBLE: switchMode(Detumble)
-    OFF --> SUN_POINTING: switchMode(SunPointing)
-    OFF --> ANTENNA_POINTING: switchMode(AntennaPointing)
-    OFF --> EARTH_LIMB_POINTING: switchMode(EarthLimbPointing)
-    OFF --> ATTITUDE_HOLD: switchMode(AttitudeHold)
-```
+`switchMode` is inherited by every leaf state, so any of the 6 modes can reach any other directly, not just from `OFF`. On entry to `OFF`, `AdcsApplication` locks `MagnetorquerManager` and asserts `ImmuManager`'s disturbance flag; `DETUMBLE` alone runs `bDotCompute`, while `SUN_POINTING`, `ANTENNA_POINTING`, `EARTH_LIMB_POINTING`, and `ATTITUDE_HOLD` all run the same `slewRateCompute` + `quaternionPdCompute` → `momentVectorOut` pipeline each tick, differing only in target source.
+
+`SUN_POINTING`, `ANTENNA_POINTING`, and `EARTH_LIMB_POINTING` also each nest the same `ACQUIRING` → `TRACKING` substate pattern, moving to `TRACKING` once that mode's target is acquired: `SUN_POINTING` waits for a valid sun vector; `ANTENNA_POINTING` computes the ground station quaternion from GNSS ephemeris; `EARTH_LIMB_POINTING` acquires the lit Earth limb target. `DETUMBLE` and `ATTITUDE_HOLD` each have a single unconditional substate (`RUNNING`, `HOLDING` respectively) with no internal transition.
 
 Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions), [FPP substates](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#substates)
 
