@@ -3,7 +3,9 @@
 `CameraManager` is a Layer 2 queued component driving one physical camera. It is meant to be
 instantiated once per camera.
 
-The camera hardware itself is a XIMEA xiC USB3 camera on a Sony Pregius CMOS sensor
+The camera hardware itself is a XIMEA xiC USB3 camera on a Sony Pregius CMOS sensor. The component 
+mainly relies on xiAPI (https://www.ximea.com/support/wiki/apis/XiAPI_Manual) to perform all camera
+operations, except for image captures which happens through a GPIO pin.
 
 ## Requirements
 
