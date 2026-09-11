@@ -11,6 +11,18 @@
 \usepackage{url}
 \usepackage{xcolor}
 \usepackage[normalem]{ulem}
+\usepackage{graphicx}
+\usepackage{adjustbox}
+
+% Keep diagrams and other graphics compact while preserving their aspect ratio
+% and preventing wide or tall figures from being cut off.
+\setkeys{Gin}{width=\linewidth,keepaspectratio}
+\let\HSOriginalIncludeGraphics\includegraphics
+\renewcommand{\includegraphics}[2][]{%
+  \adjustbox{max width=.8\linewidth,max height=.55\textheight,keepaspectratio}{%
+    \HSOriginalIncludeGraphics[#1]{#2}%
+  }%
+}
 
 \setlength{\tabcolsep}{2.5pt}
 \setlength{\emergencystretch}{3em}

@@ -95,3 +95,5 @@ The downlink path follows:
 `Svc::EventManager/Svc::TlmChan -> Svc::ComQueue -> Framer -> Driver`
 
 HuskySat-2's CCSDS service components fill in the framing and packet-routing stages around `TmtcRadioManager` and `LinuxUartDriver`.
+
+The command and telemetry list, including both F' events and telemetry channels, can be viewed in the CTL document. The CTL document is maintained separately and is not part of this SDD.

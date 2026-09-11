@@ -2,13 +2,13 @@
 
 The BeagleBone Black is the on-board Linux flight computer. It runs the F' deployment, hosts the spacecraft software topology, and accesses spacecraft hardware through Linux-backed F' drivers. Linux provides the operating-system abstractions for UART, I2C, SPI, GPIO, PWM, timing, USB, and file storage; device-specific behavior belongs in the higher-level manager or application that owns the hardware.
 
-The inventory below is derived from the current hardware-manager interfaces. Where a device is still referenced by an application without a corresponding manager page, its ownership is marked TBA.
+The inventory below is derived from the current hardware-manager interfaces.
 
 | Hardware or device | Interface to BeagleBone Black | Owning software |
 |--------------------|-------------------------------|-----------------|
 | LOST camera | USB | `DataCollectionApplication` |
 | FOUND camera | USB | `DataCollectionApplication` |
-| Star tracker | UART; manager TBA | ADCS and data collection |
+| Arcsec Sagitta Star Tracker | UART; `StarTrackerManager` | ADCS and data collection |
 | SkyFox piNAV-NG GNSS receiver | UART; reset GPIO; VPP/PPS GPIO input | `GnssManager` |
 | VectorNav VN-100 IMU/AHRS | RS-232/UART | `Adcs::IMMUManager` |
 | Six sun photodiodes and MCP3208 ADC | SPI; chip-select GPIO | `SunSensorManager` |
@@ -20,6 +20,6 @@ The inventory below is derived from the current hardware-manager interfaces. Whe
 | EnduroSat S-band transceiver | UART | `TmtcRadioManager` |
 | Temperature sensors | SPI; sensor-select GPIO; DRDY input | `Thermals::TemperatureSensorManager` |
 | Heaters | PWM | `Thermals::HeaterManager` |
-| External flash / onboard storage | SPI and Linux filesystem services | F' file and data-product services |
+| microSD card and external SSD | Linux filesystem services | F' file-management and data-product services; mission applications |
 
 The BeagleBone Black and Linux are platform services rather than mission components. The driver layer exposes their operating-system interfaces; hardware managers interpret device registers and protocols; applications coordinate subsystem behavior.

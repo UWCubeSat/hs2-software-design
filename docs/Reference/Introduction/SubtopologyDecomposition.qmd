@@ -1,50 +1,138 @@
 # Subtopology Decomposition
 
-Each subsystem will be assembled as an F' subtopology containing its application, hardware managers, and driver connections. The diagrams below show the intended software boundaries. Detailed FPP instances, ports, and connections remain TBA until the corresponding topology designs are finalized.
+Each subsystem is assembled as an F' subtopology containing its application, hardware managers, and driver connections. The diagrams below are the current high-level topology views. Detailed FPP instances, ports, and connections remain subject to the corresponding subsystem designs.
 
-## ADCS
-
-```{mermaid}
-flowchart TB
-    A[AdcsApplication] --> B[ADCS hardware managers]
-    B --> C[Linux drivers]
-    A -. mode command .-> D[SatStateMachine]
-```
-
-## Payload and Data Collection
+## Sensing and Science Subtopologies
 
 ```{mermaid}
 flowchart TB
-    A[DataCollectionApplication] --> B[Payload hardware managers]
-    A --> C[Data products and storage]
-    B --> D[Linux drivers]
+    subgraph ADCS["ADCS Subtopology"]
+        direction TB
+        AdcsApp["AdcsApplication"]
+        Immu["IMMUManager"]
+        SunSensor["SunSensorManager"]
+        Mtq["MagnetorquerManager"]
+        AdcsApp --> Immu
+        AdcsApp --> SunSensor
+        AdcsApp --> Mtq
+    end
+
+    subgraph DC["DataCollection Subtopology"]
+        direction TB
+        DCApp["DataCollectionApplication"]
+        Cam1["LOST camera manager"]
+        Cam2["FOUND camera manager"]
+        DCApp --> Cam1
+        DCApp --> Cam2
+    end
+
+    subgraph SI["Science Inference"]
+        direction TB
+        SIApp["ScienceInferenceApplication"]
+    end
+
+    ADCS ~~~ DC
+    DC ~~~ SI
 ```
 
-GNSS is treated as a payload/data-collection hardware manager for this document. Camera and star-tracker manager designs remain TBA.
+The two camera managers are the software owners for the USB-connected LOST and FOUND cameras. SCOPE uses both cameras during calibration experiments.
 
-## Communications
+## Power and Communications Subtopologies
 
 ```{mermaid}
 flowchart TB
-    A[ComApplication] --> B[TmtcRadioManager]
-    B --> C[LinuxUartDriver]
-    A --> D[CCSDS service components]
+    subgraph COMMS["Comms Subtopology"]
+        direction TB
+        CommsApp["ComApplication"]
+        TRM["TmtcRadioManager"]
+        CommsApp --> TRM
+    end
+
+    subgraph EPSSUB["EPS Subtopology"]
+        direction TB
+        EPSApp["EPSApplication"]
+        Mppt["MpptManager"]
+        Curr["CurrentSensorManager"]
+        Watchdog["WatchdogPinger"]
+        Deploy["DeployPanelsManager"]
+        Mppt --> EPSApp
+        Curr --> EPSApp
+        EPSApp --> Deploy
+    end
+
+    subgraph THERM["Thermal Subtopology"]
+        direction TB
+        ThermApp["ThermalApplication"]
+        TempSensor["TemperatureSensorManager"]
+        Heater["HeaterManager"]
+        ThermApp --> TempSensor
+        ThermApp --> Heater
+    end
+
+    COMMS ~~~ EPSSUB
+    EPSSUB ~~~ THERM
 ```
 
-## Electrical Power System
+`WatchdogPinger` is scheduled by the EPS rate-group path and directly services the EPS hardware watchdog. The radio manager is shared with the communications framing services at the top-level topology.
+
+## Shared Infrastructure and Framework Services
 
 ```{mermaid}
 flowchart TB
-    A[EPSApplication] --> B[EPS hardware managers]
-    B --> C[Linux I2C and GPIO drivers]
+    subgraph SYS["Level 4 - Shared System Services"]
+        direction TB
+        Cmd["Svc::CmdDispatcher"]
+        Events["Svc::EventManager"]
+        Health["Svc::Health"]
+        Fatal["Svc::FatalHandler"]
+        Cmd --> Events
+        Events --> Fatal
+    end
+
+    subgraph CCSDS["ComCcsds (F' provided)"]
+        direction TB
+        ComQueue["Svc::ComQueue and framing chain"]
+    end
+
+    subgraph FH["FileHandling (F' provided)"]
+        direction TB
+        FileIO["Svc::FileUplink / Svc::FileDownlink / Svc::FileManager"]
+    end
+
+    subgraph DP["DataProducts (F' provided)"]
+        direction TB
+        Dp["Svc::DpManager / Svc::DpWriter / Svc::DpCatalog"]
+    end
+
+    SYS ~~~ CCSDS
+    CCSDS ~~~ FH
+    FH ~~~ DP
 ```
 
-## Thermal
+These are framework services and reusable subtopology groupings, not additional mission-specific hardware-manager layers. Their individual component responsibilities are documented in the Level 3 and Level 4 sections according to whether they are application-facing data-path services or deployment-wide services.
+
+## Satellite-Mode Command Fan-Out
 
 ```{mermaid}
 flowchart TB
-    A[ThermalApplication] --> B[TemperatureSensorManager]
-    A --> C[HeaterManager]
-    B --> D[LinuxI2cDriver]
-    C --> E[LinuxPwmDriver]
+    SSM["SatStateMachine<br/>(Level 4)"]
+    subgraph APPS["Application Layer"]
+        direction TB
+        AdcsApp["AdcsApplication"]
+        DCApp["DataCollectionApplication"]
+        SIApp["ScienceInferenceApplication"]
+        CommsApp["ComApplication"]
+        ThermApp["ThermalApplication"]
+        AdcsApp ~~~ DCApp
+        DCApp ~~~ SIApp
+        SIApp ~~~ CommsApp
+        CommsApp ~~~ ThermApp
+    end
+    SSM --> AdcsApp
+    SSM --> DCApp
+    SSM --> SIApp
+    SSM --> CommsApp
+    SSM --> ThermApp
 ```
+
+The state machine sends each application its own typed mode enum. Applications do not need to understand the satellite-wide state or communicate directly with the Level 4 mode coordinator beyond that interface.

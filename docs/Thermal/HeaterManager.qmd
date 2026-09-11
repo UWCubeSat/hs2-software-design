@@ -47,7 +47,7 @@ Before start-up can proceed past `RESET`, the component asks the owning applicat
 
 `heaterManagerSM` (`Thermals_HeaterManagerStateMachine_t`, defined in `HeaterManagerStateMachine.fpp`) owns start-up and fault recovery. Its current state mirrors the `State` telemetry channel via the `HeaterManagerState` enum.
 
-```mermaid
+```{mermaid}
 stateDiagram-v2
   state "RESET
     entry: declare, clear, checkPowered

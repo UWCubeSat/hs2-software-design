@@ -136,7 +136,7 @@ on switchMode(Adcs.Mode.EarthLimbPointing) enter EARTH_LIMB_POINTING
 on switchMode(Adcs.Mode.AttitudeHold)      enter ATTITUDE_HOLD
 ```
 
-```mermaid
+```{mermaid}
 stateDiagram-v2
     [*] --> OFF
     OFF --> DETUMBLE: switchMode(Detumble)
@@ -154,7 +154,7 @@ Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/doc
 
 **Subtopology wiring - sensor inputs:**
 
-```mermaid
+```{mermaid}
 flowchart LR
     SSM["SatStateMachine"] -->|adcsModeOut| App["AdcsApplication"]
     Gnss["GnssManager<br/>(top-level, shared)"] -->|positionGet| App
@@ -167,7 +167,7 @@ flowchart LR
 
 **Subtopology wiring - control loop dispatch:**
 
-```mermaid
+```{mermaid}
 flowchart LR
     App["AdcsApplication"] -->|filter*Get, 6 ports| Filter["AttitudeFilter"]
     App -->|bDotCompute| BDot["BDotAlgorithm"]
@@ -178,7 +178,7 @@ flowchart LR
 
 **Subtopology wiring - hardware power/lock sequencing:**
 
-```mermaid
+```{mermaid}
 flowchart LR
     App["AdcsApplication"] -->|sunSensorControl| Sun["SunSensorManager"]
     App -->|magnetorquerLock| Mtq["MagnetorquerManager"]

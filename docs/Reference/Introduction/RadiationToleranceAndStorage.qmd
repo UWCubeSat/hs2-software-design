@@ -1,0 +1,131 @@
+# Radiation and Storage Architecture
+
+This section describes how HuskySat-2 stores flight-software state, mission data, and recovery images, and how the software will detect and recover from faults that could be caused by radiation or other single-event disturbances. The radiation environment and final hardware assurance analysis are not yet baselined, so the approach below describes the current design direction and the software controls that can be verified independently of the final dose and upset-rate analysis.
+
+## Historical Architecture
+
+The original flight-computer memory concept separated data by volatility, criticality, and recovery value. Volatile working data was placed in RAM, static configuration was assigned to EEPROM, mission-critical state was assigned to three redundant NOR flash devices connected over SPI, and bulk data was assigned to eMMC and an eUSB SSD. The BeagleBone Black's internal eMMC was also considered for the bootloader, Linux kernel, root file system, and a flight-software recovery image.
+
+The three NOR devices were intended to provide redundancy for state and fault data: one device would be active at a time, while the software tracked device health, wear information, and the status of the stored software copy. A decision flow separated data that could be regenerated from data that needed to survive a reboot or be recovered after a fault. This architecture provided a clear place for duplicated mission state and recovery metadata, but it depended on interfaces and boot paths that were difficult to realize on the selected BeagleBone Black configuration.
+
+```{mermaid}
+flowchart TB
+    subgraph OLD[Historical storage concept]
+        RAM[RAM<br/>volatile working data]
+        EEPROM[EEPROM<br/>static configuration]
+        NOR[NOR Flash 0-3<br/>SPI redundant critical state]
+        EMMC[eMMC<br/>bulk data]
+        SSD[eUSB SSD<br/>bulk data and images]
+        BBEMMC[BeagleBone eMMC<br/>boot and recovery image]
+    end
+
+    APP[Flight software and F' services] --> RAM
+    APP --> EEPROM
+    APP --> NOR
+    APP --> EMMC
+    APP --> SSD
+    BOOT[Linux boot path] --> BBEMMC
+```
+
+The historical architecture is retained in this SDD as design rationale and as a record of the intended radiation and redundancy considerations. It is not the current flight configuration.
+
+The original concept is documented in the archived [FlightComputerMemory design](https://github.com/UWCubeSat/hs2-software-design/blob/storage/docs/Core/FlightComputerMemory.md).
+
+## Current Storage Architecture
+
+The current design is intentionally simpler. The flight computer uses two nonvolatile storage devices:
+
+- A microSD card is the boot medium. It is mechanically secured with epoxy and a structural latch to reduce the chance of connector movement or loss during launch and operation. It contains the bootable Linux and flight-software image, along with backups of important spacecraft data.
+- An external SSD is the primary high-capacity storage device for mission data, especially captured images and other payload files. It also contains backups of the operating system and flight-software image so that a known-good copy is available even when the boot medium is being recovered or replaced.
+
+The previous plan to boot or operate storage through the BeagleBone Black eMMC pins was removed because the required boot configuration could not be supported reliably on the selected hardware. The current design therefore does not depend on NOR flash, an external eMMC device, or the BeagleBone Black eMMC pins for normal booting.
+
+```{mermaid}
+flowchart TB
+    BOOT[BeagleBone Black<br/>Linux flight computer]
+    FS["F' file and data-product services"]
+    DCA[DataCollectionApplication]
+    GROUND[Ground commands]
+    SD[microSD card<br/>boot image<br/>important-data backups]
+    SSD[External SSD<br/>primary image and payload storage<br/>OS and flight-software backups]
+
+    BOOT --> FS
+    GROUND --> FS
+    GROUND --> DCA
+    DCA -->|captured images| SSD
+    FS -->|boot and backup files| SD
+    FS -->|images and payload files| SSD
+    SSD -. backup and recovery copy .-> SD
+    SD -. backup and recovery copy .-> SSD
+```
+
+File operations use the F' file-management (OSAL) and file-downlink services, while applications own mission-specific decisions such as when to capture images, which products to preserve, and when a file may be deleted. The final partition names, capacity margins, and file-system recovery procedure remain configuration items for the deployment and data budget.
+
+## Storage Partitioning Policy
+
+The storage layout is divided by function so that a full payload area or a corrupted data file cannot prevent the flight computer from booting or recovering. The partition names and exact sizes are deployment configuration items, but the following logical arrangement is the baseline policy:
+
+- **microSD boot/system region:** contains the boot configuration, Linux kernel, root file system, deployment configuration, and the normal flight-software image. It is treated as read-mostly during operations and is updated only through a controlled maintenance procedure.
+- **microSD persistent-data region:** contains backups of important spacecraft data, including selected images for later downlink, persistent parameters, and fault/event logs. This region is separate from the boot/system region so routine data growth cannot consume the boot partition.
+- **SSD payload region:** is the primary location for captured images, science results, and other large mission products. `DataCollectionApplication` writes new images here after capture and the science applications add processing results as they become available.
+- **SSD recovery region:** contains the backup operating-system and flight-software images, together with the metadata needed to identify a known-good copy. It is not used as an unbounded payload directory.
+- **SSD log and staging region:** contains event logs, temporary image files, compression outputs, and other files that are not yet committed as valid products. Its quota prevents diagnostic growth from consuming the entire payload region.
+
+Both devices maintain a reserved free-space margin. The application shall reject or defer a new image capture before that margin is consumed, and log the reason for the rejection. Log rollover and backup selection shall also respect the margin. Exact thresholds will be set from the data budget and tested under full-storage conditions.
+
+## Storage Recovery Policy
+
+The microSD card is the only normal boot medium. The BeagleBone Black eMMC pins and the retired NOR/eMMC architecture are not part of the normal boot path. The SSD recovery region provides a known-good software copy for a ground-directed maintenance or recovery operation; automatic boot fallback from the SSD is not assumed unless it is explicitly supported by the final deployment.
+
+At startup and after a reset, the deployment shall apply this sequence:
+
+1. Boot the Linux and flight-software image from the microSD boot/system region.
+2. Mount the persistent-data region and SSD regions independently, and record an event for each unavailable or failed mount.
+3. Validate the CRC and version/validity metadata for the software image, persistent parameters, logs, and any data product opened for use.
+4. Ignore, quarantine, or replace any file that fails validation. When a valid backup exists on the other device, restore or copy it only through a controlled recovery operation and record the source and result.
+5. Reconstruct runtime state from the valid persistent files. Data that existed only in RAM, including queued commands, unsent packets, and incomplete processing buffers, is considered lost after the reset.
+6. Start nonessential payload activity only when the required storage region is available and has passed its checks. If the SSD is unavailable, the spacecraft remains able to boot and can continue essential operations from the microSD card while image capture and other storage-heavy work is disabled or deferred.
+
+Writes shall use a temporary or in-progress filename and become visible as valid products only after the contents, metadata, and CRC have been written successfully. Startup shall quarantine in-progress files rather than treating them as complete images or science products. Image deletion shall be ground-commanded and shall occur only after the corresponding downlink or recovery operation has been acknowledged; the backup copy is retained until the deletion policy allows it to be removed.
+
+The recovery procedure shall prioritize, in order, a bootable flight-software image, persistent configuration and parameters, fatal and fault logs, data needed to explain the fault, and selected images or science products. Every recovery action shall produce an F' event and, when possible, update the onboard log for later downlink. The final CRC format, backup cadence, and operator commands will be verified in GDS, subsystem, and integrated deployment tests.
+
+## Runtime RAM Contents
+
+RAM is volatile and is not treated as a persistent archive. During normal operation it contains the working state required by the F' deployment and the mission components, including:
+
+- F' component instances, object state, parameter caches, state-machine state, and health-monitoring counters;
+- active-component thread stacks, queues, synchronization objects, and scheduler state provided through the F' OSAL;
+- `Fw::Buffer` instances and buffers used by command, event, telemetry, file, and CCSDS packet paths;
+- pending commands, event records, telemetry values, packetizer work, and communications queues;
+- sensor samples, cached hardware-manager state, algorithm intermediates, and control-loop data; and
+- temporary image, DMA, compression, and science-processing buffers.
+
+The exact allocation depends on the deployment configuration and image-processing workload. Any state that must survive a reboot is written to the microSD card or SSD through the applicable F' file or data-product path. A reset may therefore discard in-flight commands, queued packets, unsaved sensor samples, and incomplete processing buffers; software should complete writes or mark incomplete products when practical so that they can be detected during recovery.
+
+## Software-Level Radiation and Fault Mitigation
+
+The spacecraft does not rely on the storage devices or RAM being radiation-hardened. The software-level approach is to detect corrupted or implausible state, preserve recoverable copies, and return the affected subsystem to a known state. Planned controls include:
+
+- **Integrity checks:** persistent files and important data records use CRCs, with version or validity metadata where needed. A failed check causes the copy to be rejected rather than used as authoritative state.
+- **Redundant copies:** the operating system and flight-software image are kept on both the SSD and microSD card. Important mission data, including image products selected for downlink, is backed up across the two devices when capacity and timing permit.
+- **Atomic and recoverable file operations:** writes use temporary or otherwise clearly marked incomplete records until the final data is committed. Startup code and file services identify incomplete products and prevent them from being mistaken for valid images or state.
+- **Input validation and state-machine recovery:** hardware managers validate register values and sensor ranges, use timeouts and retries for device transactions, and return to their reset or safe state after unrecoverable errors. Applications similarly reject invalid data before it reaches control or science algorithms.
+- **Liveness monitoring and watchdog recovery:** `Svc::Health` detects missed component responses, while `WatchdogPinger` services the EPS hardware watchdog. Fatal conditions are reported through `Svc::EventManager` and `Svc::FatalHandler`; the application-manager interfaces can then apply the appropriate subsystem reset policy.
+- **Safe operational behavior:** after a detected fault, the satellite discards the output, preserves fault context, and the FaultHandler decides whether to reset hardware (if it is a more contained issue) or resetting the system (if it is a larger issue like flight software failing to run).
+
+These mechanisms mitigate many software-visible effects of single-event upsets and corrupted storage, and we use both the microSD and SSD for redundancy purposes. 
+
+## Data Retention and Ground Operations
+
+Continuous retention of every raw telemetry sample is not required. `Svc::TlmPacketizer` collects the configured telemetry channels for downlink, and between ground passes the flight software will use aggregates over approximately five-minute intervals rather than retaining every raw sample indefinitely. However, during a ground pass, we do also downlink real-time telemetry. The detailed volume and rates are described in the data budget.
+
+`Svc::EventManager` packages F' events for downlink. Fatal events and other selected events are also written to an onboard log for ground review, with the log transferred through the file-downlink path. Logs should retain enough context to identify the component, fault class, and recovery action, subject to the final capacity and rollover policy.
+
+Ground operations control the persistence and disposal of large products. Ground commands will be used to:
+
+- request image downlink and select the images or files to transfer;
+- delete images after successful downlink or when storage margins require reclamation; and
+- schedule experiments, which determines when new images and associated science products are created.
+
+The data budget defines the expected image volume, log retention, telemetry aggregation, downlink priority, and storage-margin calculations in more detail. This SDD defines the software ownership and recovery behavior.

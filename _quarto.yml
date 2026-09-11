@@ -7,13 +7,12 @@ book:
   output-file: "HS2-Software-Design-Document"
   chapters:
     - index.qmd
-    - docs/Reference/Introduction/Scope.md
     - docs/Reference/Introduction/HardwarePlatformInventory.md
     - docs/Reference/Introduction/ArchitectureOverview.qmd
     - docs/Reference/Introduction/SubtopologyDecomposition.qmd
     - docs/Reference/Introduction/SoftwareTopology.qmd
     - docs/Reference/Introduction/ExternalLibraryIntegration.md
-    - docs/Reference/Introduction/RadiationToleranceAndStorage.md
+    - docs/Reference/Introduction/RadiationToleranceAndStorage.qmd
     - docs/Reference/Introduction/FprimeContext.md
     - docs/Reference/Introduction/VerificationAndTestPlan.md
 
@@ -34,16 +33,16 @@ book:
       chapters:
         - docs/Reference/Layer2/Adcs.md
         - docs/Adcs/ImmuManager.qmd
-        - docs/Adcs/SunSensorManager.md
+        - docs/Adcs/SunSensorManager.qmd
         - docs/Adcs/MagnetorquerManager.qmd
         - docs/Reference/Layer2/Communications.md
         - docs/Comms/TmtcRadioManager.md
         - docs/Reference/Layer2/Payload.md
-        - docs/DataCollection/GnssManager.md
+        - docs/DataCollection/GnssManager.qmd
         - docs/Reference/Layer2/Eps.md
-        - docs/EPS/CurrentSensorManager.md
+        - docs/EPS/CurrentSensorManager.qmd
         - docs/EPS/DeployPanelsManager.md
-        - docs/EPS/MpptManager.md
+        - docs/EPS/MpptManager.qmd
         - docs/EPS/WatchdogPinger.md
         - docs/Reference/Layer2/Thermal.md
         - docs/Thermal/HeaterManager.qmd
@@ -72,8 +71,8 @@ book:
         - docs/Reference/Fprime/DpCatalog.md
         - docs/Adcs/AdcsApplication.qmd
         - docs/DataCollection/DataCollectionApplication.qmd
-        - docs/Comms/ComApplication.md
-        - docs/EPS/EPSApplication.md
+        - docs/Comms/ComApplication.qmd
+        - docs/EPS/EPSApplication.qmd
         - docs/ScienceInference/ScienceInferenceApplication.qmd
         - docs/Thermal/ThermalApplication.qmd
         - docs/Adcs/AttitudeFilter.md
@@ -94,6 +93,8 @@ book:
         - docs/Reference/Fprime/Version.md
         - docs/Reference/Fprime/AssertFatalAdapter.md
         - docs/Reference/Fprime/FatalHandler.qmd
+
+    - docs/Reference/References.md
 
 format:
   pdf:

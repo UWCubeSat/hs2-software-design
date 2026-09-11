@@ -1,18 +1,18 @@
 # Verification and Test Plan
 
-Verification proceeds outward from deterministic component behavior toward hardware and system behavior. Every component should have a test scope appropriate to its type, interfaces, state machine, and failure modes.
+Verification proceeds outward from deterministic component behavior toward hardware and system behavior. Every component has a test scope appropriate to its type, interfaces, state machine, and failure modes.
 
 ## Component-Level Tests
 
-Unit tests should cover algorithms, port handlers, state transitions, parameter handling, command validation, telemetry publication, event severity, and error paths. Passive components should be tested synchronously with controlled inputs. Active and queued components should be tested for queue behavior, scheduling assumptions, and correct responses to health pings and asynchronous completion.
+Unit tests covers algorithms, port handlers, state transitions, parameter handling, command validation, telemetry publication, event severity, and error paths. Passive components will be tested synchronously with controlled inputs. Active and queued components will be tested for queue behavior, scheduling assumptions, and correct responses to health pings and asynchronous completion.
 
-Driver tests should verify configuration, open/close behavior, valid and invalid bus operations, operating-system error translation, and safe behavior after a failed transaction. Hardware managers should be tested with simulated driver responses for initialization, register transactions, timeouts, retries, invalid data, recovery, and escalation to application-visible faults.
+Driver tests will verify configuration, open/close behavior, valid and invalid bus operations, operating-system error translation, and safe behavior after a failed transaction. Hardware managers will be tested with simulated driver responses for initialization, register transactions, timeouts, retries, invalid data, recovery, and escalation to application-visible faults.
 
 ## GDS Deployment Tests
 
-Hardware managers and Linux drivers will be exercised in F' Ground Data System (GDS) deployments before flight hardware is available or integrated. GDS tests should send commands, inspect telemetry and events, verify parameter loading, and exercise the same typed ports used in the flight topology.
+Hardware managers and Linux drivers will be exercised in F' Ground Data System (GDS) deployments before flight hardware is available or integrated. GDS tests will send commands, inspect telemetry and events, verify parameter loading, and exercise the same typed ports used in the flight topology.
 
-The GDS environment should provide representative device interfaces or deterministic simulators for UART, I2C, SPI, GPIO, and PWM behavior. Tests should include nominal responses, delayed responses, malformed data, bus failures, and device reset conditions. This allows recovery behavior to be verified without depending on nondeterministic hardware timing.
+The GDS environment provides representative device interfaces or deterministic simulators for UART, I2C, SPI, GPIO, and PWM behavior. Tests include nominal responses, delayed responses, malformed data, bus failures, and device reset conditions. This allows recovery behavior to be verified without depending on nondeterministic hardware timing.
 
 ## Subsystem Tests
 

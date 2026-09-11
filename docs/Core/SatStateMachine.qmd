@@ -129,7 +129,7 @@ DOWNLINK / SCIENCE / CHARGE
      one already active)
 ```
 
-```mermaid
+```{mermaid}
 stateDiagram-v2
     [*] --> SAFE_SUN
     SAFE_SUN --> CHARGE: SAFE_EXIT (checkout complete)
@@ -141,7 +141,7 @@ stateDiagram-v2
 
 **Downlink / Science / Charge selection, evaluated every 1 Hz tick:**
 
-```mermaid
+```{mermaid}
 flowchart TD
     tick(["DOWNLINK / SCIENCE / CHARGE: evaluated every 1 Hz tick"]) --> c0{"vbatt SoC &lt;<br/>CRITICAL_THRESHOLD?"}
     c0 -->|yes| SAFE["SAFE"]
@@ -154,7 +154,7 @@ flowchart TD
 
 **SafeSun's own two-phase AdcsApplication command, over its lifetime:**
 
-```mermaid
+```{mermaid}
 flowchart LR
     Enter(["Enter SAFE_SUN"]) --> D["Command Detumble<br/>(detumbleTickCounter = 0)"]
     D -->|"each tick, counter++"| D

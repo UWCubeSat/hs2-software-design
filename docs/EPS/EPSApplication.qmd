@@ -90,7 +90,7 @@ cmdIn DEPLOY_PANELS
 
 **Subtopology wiring:**
 
-```mermaid
+```{mermaid}
 flowchart LR
     App["EPSApplication"] -->|powerStateGet| SSM["SatStateMachine"]
 
@@ -112,5 +112,5 @@ flowchart LR
 - `railStateIn` port type is a custom struct carrying the three rails' bus voltage and current, published by `CurrentSensorManager`. `EPSApplication` currently caches it into `powerState`; more complex per-rail fault logic is deferred.
 - `powerStateGet` is a synchronous get port (`sync_input` on `EPSApplication`), called from `SatStateMachine`'s caller thread on its 1 Hz tick. The returned struct is the cached value last assembled by the EPS rate group tick; no recomputation occurs inside the get handler. Struct type is custom and must carry at minimum vbatt, ibatt, MPPT status, fault flags, and charging status for `SatStateMachine` submode evaluation; rail voltage/current are included for completeness.
 - `BQ25756Reg` enum definitions and register semantics are owned alongside `MpptManager` and produced during detailed design; `EPSApplication` no longer references them.
-- `MpptManager`, `CurrentSensorManager`, `HardwareResetManager`, `WatchdogPinger`, and `DeployPanelsManager` are all instantiated within the EPS subtopology. `EPSApplication` is health-monitored; the hardware managers are not.
+- `MpptManager`, `CurrentSensorManager`, `WatchdogPinger`, and `DeployPanelsManager` are all instantiated within the EPS subtopology. `EPSApplication` is health-monitored; the hardware managers are not.
 - Power threshold parameters (`POWER_THRESHOLD`, `CRITICAL_THRESHOLD`) persisted via `PrmDb`. Specific threshold values and actions TBD pending battery characterization testing.

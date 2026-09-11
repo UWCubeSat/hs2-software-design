@@ -35,7 +35,7 @@ Actuator index `2` is treated as the air coil; indices `0` and `1` are the torqu
 
 ### State Machine
 
-```mermaid
+```{mermaid}
 stateDiagram-v2
   [*] --> UNLOCKED
   UNLOCKED --> LOCKED: toggle

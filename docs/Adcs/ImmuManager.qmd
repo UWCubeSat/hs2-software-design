@@ -40,7 +40,7 @@ The sensor itself is a VectorNav VN-100, accessed through the vendor `VN::Sensor
 
 `immuStateMachine` (`Adcs_IMMUStateMachine_t`, defined in `IMMUStateMachine.fpp`) owns bring-up and fault recovery. Its telemetered state is the `Adcs.ImmuState` enum, mirrored into the `SMstate` member by the `declare` action.
 
-```mermaid
+```{mermaid}
 stateDiagram-v2
   state "RESET
     entry: declare, resetImmu

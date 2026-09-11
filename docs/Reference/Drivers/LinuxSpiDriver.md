@@ -6,7 +6,7 @@
 
 ## HuskySat-2 Use
 
-The IMU, sun-sensor ADC, camera interfaces, and external flash may use SPI depending on the selected hardware configuration. Their Level 2 managers or Level 3 applications own chip-specific transaction formats and sequencing.
+The IMU and sun-sensor ADC use SPI-backed interfaces in the current hardware-manager designs. Their Level 2 managers own chip-specific transaction formats and sequencing; the current SSD and microSD storage architecture uses Linux filesystem services rather than an SPI NOR storage path.
 
 ## Component Type and Integration
 
@@ -15,4 +15,3 @@ The driver is passive and synchronous. A topology instance configures the Linux 
 ## F' Reference
 
 [LinuxSpiDriver source and interface](https://github.com/nasa/fprime/tree/devel/Drv/LinuxSpiDriver)
-

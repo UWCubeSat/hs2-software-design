@@ -72,7 +72,7 @@ sample to drive an average.
 `thrmAppStateMachine` (`Thermals_ThermalApplicationStateMachine_t`, defined in
 `ThermalApplicationStateMachine.fpp`) switches between idle and the per-tick control loop.
 
-```mermaid
+```{mermaid}
 stateDiagram-v2
   state "NO_HEATING
     entry: reset

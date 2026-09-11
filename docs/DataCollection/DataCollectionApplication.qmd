@@ -70,7 +70,7 @@ Once an experiment is commanded, Data Collection calculates and requests an atti
 
 ## State Machine
 
-```mermaid
+```{mermaid}
 stateDiagram
     [*] --> INIT
     INIT --> OFF : tick

@@ -36,7 +36,7 @@ The component is driven by two synchronous input ports:
 
 `tempSenseManagerSM` (`Thermals_TemperatureSensorManagerStateMachine_t`, defined in `TemperatureSensorManagerStateMachine.fpp`) owns the bring-up and fault-recovery sequence. Its current state mirrors the `State` telemetry channel via the `TemperatureSensorManagerState` enum.
 
-```mermaid
+```{mermaid}
 stateDiagram-v2
   state "RESET
     entry: declare, clear

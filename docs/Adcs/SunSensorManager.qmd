@@ -28,8 +28,6 @@ The HS2 sun sensor array consists of six photodiode sensors mounted on the solar
 | HS2-SSM-012 | SunSensorManager shall transition to OFF from any state on receipt of an OFF command via controlIn | Inspection |
 | HS2-SSM-013 | SunSensorManager shall perform no bus operations while in OFF | Inspection |
 | HS2-SSM-014 | SunSensorManager shall re-enter RESET on receipt of an ON command via controlIn while in OFF | Inspection |
-| HS2-SSM-015 | SunSensorManager OFF entry hardware shutdown sequence is TBD pending ADC hardware selection | Deferred |
-
 ***
 
 ## 3. Design
@@ -75,7 +73,7 @@ Queued component with internal flat F' state machine (`Fw::Sm`). Has a message q
 
 ```
 OFF
-  entry: zero all channel intensity buffers [further shutdown protocol TBD - see HS2-SSM-015]
+  entry: zero all channel intensity buffers
   on tick: no action (no bus operations)
   on controlIn(ON) → RESET
 
@@ -114,7 +112,7 @@ on controlIn(OFF)     → OFF     # new - immediate from any state, including mi
 on controlIn(ON)      → RESET   # new - only meaningful from OFF; no-op from all other states
 ```
 
-```mermaid
+```{mermaid}
 stateDiagram-v2
     [*] --> RESET
     RESET --> WAIT_RESET: ping success
@@ -124,7 +122,7 @@ stateDiagram-v2
 
 **Error recovery:** `RESET` retries itself on a ping failure; `RUN` returns to `RESET` on a read error.
 
-```mermaid
+```{mermaid}
 stateDiagram-v2
     RESET --> RESET: ping failure
     RUN --> RESET: error
@@ -132,7 +130,7 @@ stateDiagram-v2
 
 **OFF power control:**
 
-```mermaid
+```{mermaid}
 stateDiagram-v2
     RESET --> OFF: controlIn(OFF)
     WAIT_RESET --> OFF: controlIn(OFF)
