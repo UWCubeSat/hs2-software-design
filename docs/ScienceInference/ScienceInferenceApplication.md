@@ -71,7 +71,7 @@ Each experiment opportunity has:
 `ScienceApplicationStateMachine.fpp`) tracks operating mode.
 
 ```mermaid
-stateDiagram-v2
+stateDiagram
   state "PROCESS_IMAGES
     tick: runNextAvailableExperiment
   " as PROCESS_IMAGES
