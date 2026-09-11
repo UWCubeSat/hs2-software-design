@@ -281,7 +281,7 @@ Top-level `switchMode: Adcs.Mode` signal inherited by all leaf states.
 
 | Component | Type | Purpose |
 |-----------|------|---------|
-| `ComApplication` | Active | Hierarchical SM; receives mode from `SatStateMachine`; manages radio operating mode |
+| `CommsApplication` | Active | Hierarchical SM; receives mode from `SatStateMachine`; manages radio operating mode |
 | `TmtcRadioManager` | Active (worker) | State machine: RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN / error→RESET. Bridges ComCcsds to the S-band radio. |
 
 **ComApplication modes (received via `Sat.CommsModePort`):**
@@ -293,7 +293,7 @@ Top-level `switchMode: Adcs.Mode` signal inherited by all leaf states.
 | `StoredPlayback` | Downlinks stored telemetry and data products (priority) alongside real-time SOH telemetry at 1Hz. Ground-commanded only; requires `AntennaPointing` from `AdcsApplication`. |
 | `NoDownlink` | Ceases all transmission. Ground-commanded only. |
 
-**Health monitoring:** `ComApplication` is health-monitored. `TmtcRadioManager` excluded.
+**Health monitoring:** `CommsApplication` is health-monitored. `TmtcRadioManager` excluded.
 
 ### 5.7 EPS Subtopology
 
