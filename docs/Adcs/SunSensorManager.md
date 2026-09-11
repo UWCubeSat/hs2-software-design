@@ -114,30 +114,9 @@ on controlIn(OFF)     → OFF     # new - immediate from any state, including mi
 on controlIn(ON)      → RESET   # new - only meaningful from OFF; no-op from all other states
 ```
 
-```mermaid
-stateDiagram-v2
-    [*] --> RESET
-    RESET --> WAIT_RESET: ping success
-    WAIT_RESET --> RUN: wait elapsed
-    RUN --> RUN: reconfigure
-```
-
 **Error recovery:** `RESET` retries itself on a ping failure; `RUN` returns to `RESET` on a read error.
 
-```mermaid
-stateDiagram-v2
-    RESET --> RESET: ping failure
-    RUN --> RESET: error
-```
-
-**OFF power control:**
-
-```mermaid
-stateDiagram-v2
-    RESET --> OFF: controlIn(OFF)
-    WAIT_RESET --> OFF: controlIn(OFF)
-    RUN --> OFF: controlIn(OFF)
-```
+**OFF power control:** `controlIn(OFF)` enters `OFF` from `RESET`, `WAIT_RESET`, or `RUN`.
 
 **Powering back on:** `OFF --> RESET` on `controlIn(ON)`, from any state.
 

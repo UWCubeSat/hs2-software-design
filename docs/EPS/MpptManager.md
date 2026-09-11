@@ -105,22 +105,7 @@ Fault handling is done by the per-tick flag read: `CHARGER_FLAG_1/2` and `FAULT_
 
 **Command behavior outside RUN:** register-access commands received while in `RESET`, `WAIT_RESET`, or `CONFIGURE` are queued and execute once the component processes them. Ordering against the reset/configure writes is TBD during detailed design.
 
-```mermaid
-stateDiagram-v2
-    [*] --> RESET
-    RESET --> WAIT_RESET: busWrite OK
-    WAIT_RESET --> CONFIGURE: settled
-    CONFIGURE --> RUN: writes OK
-```
-
 **Error recovery:** `RESET` retries itself on a busWrite error; `CONFIGURE` and `RUN` return to `RESET` on their own bus errors.
-
-```mermaid
-stateDiagram-v2
-    RESET --> RESET: busWrite error
-    CONFIGURE --> RESET: error
-    RUN --> RESET: busWriteRead error
-```
 
 Reference: [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc)
 
