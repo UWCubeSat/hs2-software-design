@@ -41,7 +41,7 @@ The deployment topology is responsible for more than simply listing components. 
 5. configure rate groups and health-monitoring entries; and
 6. start active components in a safe order.
 
-HuskySat-2 should preserve the same component interfaces when moving from a GDS deployment to the BeagleBone Black flight deployment. That keeps application and manager tests independent of the final physical bus wiring.
+HuskySat-2 will preserve the same component interfaces when moving from a GDS deployment to the BeagleBone Black flight deployment. That keeps application and manager tests independent of the final physical bus wiring.
 
 ## OSAL and Linux on the BeagleBone Black
 

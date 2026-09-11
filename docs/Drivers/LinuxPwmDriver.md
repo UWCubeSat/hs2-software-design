@@ -58,4 +58,4 @@ A manager configures a channel in this order:
 2. Set a duty cycle no greater than that period.
 3. Enable the channel.
 
-The manager owns actuator-safe behavior. For example, duty cycle should be set to 0 before enabling a channel or when dealing with an error.
+The manager owns actuator-safe behavior. For example, duty cycle will be set to 0 before enabling a channel or when dealing with an error.

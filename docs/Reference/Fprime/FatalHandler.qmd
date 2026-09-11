@@ -6,9 +6,9 @@
 
 ## HuskySat-2 Use
 
-Hardware managers remain responsible for detecting device-specific failures and reporting them through typed events. A hardware-related fatal event can carry a unique opcode identifying the affected hardware. The owning Level 3 application receives the fault, maps the opcode to the appropriate manager, and issues that manager's reset command. This preserves the App-Manager-Driver boundary: the application decides what recovery action is appropriate, the manager owns the device-specific reset sequence, and the driver only exposes the low-level interface.
+Hardware managers remain responsible for detecting device-specific failures and reporting them through typed events. `Svc::FatalHandler` has an application-facing command port for each Level 3 application. When it receives a fatal notification, it uses the appropriate port to send an application command carrying the fatal condition to the owning application. A hardware-related fatal event carries a unique opcode identifying the affected hardware; the application maps that opcode to the appropriate manager and issues that manager's reset command. This preserves the App-Manager-Driver boundary: the application decides what recovery action is appropriate, the manager owns the device-specific reset sequence, and the driver only exposes the low-level interface.
 
-`Svc::FatalHandler` should remain the final system-level path for unhandled or escalated fatal conditions. It does not replace a hardware manager or become a central hardware-reset owner. If an event cannot be mapped safely to an owning application or hardware opcode, the deployment can escalate it to `Svc::FatalHandler` according to the spacecraft fault-response policy.
+`Svc::FatalHandler` will remain the final system-level path for unhandled or escalated fatal conditions. It does not replace a hardware manager or become a central hardware-reset owner. If an event cannot be mapped safely to an owning application or hardware opcode, the deployment will escalate it to the terminal fatal-response policy.
 
 ### Proposed Hardware-Fault Pipeline
 
@@ -18,13 +18,14 @@ The following is a proposed event and recovery flow. The exact event ports, opco
 flowchart TB
     M["Hardware manager detects fault"] --> E["Hardware fatal event<br/>unique hardware opcode"]
     E --> EM["Svc::EventManager<br/>event routing and filtering"]
-    EM --> A["Owning Level 3 application<br/>interprets opcode"]
+    EM --> FHC["Svc::FatalHandler<br/>application-facing command port"]
+    FHC --> A["Owning Level 3 application<br/>interprets opcode"]
     A --> C["Targeted reset command<br/>to selected manager"]
     C --> M
-    E -. unhandled or escalated .-> F["Svc::FatalHandler<br/>system-level fatal response"]
+    FHC -. unhandled or escalated .-> F["Terminal fatal-response policy"]
 ```
 
-This design keeps reset authority with the application-manager path while giving the system a defined terminal response when targeted recovery is unsafe or unavailable. The opcode namespace should be centrally documented so that every hardware manager emits unique, stable identifiers.
+This design keeps reset authority with the application-manager path while giving the system a defined terminal response when targeted recovery is unsafe or unavailable. The opcode namespace will be centrally documented so that every hardware manager emits unique, stable identifiers.
 
 ## F' Reference
 

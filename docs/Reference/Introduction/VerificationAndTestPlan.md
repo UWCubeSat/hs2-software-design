@@ -32,4 +32,4 @@ Integrated tests will exercise cross-subsystem data flow, shared CDH services, C
 
 ## Verification Evidence
 
-Each requirement should identify its verification method, such as inspection, unit test, GDS deployment test, subsystem test, or integrated test. Test results should retain the command sequence, configuration, input data, telemetry/events observed, expected result, actual result, and any hardware or simulator version needed to reproduce the run.
+Each requirement will identify its verification method, such as inspection, unit test, GDS deployment test, subsystem test, or integrated test. Test results will retain the command sequence, configuration, input data, telemetry/events observed, expected result, actual result, and any hardware or simulator version needed to reproduce the run.

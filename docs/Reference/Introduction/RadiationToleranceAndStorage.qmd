@@ -101,7 +101,7 @@ RAM is volatile and is not treated as a persistent archive. During normal operat
 - sensor samples, cached hardware-manager state, algorithm intermediates, and control-loop data; and
 - temporary image, DMA, compression, and science-processing buffers.
 
-The exact allocation depends on the deployment configuration and image-processing workload. Any state that must survive a reboot is written to the microSD card or SSD through the applicable F' file or data-product path. A reset may therefore discard in-flight commands, queued packets, unsaved sensor samples, and incomplete processing buffers; software should complete writes or mark incomplete products when practical so that they can be detected during recovery.
+The exact allocation depends on the deployment configuration and image-processing workload. Any state that must survive a reboot is written to the microSD card or SSD through the applicable F' file or data-product path. A reset will discard in-flight commands, queued packets, unsaved sensor samples, and incomplete processing buffers; software will complete writes or mark incomplete products when practical so that they can be detected during recovery.
 
 ## Software-Level Radiation and Fault Mitigation
 
@@ -120,7 +120,7 @@ These mechanisms mitigate many software-visible effects of single-event upsets a
 
 Continuous retention of every raw telemetry sample is not required. `Svc::TlmPacketizer` collects the configured telemetry channels for downlink, and between ground passes the flight software will use aggregates over approximately five-minute intervals rather than retaining every raw sample indefinitely. However, during a ground pass, we do also downlink real-time telemetry. The detailed volume and rates are described in the data budget.
 
-`Svc::EventManager` packages F' events for downlink. Fatal events and other selected events are also written to an onboard log for ground review, with the log transferred through the file-downlink path. Logs should retain enough context to identify the component, fault class, and recovery action, subject to the final capacity and rollover policy.
+`Svc::EventManager` packages F' events for downlink. Fatal events and other selected events are also written to an onboard log for ground review, with the log transferred through the file-downlink path. Logs will retain enough context to identify the component, fault class, and recovery action, subject to the final capacity and rollover policy.
 
 Ground operations control the persistence and disposal of large products. Ground commands will be used to:
 

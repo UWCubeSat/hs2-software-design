@@ -26,7 +26,7 @@ flowchart TB
     end
 
     SS --> APP
-    FH -. fatal events .-> APP
+    FH -->|application-specific fatal command ports| APP
     SYS --> APP
     APP --> MGR
     MGR --> DRV
