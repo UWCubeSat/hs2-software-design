@@ -1,4 +1,4 @@
-# Science::ScienceApplication
+# ScienceInferenceApplication
 
 ScienceApplication is the Layer 3 active component for the Science subtopology. On a schedule, it
 reads a manifest of imaging opportunities logged on the external disk, finds the first one that
@@ -88,4 +88,14 @@ stateDiagram-v2
 | `OFF` | Idle: `experiments.csv` is never read, no images processed. | ignored |
 | `PROCESS_IMAGES` | Steady state: at most one experiment is found and its full algorithm chain processed per tick. | `runNextAvailableExperiment` |
 
+## External Library Integration
 
+HuskySat-2 uses external C++ libraries for the optical-navigation and star-catalog processing mission. The libraries are invoked by `ScienceInferenceApplication` rather than by drivers or hardware managers.
+
+| Library | Purpose | Integration |
+|---------|---------|-------------|
+| LOST | Lost-in-space star identification | C++ library invoked by `ScienceInferenceApplication` |
+| FOUND | Follow-up optical navigation | C++ library invoked by `ScienceInferenceApplication` |
+| SCOPE | Camera calibration from star image processing | C++ library invoked by `ScienceInferenceApplication`; uses LOST during calibration processing |
+
+The libraries are built as CMake dependencies and wrapped by application-level interfaces. Science results are written through F' data-product services. Flagged raw images are retained on the external SSD and backed up to the microSD card when selected by the storage policy, subject to the final capacity and data-retention configuration.

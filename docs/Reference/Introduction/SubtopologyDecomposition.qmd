@@ -9,7 +9,7 @@ flowchart TB
     subgraph ADCS["ADCS Subtopology"]
         direction TB
         AdcsApp["AdcsApplication"]
-        Immu["IMMUManager"]
+        Immu["ImmuManager"]
         SunSensor["SunSensorManager"]
         Mtq["MagnetorquerManager"]
         AdcsApp --> Immu

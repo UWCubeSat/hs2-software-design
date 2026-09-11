@@ -7,27 +7,19 @@ book:
   output-file: "HS2-Software-Design-Document"
   chapters:
     - index.qmd
-    - docs/Reference/Introduction/HardwarePlatformInventory.md
     - docs/Reference/Introduction/ArchitectureOverview.qmd
     - docs/Reference/Introduction/SubtopologyDecomposition.qmd
     - docs/Reference/Introduction/SoftwareTopology.qmd
-    - docs/Reference/Introduction/ExternalLibraryIntegration.md
-    - docs/Reference/Introduction/RadiationToleranceAndStorage.qmd
     - docs/Reference/Introduction/FprimeContext.md
-    - docs/Reference/Introduction/VerificationAndTestPlan.md
 
     - part: "Level 1 - Drivers"
       chapters:
+        - docs/Reference/OSAL/OsalAndLinux.md
         - docs/Drivers/LinuxPwmDriver.md
         - docs/Reference/Drivers/LinuxUartDriver.md
         - docs/Reference/Drivers/LinuxI2cDriver.md
         - docs/Reference/Drivers/LinuxSpiDriver.md
         - docs/Reference/Drivers/LinuxGpioDriver.md
-        - docs/Reference/OSAL/FileSystem.md
-        - docs/Reference/OSAL/Task.md
-        - docs/Reference/OSAL/Queue.md
-        - docs/Reference/OSAL/Mutex.md
-        - docs/Reference/OSAL/Time.md
 
     - part: "Level 2 - Hardware Managers"
       chapters:
@@ -50,25 +42,7 @@ book:
 
     - part: "Level 3 - Application Layer"
       chapters:
-        - docs/Reference/Fprime/ComQueue.md
-        - docs/Reference/Fprime/ComStub.md
-        - docs/Reference/Fprime/FrameAccumulator.md
-        - docs/Reference/Fprime/FprimeRouter.md
-        - docs/Reference/Fprime/FprimeFramer.md
-        - docs/Reference/Fprime/FprimeDeframer.md
-        - docs/Reference/Fprime/CcsdsTmFramer.md
-        - docs/Reference/Fprime/CcsdsTcDeframer.md
-        - docs/Reference/Fprime/SpacePacketFramer.md
-        - docs/Reference/Fprime/SpacePacketDeframer.md
-        - docs/Reference/Fprime/ApidManager.md
-        - docs/Reference/Fprime/ComAggregator.md
-        - docs/Reference/Fprime/FileUplink.md
-        - docs/Reference/Fprime/FileDownlink.md
-        - docs/Reference/Fprime/FileManager.md
-        - docs/Reference/Fprime/PrmDb.md
-        - docs/Reference/Fprime/DpManager.md
-        - docs/Reference/Fprime/DpWriter.md
-        - docs/Reference/Fprime/DpCatalog.md
+        - docs/Reference/Fprime/ProvidedApplicationServices.md
         - docs/Adcs/AdcsApplication.qmd
         - docs/DataCollection/DataCollectionApplication.qmd
         - docs/Comms/ComApplication.qmd
@@ -83,16 +57,14 @@ book:
     - part: "Level 4 - System Services and Control Layer"
       chapters:
         - docs/Core/SatStateMachine.qmd
-        - docs/Reference/Fprime/CmdDispatcher.md
-        - docs/Reference/Fprime/EventManager.md
-        - docs/Reference/Fprime/TlmChan.md
-        - docs/Reference/Fprime/TlmPacketizer.md
-        - docs/Reference/Fprime/Health.md
-        - docs/Reference/Fprime/RateGroupDriver.md
-        - docs/Reference/Fprime/ActiveRateGroup.md
-        - docs/Reference/Fprime/Version.md
-        - docs/Reference/Fprime/AssertFatalAdapter.md
+        - docs/Reference/Fprime/ProvidedSystemServices.md
         - docs/Reference/Fprime/FatalHandler.qmd
+
+    - part: "Appendix"
+      chapters:
+        - docs/Reference/Introduction/HardwarePlatformInventory.md
+        - docs/Reference/Introduction/RadiationToleranceAndStorage.qmd
+        - docs/Reference/Introduction/VerificationAndTestPlan.md
 
     - docs/Reference/References.md
 

@@ -18,7 +18,7 @@ flowchart TB
     end
 
     subgraph L2["Level 2 - Hardware Managers"]
-        MGR["IMMUManager, SunSensorManager, MagnetorquerManager, TmtcRadioManager<br/>GnssManager, CurrentSensorManager, DeployPanelsManager, MpptManager<br/>WatchdogPinger, HeaterManager, TemperatureSensorManager"]
+        MGR["ImmuManager, SunSensorManager, MagnetorquerManager, TmtcRadioManager<br/>GnssManager, CurrentSensorManager, DeployPanelsManager, MpptManager<br/>WatchdogPinger, HeaterManager, TemperatureSensorManager"]
     end
 
     subgraph L1["Level 1 - Drivers and OSAL"]

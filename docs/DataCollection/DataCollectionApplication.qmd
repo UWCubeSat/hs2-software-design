@@ -1,4 +1,4 @@
-# DataCollection::DataCollectionApplication
+# DataCollectionApplication
 
 `DataCollectionApplication` is the Layer 3 active component for the DataCollection subtopology.
 Every image capture is a ground-commanded event: ground sends `RUN_EXPERIMENT` with a complete set
