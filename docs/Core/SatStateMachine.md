@@ -130,14 +130,9 @@ DOWNLINK / SCIENCE / CHARGE
      one already active)
 ```
 
-**State Machine**
-
-
-
-
 **Mode to app translation table**
 | Mode | Safe | Downlink | Science | Charge |
-|----------------|-------------------|------------------------------|-------------------------------|----------------------|----------------------|
+|---|---|---|---|---|
 | `AdcsApplication` | Detumble | AntennaPointing | EarthLimbPointing | SunPointing |
 | `DataCollectionApplication` | Off | Off | RunExperiment | Off |
 | `ScienceInferenceApplication` | Off | Off | ProcessImages | Off |
@@ -149,7 +144,7 @@ DOWNLINK / SCIENCE / CHARGE
 
 **Hardware in each Mode**
 | Mode | Safe | Charge | Downlink | Science |
-|----------------|-------------------|------------------------------|-------------------------------|----------------------|----------------------|
+|---|---|---|---|---|
 | ADCS |   |   |   |   |
 | IMMU | 1 | 1 | 1 | 1 |
 | SunSensor | 1 | 1 | 1 | 1 |
