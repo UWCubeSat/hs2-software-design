@@ -57,19 +57,21 @@ The Sagitta's local frame has its origin at the center of the camera, X out thro
 | `drvSendOut` | Output | `Drv.ByteStreamSend` | Sends SLIP framed action and parameter requests to the star tracker |
 | `getAttitude` | Input (sync) | `Adcs.AttitudePort` | Returns the most recently cached calibrated attitude, trust flag, and timestamp. Queried by `AdcsApplication`, which uses it to serve `DataCollectionApplication`'s attitude requests |
 | `attitudeOut` | Output (async) | `Adcs.AttitudePort` | Pushes the cached calibrated attitude to `AdcsApplication` whenever a new Solution telemetry arrives |
+| `cmdIn` | Input | `Fw.Cmd` | Ground commands via CmdDispatcher |
+| `cmdResponseOut` | Output | `Fw.CmdResponse` | Command completion status |
 | `prmGet` | Output | `Fw.PrmGet` | Load parameters from PrmDb |
 | `logOut` | Output | `Fw.Log` | Event logging |
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry |
 
 ### 3.5 Commands
 
-| Command Name | Parameters | Description | Postcondition |
-|--------------|------------|-------------|----------------|
-| `REBOOT` | — | Issues the Reboot action to power cycle the star tracker's firmware | `StarTrackerManager` reenters `RESET` |
-| `ENABLE_PROTECTION` | `wdt: bool`, `currentProtection: bool` | Issues the EnableProtection action (ID 8) to toggle the external watchdog timer | Star tracker's external watchdog timer and current protection set as requested |
-| `UPLOAD_DISTORTION_CONFIG` | config reference | Reruns the OpenFile/WriteFile/CloseFile sequence (IDs 33/35/34) against `ARC_FILE_CURRENT_CONFIG` | Star tracker's active `Distortion` (ID 8) and `Camera.focallength` parameters updated to the uploaded values, produced by arcsec's in-orbit calibration procedure |
-| `CAPTURE_CALIBRATION_FRAME` | — | Issues a manual Camera action (ID 15, `actionid`=4 "frame request") followed by a Download action (ID 9) | A calibration frame is captured and downloaded, for ground troubleshooting or in-orbit diagnostics |
-| `FORCE_RESET` | — | Forces the internal state machine back to RESET | `StarTrackerManager` is in `RESET` |
+| Command Name | Parameters | Description | Response format | Postcondition |
+|--------------|------------|-------------|--------------------------------------|----------------|
+| `REBOOT` | — | Issues the Reboot action (ID 7) to power cycle the star tracker's firmware. Request has no fields | Empty response | `StarTrackerManager` reenters `RESET` |
+| `ENABLE_PROTECTION` | `wdt: bool`, `current: u8` (0 = no change, 1 = enable, 2 = disable) | Issues the EnableProtection action (ID 8) to toggle the external watchdog timer and power cycling | Empty response | Star tracker's watchdog timer and current protection set as requested |
+| `UPLOAD_DISTORTION_CONFIG` | config reference | Reruns OpenFile (ID 33) / WriteFile (ID 35) / CloseFile (ID 34) against `ARC_FILE_CURRENT_CONFIG`. | OpenFile returns the opened file's `size: u32`. WriteFile and CloseFile responses are empty | Star tracker's active `Distortion` (ID 8) and `Camera.focallength` parameters updated to the uploaded values, produced by arcsec's in-orbit calibration procedure |
+| `CAPTURE_CALIBRATION_FRAME` | — | Issues a Camera action (ID 15, `actionid=4`, "take a frame"). The frame must already be held in memory (`ImageProcessor.store = 1`) for Download to retrieve it. Then issues repeated Download actions (ID 9), each returning at most 1024 bytes. | Camera response is empty. Each Download response returns `position: u32` (echoed) + `data: u8[1024]` | A calibration frame is captured and downloaded, for ground troubleshooting or in-orbit diagnostics |
+| `FORCE_RESET` | — | Forces `StarTrackerManager`'s own state machine back to RESET | N/A | `StarTrackerManager` is in `RESET` |
 
 ---
 
@@ -129,4 +131,3 @@ Reference: [`fprime-community/fprime-sensors` `ImuManager`](https://github.com/f
 ---
 
 ## 5. Notes
-
