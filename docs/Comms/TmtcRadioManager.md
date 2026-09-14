@@ -1,16 +1,16 @@
-# EnduroSatManager SDD
+# TmtcRadioManager SDD
 
 ## 1. Overview
-`EnduroSatManager` is the layer 2 passive component for the Comms subtopology. It directly interacts with the Endurosat S-band transceiver through a UART interface. `The `EnduroSatManager` is one of many layer 2 hardware managers as described in `sdd.md`.
+`TmtcRadioManager` is the layer 2 passive component for the Comms subtopology. It directly interacts with the Endurosat S-band transceiver through a UART interface. `The `TmtcRadioManager` is one of many layer 2 hardware managers as described in `sdd.md`.
 
 ---
 
 ## 2. Requirements
 | ID | Requirement | Verification |
 |----|-------------|--------------|
-| HS2-ESM-001 | EnduroSatManager shall forward CCSDS Space Protocol telemetry packets over UART to the S-Band transceiver for downlink.  | Inspection |
-| HS2-ESM-002 | EnduroSatManager shall forward CCSDS Space Protocol command packets received over UART to the `CommandDispatcher` for processing. | Inspection |
-| HS2-ESM-003| EnduroSatManager shall maintain a status indicating the state of connection with the S-Band transceiver at all times | Inspection/Unit tests |
+| HS2-ESM-001 | TmtcRadioManager shall forward CCSDS Space Protocol telemetry packets over UART to the S-Band transceiver for downlink.  | Inspection |
+| HS2-ESM-002 | TmtcRadioManager shall forward CCSDS Space Protocol command packets received over UART to the `CommandDispatcher` for processing. | Inspection |
+| HS2-ESM-003| TmtcRadioManager shall maintain a status indicating the state of connection with the S-Band transceiver at all times | Inspection/Unit tests |
 
 ---
 
@@ -55,7 +55,7 @@ The communication adapter interface is composed of five ports. These ports are u
 |`dataReturnOut`| Output | `Svc.ComDataWithContext`| Port returning ownership of data that came in on dataIn|
 |`dataReturnIn` | Input | `Svc.ComDataWithContext` | Port receiving back ownership of buffer sent out on dataOut|
 
-Additionally, the `EnduroSatManager` uses the `ByteStreamDriverClient` port interface to communicate over UART with the S-Band transciever as described in the table below:
+Additionally, the `TmtcRadioManager` uses the `ByteStreamDriverClient` port interface to communicate over UART with the S-Band transciever as described in the table below:
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
@@ -65,5 +65,5 @@ Additionally, the `EnduroSatManager` uses the `ByteStreamDriverClient` port inte
 |`drvSendOut`| Output | `Drv.ByteStreamSend`| Sends data to S-Band transceiver|
 
 ## 4. Notes
-- `EnduroSatManager` is instantiated at the top-level topology (shared with `ComCcsds` subtopology); `CommsApplication` connects to it via the top-level topology wiring.
-- Detailed high-gain link configuration and `EnduroSatManager` interface to be defined during detailed design.
+- `TmtcRadioManager` is instantiated at the top-level topology (shared with `ComCcsds` subtopology); `CommsApplication` connects to it via the top-level topology wiring.
+- Detailed high-gain link configuration and `TmtcRadioManager` interface to be defined during detailed design.

@@ -2,9 +2,9 @@
 
 ## 1. Overview
 
-`GnssManager` is the Layer 2 hardware manager for the GNSS receiver. It is a SkyFox Labs piNAV-NG with DROP (Dead Reckoning Orbital Propagator). Like `StarTrackerManager` and `EnduroSatManager`, it isn't scoped to a single subtopology and instead it is at the **top-level topology** and shared across `DataCollectionApplication`, `AdcsApplication`, and `SatStateMachine`. It also feeds a PPS (Pulse Per Second) timing signal to Time services, sourced from the receiver's VPP (Valid Position Pulse) output.
+`GnssManager` is the Layer 2 hardware manager for the GNSS receiver. It is a SkyFox Labs piNAV-NG with DROP (Dead Reckoning Orbital Propagator). Like `StarTrackerManager` and `TmtcRadioManager`, it isn't scoped to a single subtopology and instead it is at the **top-level topology** and shared across `DataCollectionApplication`, `AdcsApplication`, and `SatStateMachine`. It also feeds a PPS (Pulse Per Second) timing signal to Time services, sourced from the receiver's VPP (Valid Position Pulse) output.
 
-`GnssManager` is an **Active** component. The bus is **UART**, 9600 baud, 8N1, LVCMOS levels. All bus access goes through `LinuxUartDriver`, wired to the `ByteStreamDriverClient` port pattern like in `EnduroSatManager`. The receiver's RXD line is unused so there's no command channel for that.
+`GnssManager` is an **Active** component. The bus is **UART**, 9600 baud, 8N1, LVCMOS levels. All bus access goes through `LinuxUartDriver`, wired to the `ByteStreamDriverClient` port pattern like in `TmtcRadioManager`. The receiver's RXD line is unused so there's no command channel for that.
 
 ---
 
@@ -16,7 +16,7 @@
 | HS2-GNS-002 | GnssManager shall continuously ingest and parse the receiver's NMEA/piNAV sentence stream as it arrives over UART | Inspection |
 | HS2-GNS-003 | GnssManager shall cache the most recent position, velocity, and GPS time | Inspection |
 | HS2-GNS-004 | GnssManager shall classify each cached fix as Autonomous, DROP Estimated, or Invalid | Inspection |
-| HS2-GNS-005 | GnssManager shall publish the cached fix and its classification to DataCollectionApplication, AdcsApplication, and SatStateMachine on each RateGroup1 tick | Inspection |
+| HS2-GNS-005 | GnssManager shall publish the cached fix and its classification to DataCollectionApplication, AdcsApplication, and SatStateMachine on each RateGroup2 tick | Inspection |
 | HS2-GNS-006 | GnssManager shall pass the receiver's VPP rising edge through as a PPS timing reference to Time services, tagged with the GPS time reported in the following LSP/LSV sentences. | Inspection |
 | HS2-GNS-007 | GnssManager shall report receiver health telemetry each tick | Inspection |
 | HS2-GNS-008 | GnssManager shall track and report the elapsed time since the last Autonomous fix, used to detect prolonged reliance on DROP Estimated or Invalid fixes | Inspection |
@@ -29,7 +29,7 @@
 
 ### 3.1 Component Type
 
-Active component and an internal flat F' state machine (`Fw::Sm`). This is a change from the other Queued pattern as the piNAV-NG streams NMEA sentences continuously at a fixed 1 Hz over UART, and the `GnssManager` needs to keep draining that stream on its own schedule rather than only when polled. `schedIn` is driven by `RateGroup1` (1 Hz) so the manager parses every incoming 1 Hz sentence group as it arrives, caches the most recent value, and reports the cached value out on each 1 s tick, matching the receiver's own update rate.
+Active component and an internal flat F' state machine (`Fw::Sm`). This is a change from the other Queued pattern as the piNAV-NG streams NMEA sentences continuously at a fixed 1 Hz over UART, and the `GnssManager` needs to keep draining that stream on its own schedule rather than only when polled. `schedIn` is driven by `RateGroup2` (1 Hz) so the manager parses every incoming 1 Hz sentence group as it arrives, caches the most recent value, and reports the cached value out on each 1 s tick, matching the receiver's own update rate.
 
 
 ### 3.2 Parameters
@@ -47,7 +47,7 @@ Almost nothing about the receiver itself is changing at run. The baud rate, upda
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
-| `schedIn` | Input | `Svc.Sched` | RateGroup1 (1 Hz) tick. Drives the state machine's ticks and, in RUN, the cached fix publish |
+| `schedIn` | Input | `Svc.Sched` | RateGroup2 (1 Hz) tick. Drives the state machine's ticks and, in RUN, the cached fix publish |
 | `drvConnected` | Input | `Drv.ByteStreamReady` | Ready signal for the piNAV-NG's UART connection |
 | `drvReceiveIn` | Input | `Drv.ByteStreamData` | Receives raw NMEA/piNAV bytes from `LinuxUartDriver` |
 | `drvReceiveReturnOut` | Output | `Fw.BufferSend` | Returns ownership of the buffer arriving on `drvReceiveIn` |
@@ -96,13 +96,15 @@ RUN
     not gated by schedIn)
     if Autonomous: reset "time since last Autonomous fix" counter
     if DROP Estimated or Invalid: increment that counter
-  on schedIn tick (RateGroup1, 1 Hz): publish cached fix and classification and telemetry
+  on schedIn tick (RateGroup2, 1 Hz): publish cached fix and classification and telemetry
   on error: log WARNING_HI (throttled), increment consecutive failure count
     if consecutive failures >= MAX_CONSECUTIVE_UART_ERRORS → RESET
   on "time since last Autonomous fix" >= DROP_MAX_AGE_TICKS, but only once at least
   one Autonomous fix has ever been achieved:
     log WARNING_HI, assert /RESET to force an early Cold Start → RESET
 ```
+
+**Error recovery:** `ENABLE` returns to `RESET` on boot banner timeout; `RUN` returns to `RESET` on consecutive UART errors or a forced Cold Start.
 
 **Errors:** UART error in `ENABLE` or `RUN` emits a throttled `WARNING_HI`, bumps `consecutiveFailures`, and enters `RESET`.
 

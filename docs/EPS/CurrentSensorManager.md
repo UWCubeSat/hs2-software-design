@@ -2,9 +2,9 @@
 
 ## 1. Overview
 
-`CurrentSensorManager` is the Layer 2 hardware manager for the INA3221 triple-channel current/voltage monitor on the PDS (Power Distribution System) board. It owns all bus communication with the INA3221 — resetting, verifying, configuring, and reading the device — and both publishes per-rail measurements to `EPSApplication` and emits them as telemetry on each rate group tick.
+`CurrentSensorManager` is the Layer 2 hardware manager for the INA3221 triple-channel current/voltage monitor on the PDS (Power Distribution System) board. It owns all bus communication with the INA3221 (resetting, verifying, configuring, and reading the device) and publishes per-rail measurements to `EPSApplication` and emits them as telemetry on each rate group tick.
 
-The INA3221 monitors three power rails (12 V, 5 V, 3.3 V), reporting bus voltage and current for each. `CurrentSensorManager` has no satellite mode awareness; it runs its startup and read loop unconditionally once initialized, driven entirely by the rate group tick. All bus access goes through the Layer 1 `LinuxI2cDriver` — `CurrentSensorManager` has no direct hardware knowledge beyond register addresses.
+The INA3221 monitors three power rails (12 V, 5 V, 3.3 V), reporting bus voltage and current for each. `CurrentSensorManager` has no satellite mode awareness; it runs its startup and read loop unconditionally once initialized, driven entirely by the rate group tick. All bus access goes through the Layer 1 `LinuxI2cDriver`. `CurrentSensorManager` has no direct hardware knowledge beyond register addresses.
 
 ---
 
@@ -89,6 +89,8 @@ RUN
 ```
 
 **Error self-healing:** any bus error from `CONFIGURE` or `RUN` emits a `WARNING_HI` event and re-enters `RESET`, retrying the full startup sequence on subsequent ticks.
+
+**Error recovery:** any of `WAIT_RESET`, `CONFIGURE`, or `RUN` return directly to `RESET` on a bus error.
 
 Reference: [`INA3221Manager` (FeatherCdh)](https://github.com/UWCubeSat), [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc)
 

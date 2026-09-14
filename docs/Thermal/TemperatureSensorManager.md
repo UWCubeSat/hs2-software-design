@@ -1,66 +1,111 @@
-# TemperatureSensorManager SDD
+# Thermals::TemperatureSensorManager
 
-## 1. Overview
+TemperatureSensorManager is a Layer 2 Queued worker component in the Thermal subtopology. It owns all onboard temperature sensors, sequencing their power-up and configuration through an internal state machine, polling them once per rate-group tick.
 
-`TemperatureSensorManager` is a Layer 2 Queued worker component in the Thermal subtopology. It owns all onboard temperature sensors, managing their initialization and configuration via `LinuxI2cDriver`. On each rate group tick it advances its flat state machine. In `RUN` state it serves synchronous temperature read requests from `ThermalApplication`, returning an array of temperature values and validity flags cached from the most recent I2C reads.
+The component is driven by two synchronous input ports:
 
----
+- `schedIn` (`Svc.Sched`) — a rate-group tick. All state-machine progression and sensor polling happens here.
+- `tempReadIn` (`Thermals.TempRead`, sized `[NUM_TEMPERATURE_SENSORS]`) — lets other components pull the most recently cached readings without waiting on the bus.
 
-## 2. Requirements
 
-| ID | Requirement | Verification |
-|----|-------------|-------------|
-| HS2-TSM-001 | TemperatureSensorManager shall initialize all configured temperature sensors via LinuxI2cDriver during CONFIGURE | Inspection |
-| HS2-TSM-002 | TemperatureSensorManager shall read all sensor values each rate group tick in RUN state and cache the results | Inspection |
-| HS2-TSM-003 | TemperatureSensorManager shall return cached temperature readings and validity flags for all sensors on tempReadIn | Inspection |
-| HS2-TSM-004 | TemperatureSensorManager shall return valid=false for all sensors when not in RUN state | Inspection |
-| HS2-TSM-005 | TemperatureSensorManager shall emit WARNING_HI and self-heal to RESET on any I2C bus error | Inspection |
-| HS2-TSM-006 | TemperatureSensorManager shall emit telemetry for all sensor readings each rate group tick in RUN state | Inspection |
+## Requirements
 
----
+| Name | Description | Validation |
+|---|---|---|
+| TSM-001 | While in `WAIT_RESET`, the component shall wait `WAIT_TICKS` scheduler ticks before signaling `waitSuccess` and advancing to `CONFIGURE`.  | Unit Test |
+| TSM-002 | While in `RUN`, the component shall poll all `NUM_TEMPERATURE_SENSORS` sensors once per `schedIn` tick and publish the results as the `temperature` telemetry channel. | Unit Test |
+| TSM-003 | The component shall serve the last cached readings on `tempReadIn` regardless of state, invalidating all entries (setting each reading's `valid: bool` to `false`) whenever the state machine (re-)enters any state other than `RUN`. | Unit Test |
+| TSM-004 | On any bus error, the component shall log a warning, invalidate all cached readings (setting each reading's `valid: bool` to `false`), and return to `RESET`. | Unit Test |\
+| TSM-005 | While in `CONFIGURE`, the component shall write each sensor's Configuration Register 0 (Automatic Conversion mode) and Configuration Register 1 (Type K, no averaging) over SPI. | Unit Test |
+| TSM-006 | While in `RUN`, the component shall skip that sensor's SPI read on ticks where `DRDY` reports not-ready. | Unit Test |\
+| TSM-07 | `setSensorSkip` with `resetComponent` set shall drive the state machine back to `RESET` (from any of `WAIT_RESET`, `CONFIGURE`, `RUN`) without logging `SMsignalInvalid`, invalidating all cached readings in the process. | Unit Test |
 
-## 3. Design
+## Design
 
-### 3.1 Component Type
+### Ports
 
-Queued component. No dedicated thread. All sync input port handlers execute on the calling thread, guarded by the component mutex.
+| Port | Kind | Direction | Type | Usage |
+|---|---|---|---|---|
+| `schedIn` | sync | input | `Svc.Sched` | Rate-group tick; drives state-machine progression and sensor polling. |
+| `tempReadIn` | sync | input, array `[NUM_TEMPERATURE_SENSORS]` | `Thermals.TempRead` | Returns the last cached `TemperatureReadings` to a caller |
+| `spiWriteRead` | — | output | `Drv.SpiWriteRead` | SPI transaction (address byte + data byte(s)) used to read/write each sensor's registers. |
+| `sensorSelect` | — | output, array `[NUM_SENSOR_SELECT_PINS]` | `Drv.GpioWrite` | Binary-encoded GPIO select lines addressing which sensor is active on the shared SPI bus for the current transaction. |
+| `sensorDRDY` | — | output | `Drv.GpioRead` | Signal from amplifier for whether the selected sensor is safe to read |
 
-### 3.2 Ports
+### State Machine
 
-| Port | Direction | Type | Purpose |
-|------|-----------|------|---------|
-| `schedIn` | Input (sync) | `Svc.Sched` | Rate group tick; drives SM transitions and sensor reads |
-| `tempReadIn` | Input (sync) | `Thermal.TempRead` | Serve temperature read request from `ThermalApplication`; returns cached readings and validity flags; returns all-invalid if not in RUN state |
-| `i2cOut` | Output | `Drv.I2c` | I2C transactions to `LinuxI2cDriver` |
-| `logOut` | Output | `Fw.Log` | Event logging (SM transitions, bus errors) |
-| `tlmOut` | Output | `Fw.Tlm` | Telemetry (per-sensor temperature values, SM state) |
-| `timeGetOut` | Output | `Fw.Time` | Timestamps |
+`tempSenseManagerSM` (`Thermals_TemperatureSensorManagerStateMachine_t`, defined in `TemperatureSensorManagerStateMachine.fpp`) owns the bring-up and fault-recovery sequence. Its current state mirrors the `State` telemetry channel via the `TemperatureSensorManagerState` enum.
 
----
+```mermaid
+stateDiagram-v2
+  state "RESET
+    entry: declare, clear
+  " as RESET
 
-## 4. State Machine
+  state "WAIT_RESET
+    entry: declare
+    tick: wait
+  " as WAIT_RESET
 
-Single flat state machine following the hardware manager pattern.
+  state "CONFIGURE
+    entry: declare, configure
+  " as CONFIGURE
+
+  state "RUN
+    entry: declare
+    tick: read
+  " as RUN
+
+  [*] --> INIT
+  INIT --> RESET: tick
+  RESET --> WAIT_RESET: resetSuccess
+  WAIT_RESET --> CONFIGURE: waitSuccess
+  WAIT_RESET --> RESET: SPIerror
+  WAIT_RESET --> RESET: manualReset
+  CONFIGURE --> RUN: configureSuccess
+  CONFIGURE --> RESET: SPIerror
+  CONFIGURE --> RESET: manualReset
+  RUN --> RESET: SPIerror
+  RUN --> RESET: manualReset
+```
 
 ```
-RESET → WAIT_RESET → ENABLE → CONFIGURE → RUN
-  ↑_____________ error from any state _____|
+INIT
+  on tick → RESET
+
+RESET
+  entry: clear — reset the wait-tick counter to 0, log cleared
+         → WAIT_RESET immediately (clear unconditionally signals resetSuccess - RESET is
+           effectively a one-tick pass-through, not a place that waits for anything itself)
+
+WAIT_RESET
+  on tick: wait — increment the wait-tick counter, telemeter ticksWaited
+             once counter >= WAIT_TICKS → CONFIGURE
+  on SPIerror → RESET
+  on manualReset → RESET
+
+CONFIGURE
+  entry: configure — for each sensor not marked skipped (via setSensorSkip):
+           write Configuration Register 0 (CMODE=1, Automatic Conversion mode) and
+           Configuration Register 1 (TC_TYPE=0011 Type K, AVGSEL=000 no averaging) in one
+           multi-byte SPI transaction
+           on SPI error (any sensor) → log SPIError → RESET immediately, without
+             configuring the remaining sensors
+           on success (all non-skipped sensors) → log configured → RUN
+         a skipped sensor receives no SPI traffic at all
+  on SPIerror → RESET
+  on manualReset → RESET
+
+RUN
+  on tick: read — for each sensor:
+             if marked skipped (via setSensorSkip) → ignored entirely (no select, no SPI)
+             else if a connected sensorDRDY reports not-ready → skip this sensor this tick
+             else → SPI read; update cached reading + per-sensor nominality; publish to
+               the temperature telemetry channel; emit Overheating/Cold/Nominal on a
+               threshold crossing (edge-triggered, not every tick)
+           a sensor skipped for either reason (setSensorSkip or not-ready DRDY) is left out
+           of temperature for that tick - its entry publishes as invalid rather than
+           repeating a stale value
+  on SPIerror → RESET
+  on manualReset → RESET
 ```
-
-| State | Action |
-|-------|--------|
-| `RESET` | Clear cached readings; mark all sensors invalid; reset error counters. Immediately signal → `WAIT_RESET`. |
-| `WAIT_RESET` | Count ticks. After hold period elapses, signal → `ENABLE`. |
-| `ENABLE` | Assert any required power or enable GPIO for the sensor bus. Signal → `CONFIGURE` on success, → `RESET` on failure. |
-| `CONFIGURE` | Write initialization sequence to each sensor over I2C (resolution, conversion rate, one-shot vs. continuous mode). Signal → `RUN` on success, → `RESET` on any I2C error. |
-| `RUN` | Read all sensors over I2C each tick; update cache and validity flags. Serve `tempReadIn` from cache. On I2C error: log `WARNING_HI`, mark all readings invalid, signal → `RESET`. |
-
----
-
-## 5. Notes
-
-- Need to re-check thermocouple amplifier datasheet to determine whether the full 5 states is necessary. We may be able to get away with a somewhat simpler state machine.
-- Sensor count N is a compile-time constant. The `Thermal.TempRead` port carries arrays of length N.
-- `tempReadIn` returns the cache from the most recent tick. `ThermalApplication` always receives the freshest available data without stalling on a live I2C transaction.
-- Excluded from health monitoring.
-- Wired to `RateGroup2` (1 Hz).
