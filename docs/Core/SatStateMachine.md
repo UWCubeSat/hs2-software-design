@@ -150,20 +150,16 @@ DOWNLINK / SCIENCE / CHARGE
 | SunSensor | 1 | 1 | 1 | 1 |
 | Magnetorquer | 1 | 1 | 1 | 1 |
 | StarTracker | 0 | 0 | 1 | 1 |
-
 | Payload |   |   |   |   |
 | GNSS | 0 | 0 | 0 | 1 |
 | LOST Camera | 0 | 0 | 0 | 1 |
-| FOUND Camera | 0| 0 | 0 | 1 |
-
+| FOUND Camera | 0 | 0 | 0 | 1 |
 | Comms |   |   |   |   |
 | Endurosat Radio | Beacon | Beacon | Downlink | Beacon |
-
 | EPS |   |   |   |   |
 | Current Sensors | 1 | 1 | 1 | 1 |
 | Panel Deploy | 1* | 0 | 0 | 0 |
 | Battery | 1 | 1 | 1 | 1 |
-
 | Thermal |   |   |   |   |
 | Temperature Sensors | 1 | 1 | 1 | 1 |
 | Heaters | 0 | 1 | 1 | 1 |
