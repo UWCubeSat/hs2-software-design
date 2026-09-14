@@ -42,7 +42,7 @@ sync input port modeIn: Sat.CommsModePort   # carries Comms.Mode
 Mode enum (owned by this component's module):
 
 ```fpp
-module Comms {
+module Com {
     enum Mode { BEACON, STANDARD_DOWNLINK, STORED_PLAYBACK, NO_DOWNLINK }
 }
 ```
@@ -53,13 +53,17 @@ If the incoming mode matches the current mode, the handler returns immediately (
 
 During this mode, only SOH telemetry shall be transmitted. This mode is intended for the satellite to establish a connection with the ground station, particularly when detumbling or when outside of a communication window. In `BEACON` mode, the satellite shall only transmit a single SOH telemetry packet at 1Hz to ensure minimum power draw.
 
-This mode will set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `SILENCED`. 
+This mode will set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `SILENCED`.
+
+This mode will be commanded by the `SatStateMachine`, but the ground operators can set this through the `SET_DOWNLINK_MODE` command.
 
 #### 3.2.2 `STANDARD_DOWNLINK` mode
 
 During this mode, all real-time telemetry shall be downlinked to the ground station at 1Hz.
 
-This mode will set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `ON_CHANGE_MIN`. 
+This mode will set all packets, except SOH, in the `TlmPacketizer` to have a `RateLogic` of `ON_CHANGE_MIN`.
+
+This mode will be commanded by the `SatStateMachine`, but the ground operators can set this through the `SET_DOWNLINK_MODE` command.
 
 #### 3.2.3 `STORED_PLAYBACK` mode
 
@@ -67,9 +71,13 @@ During this mode, all stored telemetry, which includes payload experiment data, 
 
 This mode will set SOH telemetry in the `TlmPacketizer` to have a `RateLogic` of `EVERY_MAX` to ensure stored telemetry is given priority. The `Svc::DpCatalog` component can be used to downlink generated data products (such as images and stored telemetry) that exist within a specified set of directories.
 
+This mode will be commanded by the ground operators through the `SET_DOWNLINK_MODE` command.
+
 #### 3.2.4 `NO_DOWNLINK` mode
 
 During this mode, nothing will be transmitted from the satellite. Refer to requirement `UNP12-91` within the RVM.
+
+This mode will be commanded by the ground operators through the `SET_DOWNLINK_MODE` command.
 
 ### 3.3 Ports
 
@@ -99,6 +107,13 @@ The following events will be emitted by the `ComApplication`:
 |------------|----------------|-------------|
 | DownlinkModeUpdateCmd | COMMAND | Emitted when ground issues a command to `ComApplication` to update downlink mode |
 | DownlinkModeSatStateUpdate | ACTIVITY_HI | Emitted when `SatStateMachine` updates the link mode through the `modeIn` input port |
+
+---
+
+## 3.6 Commands
+| Command Name | Parameters | Description | Postcondition |
+|--------------|------------|-------------|--------------------|
+| SET_DOWNLINK_MODE | downlink_mode: `Com.Mode` | Sets the current downlink mode to `downlink_mode` | `ComApplication.downlink_mode` will be changed to `downlink_mode` and `TlmPacketizer` will have telemetry section rates updated as per `ComApplication 3.2` |
 
 ## 4. State Machine
 
