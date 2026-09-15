@@ -1,6 +1,6 @@
-# MpptManager SDD
+### MpptManager
 
-## 1. Overview
+#### 1. Overview {.unnumbered .unlisted}
 
 `MpptManager` is the Layer 2 Queued hardware manager responsible for all communication with the BQ25756 MPPT and battery charging IC. No other component reads or writes the BQ25756 directly.
 
@@ -10,7 +10,7 @@ On each rate group tick in `RUN` state, `MpptManager` reads all relevant measure
 
 ---
 
-## 2. Requirements
+#### 2. Requirements {.unnumbered .unlisted}
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
@@ -22,13 +22,13 @@ On each rate group tick in `RUN` state, `MpptManager` reads all relevant measure
 
 ---
 
-## 3. Design
+#### 3. Design {.unnumbered .unlisted}
 
-### 3.1 Component Type
+##### 3.1 Component Type {.unnumbered .unlisted}
 
 Queued component with internal flat F' state machine (`Fw::Sm`).
 
-### 3.2 Ports
+##### 3.2 Ports {.unnumbered .unlisted}
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
@@ -41,22 +41,22 @@ Queued component with internal flat F' state machine (`Fw::Sm`).
 | `logOut` | Output | `Fw.Log` | Event logging |
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry (vbatt, ibatt, vac, iac, charging status) |
 
-### 3.3 Commands
+##### 3.3 Commands {.unnumbered .unlisted}
 
 Each command names its target register through a width-specific enum (`BQ25756Reg8` or `BQ25756Reg16`), so ground can only address a register of the matching width.
 
 | Mnemonic | Args | Description |
 |----------|------|-------------|
-| `MPPT_WRITE_REG8` | `regAddr: BQ25756Reg8`, `value: U8` | Write to an 8-bit register |
-| `MPPT_SET_REG8` | `regAddr: BQ25756Reg8`, `mask: U8` | Read-modify-write: `reg \|= mask` |
-| `MPPT_CLEAR_REG8` | `regAddr: BQ25756Reg8`, `mask: U8` | Read-modify-write: `reg &= ~mask` |
-| `MPPT_WRITE_REG16` | `regAddr: BQ25756Reg16`, `value: U16` | Write to a 16-bit register |
-| `MPPT_SET_REG16` | `regAddr: BQ25756Reg16`, `mask: U16` | Read-modify-write: `reg \|= mask` |
-| `MPPT_CLEAR_REG16` | `regAddr: BQ25756Reg16`, `mask: U16` | Read-modify-write: `reg &= ~mask` |
+| `MPPT_WRITE_REG8` | regAddr (BQ25756Reg8), value (U8) | Write to an 8-bit register |
+| `MPPT_SET_REG8` | regAddr (BQ25756Reg8), mask (U8) | Read-modify-write: register OR mask |
+| `MPPT_CLEAR_REG8` | regAddr (BQ25756Reg8), mask (U8) | Read-modify-write: register AND NOT mask |
+| `MPPT_WRITE_REG16` | regAddr (BQ25756Reg16), value (U16) | Write to a 16-bit register |
+| `MPPT_SET_REG16` | regAddr (BQ25756Reg16), mask (U16) | Read-modify-write: register OR mask |
+| `MPPT_CLEAR_REG16` | regAddr (BQ25756Reg16), mask (U16) | Read-modify-write: register AND NOT mask |
 
 On success each command emits an activity event carrying the operation, register, and the byte/halfword actually written (the post-modify value for set/clear). On I2C failure it emits a `WARNING_HI` write-error event and returns an `EXECUTION_ERROR` command response.
 
-### 3.4 Telemetry
+##### 3.4 Telemetry {.unnumbered .unlisted}
 
 | Channel | Type | Description |
 |---------|------|-------------|
@@ -64,11 +64,11 @@ On success each command emits an activity event carrying the operation, register
 | `IBATT_RAW` | `U16` | Battery current raw ADC (scaling TBD) |
 | `VAC_MV` | `U32` | Input voltage in mV (VAC_ADC × 2) |
 | `IAC_RAW` | `U16` | Input current raw ADC (scaling TBD) |
-| `CHARGING_STATE` | `BQ25756EChargingState` | Charging state from CHARGER_STATUS_1 bits [2:0] |
+| `CHARGING_STATE` | `BQ25756EChargingState` | Charging state from CHARGER_STATUS_1 bits 2:0 |
 
 ---
 
-## 4. State Machine
+#### 4. State Machine {.unnumbered .unlisted}
 
 `MpptManager` uses a flat four-state F' state machine: `RESET → WAIT_RESET → CONFIGURE → RUN`. The BQ25756 has no enable step (it does Max Power Point Tracking by default upon being turned on), so the standard `ENABLE` state is omitted.
 
@@ -111,7 +111,7 @@ Reference: [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/
 
 ---
 
-## 5. Notes
+#### 5. Notes {.unnumbered .unlisted}
 
 - `batteryStateOut` port type is a custom struct carrying all BQ25756 measurement and status data plus the charger/fault flags. Consider splitting into a measurements port and a flags port if the struct becomes unwieldy; see `EPSApplication` notes for the matching `batteryStateIn` discussion.
 - `MpptManager` owns and publishes the periodic measurement telemetry (`VBATT_MV`, `IBATT_RAW`, `VAC_MV`, `IAC_RAW`, `CHARGING_STATE`). It still forwards the same values to `EPSApplication` on `batteryStateOut`; `EPSApplication` consumes them for `powerState` and may use them for more complex logic in the future.

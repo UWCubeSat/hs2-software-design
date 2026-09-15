@@ -23,3 +23,9 @@ flowchart TB
 ```
 
 The level names describe software abstraction, not task priority or physical placement. F' services used by the applications are documented individually in the Level 3 section; they remain reusable framework components rather than mission-specific hardware managers.
+
+## Software Topology
+
+The top-level software integration diagram below complements the abstraction-layer diagram above. It shows the major application boundaries, shared system services, fatal-event path, command and telemetry services, and the connections between software layers. Individual component pages define the detailed ports and behavior.
+
+![High-level software topology showing the satellite state machine, system services, subsystem applications, hardware managers, drivers, and hardware.](images/HighLevel.png){#fig-high-level-software-topology width=100%}

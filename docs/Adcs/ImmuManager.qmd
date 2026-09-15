@@ -1,8 +1,8 @@
-# ImmuManager
+### ImmuManager
 
 ImmuManager is a Layer 2 Queued worker component in the ADCS subtopology. It owns the VN-100 IMU/AHRS sensor, bringing it up over a serial link through an internal state machine and serving cached accel/gyro/magnetometer/temperature readings to the rest of ADCS.
 
-## Introduction
+#### Introduction {.unnumbered .unlisted}
 
 The component is driven by two asynchronous input ports:
 
@@ -11,7 +11,7 @@ The component is driven by two asynchronous input ports:
 
 The sensor itself is a VectorNav VN-100, accessed through the vendor `VN::Sensor` C++ SDK over a serial (RS-232/UART) connection. Rather than calling `VN::Sensor` directly, ImmuManager talks to an `IImmuSensor` interface: `VnSensorAdapter` is the production implementation (it owns the real `VN::Sensor` plus its 64 KiB main / 2 KiB FB byte buffers and forwards each call), while unit tests inject a gmock `IImmuSensor` through the test-only constructor. `configureDataRequest` asks the owning application for the connection parameters to use.
 
-## Requirements
+#### Requirements {.unnumbered .unlisted}
 
 | Name | Description | Validation |
 |---|---|---|
@@ -23,9 +23,9 @@ The sensor itself is a VectorNav VN-100, accessed through the vendor `VN::Sensor
 | IMU-006 | The component shall forward `magnetorquerEnabled` requests to the sensor. | Unit Test |
 | IMU-008 | On any VN-100 register read/write or connect failure, the component shall log `immuError` with the SDK error code and drive the state machine back to `RESET` via `error`. | Unit Test |
 
-## Design
+#### Design {.unnumbered .unlisted}
 
-### Ports
+##### Ports {.unnumbered .unlisted}
 
 | Port | Kind | Direction | Type | Usage |
 |---|---|---|---|---|
@@ -33,10 +33,10 @@ The sensor itself is a VectorNav VN-100, accessed through the vendor `VN::Sensor
 | `Reset` | async | input | `Fw.Signal` | Zeroes `tickCount` and sends `manualReset` to the state machine. |
 | `getIMUData` | sync | input | `imuDataRead_p` → `Adcs.RawIMUData` | Returns cached accel, gyro, and temperature with the accel/gyro measurement timestamp. |
 | `getMagnetometer` | sync | input | `bDataRead_p` → `Adcs.RawBData` | Returns cached magnetic field with its measurement timestamp. |
-| `magnetorquerEnabled` | sync | input | `mtToggle_p` (`is_locked: bool`) | Latches `magnetometerLocked` and forwards `Present` / `NotPresent` to the sensor's `knownMagneticDisturbance`. |
+| `magnetorquerEnabled` | sync | input | `mtToggle_p` with is_locked boolean | Latches `magnetometerLocked` and forwards `Present` / `NotPresent` to the sensor's `knownMagneticDisturbance`. |
 | `configureDataRequest` | — | output | `immuConfigurationParameters_p` → `Adcs.ConfigureParameters` | Asks the owning application for port name, data rates, and startup wait time; called once per `CONFIGURE` entry. |
 
-### State Machine
+##### State Machine {.unnumbered .unlisted}
 
 `immuStateMachine` (`Adcs_IMMUStateMachine_t`, defined in `IMMUStateMachine.fpp`) owns bring-up and fault recovery. Its telemetered state is the `Adcs.ImmuState` enum, mirrored into the `SMstate` member by the `declare` action.
 
@@ -80,7 +80,7 @@ stateDiagram-v2
 | `ACTIVE` | Steady state: reads the IMU register every tick, downsampling the cached values to the configured per-signal rates. | `declare` | `read` |
 
 
-### Configuration parameters
+##### Configuration parameters {.unnumbered .unlisted}
 
 These are not F´ parameters — they arrive at runtime from the owning application as an `Adcs.ConfigureParameters` struct returned by `configureDataRequest`, and are cached in the `config` member on each `CONFIGURE` entry.
 

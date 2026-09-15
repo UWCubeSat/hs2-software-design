@@ -1,6 +1,6 @@
-# SlewRateAlgorithm
+### SlewRateAlgorithm
 
-## 1. Overview
+#### 1. Overview {.unnumbered .unlisted}
 
 `SlewRateAlgorithm` is a Layer 2.5 **Passive** component within the ADCS subtopology. Given the estimated attitude quaternion, angular rate, target quaternion, and slew rate limit, it computes a slew-rate-limited magnetic moment vector — either capping the commanded rotation to the slew limit or passing the full `QuaternionPdAlgorithm` output through when the commanded rate is already within bounds.
 
@@ -8,7 +8,7 @@
 
 ***
 
-## 2. Requirements
+#### 2. Requirements {.unnumbered .unlisted}
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
@@ -17,29 +17,29 @@
 
 ***
 
-## 3. Design
+#### 3. Design {.unnumbered .unlisted}
 
-### 3.1 Component Type
+##### 3.1 Component Type {.unnumbered .unlisted}
 
 Passive component. No thread, no queue, no internal state. Called synchronously by `AdcsApplication`.
 
-### 3.2 Parameters
+##### 3.2 Parameters {.unnumbered .unlisted}
 
 None.
 
-### 3.3 Ports
+##### 3.3 Ports {.unnumbered .unlisted}
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
 | `computeIn` | Input (sync) | `Adcs.SlewRateInputPort` | Takes estimated attitude quaternion, angular rate, target quaternion, and slew rate limit; returns slew-rate-limited magnetic moment vector |
 
-### 3.4 Commands
+##### 3.4 Commands {.unnumbered .unlisted}
 
 None.
 
 ***
 
-## 4. Notes
+#### 4. Notes {.unnumbered .unlisted}
 
 - No telemetry, no logging, no health monitoring. Pure stateless computation.
 - Called by `AdcsApplication` before `QuaternionPdAlgorithm` in all pointing modes.

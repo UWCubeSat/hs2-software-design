@@ -1,6 +1,6 @@
-# BDotAlgorithm
+### BDotAlgorithm
 
-## 1. Overview
+#### 1. Overview {.unnumbered .unlisted}
 
 `BDotAlgorithm` is a Layer 2.5 **Passive** component within the ADCS subtopology. It implements the B-dot detumble algorithm: given the current B-field measurement, the previous B-field measurement, and the current angular rate vector (all retrieved from `AttitudeFilter` by `AdcsApplication`), it computes a magnetic moment vector to reduce the spacecraft's angular momentum via magnetorquer actuation.
 
@@ -8,7 +8,7 @@
 
 ***
 
-## 2. Requirements
+#### 2. Requirements {.unnumbered .unlisted}
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
@@ -17,29 +17,29 @@
 
 ***
 
-## 3. Design
+#### 3. Design {.unnumbered .unlisted}
 
-### 3.1 Component Type
+##### 3.1 Component Type {.unnumbered .unlisted}
 
 Passive component. No thread, no queue, no internal state. Called synchronously by `AdcsApplication`.
 
-### 3.2 Parameters
+##### 3.2 Parameters {.unnumbered .unlisted}
 
 None.
 
-### 3.3 Ports
+##### 3.3 Ports {.unnumbered .unlisted}
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
 | `computeIn` | Input (sync) | `Adcs.BDotInputPort` | Takes current B-field, previous B-field, and angular rate; returns magnetic moment vector |
 
-### 3.4 Commands
+##### 3.4 Commands {.unnumbered .unlisted}
 
 None.
 
 ***
 
-## 4. Notes
+#### 4. Notes {.unnumbered .unlisted}
 
 - No telemetry, no logging, no health monitoring. Pure stateless computation.
 - Called by `AdcsApplication` in `DETUMBLE/RUNNING` on each tick after querying `AttitudeFilter` for the required inputs.

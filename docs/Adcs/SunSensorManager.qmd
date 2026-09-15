@@ -1,6 +1,6 @@
-# SunSensorManager SDD
+### SunSensorManager
 
-## 1. Overview
+#### 1. Overview {.unnumbered .unlisted}
 
 `SunSensorManager` is the Layer 2 hardware manager for the sun sensor array within the ADCS subtopology. It owns all bus communication with the sun sensors, confirming the ADC is alive and reading and calibrating each sensor channel, and publishes the calibrated intensities to `AdcsApplication` each rate-group tick.
 
@@ -10,7 +10,7 @@ The HS2 sun sensor array consists of six photodiode sensors mounted on the solar
 
 ---
 
-## 2. Requirements
+#### 2. Requirements {.unnumbered .unlisted}
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
@@ -32,13 +32,13 @@ The HS2 sun sensor array consists of six photodiode sensors mounted on the solar
 
 ---
 
-## 3. Design
+#### 3. Design {.unnumbered .unlisted}
 
-### 3.1 Component Type
+##### 3.1 Component Type {.unnumbered .unlisted}
 
 Queued component with internal flat F' state machine (`Fw::Sm`). Has a message queue but no dedicated thread; it executes on the `RateGroup1` caller thread each 10 Hz tick.
 
-### 3.2 Parameters
+##### 3.2 Parameters {.unnumbered .unlisted}
 
 `SunSensorManager` is not satellite-mode-aware and receives no mode commands. Configuration is entirely parameter-driven. Parameters are loaded from `Svc::PrmDb` during the `WAIT_RESET`-to-`RUN` transition. A parameter update at runtime reloads all parameters from `PrmDb` in place while remaining in `RUN`.
 
@@ -49,7 +49,7 @@ Queued component with internal flat F' state machine (`Fw::Sm`). Has a message q
 | `RESET_WAIT_TICKS` | `U32` | Number of rate-group ticks to wait after reset before proceeding |
 
 
-### 3.3 Ports
+##### 3.3 Ports {.unnumbered .unlisted}
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
@@ -63,13 +63,13 @@ Queued component with internal flat F' state machine (`Fw::Sm`). Has a message q
 | `logOut` | Output | `Fw.Log` | Event logging (state transitions, errors) |
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry (SM state, consecutive failure count, raw and calibrated channel intensities) |
 
-### 3.4 Commands
+##### 3.4 Commands {.unnumbered .unlisted}
 
 `SunSensorManager` accepts no ground commands. It is not health-monitored. All recovery is handled autonomously by the self-healing SM or escalated via telemetry to `AdcsApplication`.
 
 ---
 
-## 4. State Machine
+#### 4. State Machine {.unnumbered .unlisted}
 
 `SunSensorManager` uses a single flat F' state machine following the `fprime-community/fprime-sensors` `ImuManager` reference pattern. All states are peers; there is no nesting.
 
@@ -130,7 +130,7 @@ Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fpr
 
 ---
 
-## 5. Notes
+#### 5. Notes {.unnumbered .unlisted}
 
 - `SunSensorManager` is instantiated inside the ADCS subtopology. Its `spiWriteRead` port connects to a `LinuxSpiDriver` instance and its `csOut` port connects to a `LinuxGpioDriver` instance, both at the top-level topology.
 - `sunIntensitiesOut` connects to `AttitudeFilter` within the ADCS subtopology, not to `AdcsApplication` directly. `AdcsApplication` reads the fused result back out via its `filter*Get` ports.

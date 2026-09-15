@@ -1,4 +1,4 @@
-# OSAL
+# Operating-System Abstraction Layer (OSAL)
 
 ## F' OSAL and Linux on the BeagleBone Black
 

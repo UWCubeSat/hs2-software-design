@@ -9,8 +9,21 @@ book:
     - index.qmd
     - docs/Reference/Introduction/ArchitectureOverview.qmd
     - docs/Reference/Introduction/SubtopologyDecomposition.qmd
-    - docs/Reference/Introduction/SoftwareTopology.qmd
     - docs/Reference/Introduction/FprimeContext.md
+
+    - part: "Level 4 - System Services and Control Layer"
+      chapters:
+        - docs/Core/SatStateMachine.qmd
+        - docs/Reference/Fprime/ProvidedSystemServices.md
+        - docs/Reference/Fprime/FatalHandler.qmd
+
+    - part: "Level 3 - Application Layer"
+      chapters:
+        - docs/Reference/Layer3/ApplicationLayer.qmd
+
+    - part: "Level 2 - Hardware Managers"
+      chapters:
+        - docs/Reference/Layer2/HardwareManagers.qmd
 
     - part: "Level 1 - Drivers"
       chapters:
@@ -21,50 +34,13 @@ book:
         - docs/Reference/Drivers/LinuxSpiDriver.md
         - docs/Reference/Drivers/LinuxGpioDriver.md
 
-    - part: "Level 2 - Hardware Managers"
-      chapters:
-        - docs/Reference/Layer2/Adcs.md
-        - docs/Adcs/ImmuManager.qmd
-        - docs/Adcs/SunSensorManager.qmd
-        - docs/Adcs/MagnetorquerManager.qmd
-        - docs/Reference/Layer2/Communications.md
-        - docs/Comms/TmtcRadioManager.md
-        - docs/Reference/Layer2/Payload.md
-        - docs/DataCollection/GnssManager.qmd
-        - docs/Reference/Layer2/Eps.md
-        - docs/EPS/CurrentSensorManager.qmd
-        - docs/EPS/DeployPanelsManager.md
-        - docs/EPS/MpptManager.qmd
-        - docs/EPS/WatchdogPinger.md
-        - docs/Reference/Layer2/Thermal.md
-        - docs/Thermal/HeaterManager.qmd
-        - docs/Thermal/TemperatureSensorManager.qmd
-
-    - part: "Level 3 - Application Layer"
-      chapters:
-        - docs/Reference/Fprime/ProvidedApplicationServices.md
-        - docs/Adcs/AdcsApplication.qmd
-        - docs/DataCollection/DataCollectionApplication.qmd
-        - docs/Comms/ComApplication.qmd
-        - docs/EPS/EPSApplication.qmd
-        - docs/ScienceInference/ScienceInferenceApplication.qmd
-        - docs/Thermal/ThermalApplication.qmd
-        - docs/Adcs/AttitudeFilter.md
-        - docs/Adcs/BDotAlgorithm.md
-        - docs/Adcs/QuaternionPdAlgorithm.md
-        - docs/Adcs/SlewRateAlgorithm.md
-
-    - part: "Level 4 - System Services and Control Layer"
-      chapters:
-        - docs/Core/SatStateMachine.qmd
-        - docs/Reference/Fprime/ProvidedSystemServices.md
-        - docs/Reference/Fprime/FatalHandler.qmd
-
     - part: "Appendix"
       chapters:
         - docs/Reference/Introduction/HardwarePlatformInventory.md
         - docs/Reference/Introduction/RadiationToleranceAndStorage.qmd
         - docs/Reference/Introduction/VerificationAndTestPlan.md
+        - docs/Reference/Introduction/SoftwareDevelopmentProcess.md
+        - docs/Reference/Introduction/Acronyms.md
 
     - docs/Reference/References.md
 
@@ -78,7 +54,7 @@ format:
     toc: true
     toc-title: "Table of Contents"
     toc-depth: 3
-    number-sections: false
+    number-sections: true
     mermaid-format: png
     papersize: letter
     fontsize: 10pt

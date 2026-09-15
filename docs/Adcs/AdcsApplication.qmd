@@ -1,12 +1,12 @@
-# AdcsApplication SDD
+### AdcsApplication
 
-## 1. Overview
+#### 1. Overview {.unnumbered .unlisted}
 
 `AdcsApplication` is the Layer 3 Active component for the ADCS subsystem. It owns the attitude control loop and switches operating mode on command from `SatStateMachine`. It dispatches sensor requests and actuator commands to Layer 2 hardware managers (`IMMUManager`, `SunSensorManager`, `MagnetorquerManager`) and consumes attitude from `StarTrackerManager` and timing from `GnssManager` (both top-level).
 
 ---
 
-## 2. Requirements
+#### 2. Requirements {.unnumbered .unlisted}
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
@@ -20,13 +20,13 @@
 
 ---
 
-## 3. Design
+#### 3. Design {.unnumbered .unlisted}
 
-### 3.1 Component Type
+##### 3.1 Component Type {.unnumbered .unlisted}
 
 Active component with internal hierarchical F' state machine (`Fw::Sm`).
 
-### 3.2 Mode Interface
+##### 3.2 Mode Interface {.unnumbered .unlisted}
 
 `AdcsApplication` receives its operating mode from `SatStateMachine` via a typed port:
 
@@ -44,7 +44,7 @@ module Adcs {
 
 If the incoming mode matches the current mode, the handler returns immediately (idempotent).
 
-### 3.3 Ports
+##### 3.3 Ports {.unnumbered .unlisted}
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
@@ -52,8 +52,8 @@ If the incoming mode matches the current mode, the handler returns immediately (
 | `schedIn` | Input | `Svc.Sched` | Rate group tick (10 Hz) |
 | `imuConfigureGet` | Input (sync) | `immuConfigurationParameters_p` → `Adcs.ConfigureParameters` | Answers IMMUManager's `configureDataRequest` |
 | `sunSensorControl` | Output | `Adcs.ManagerControlPort` | ON/OFF command to SunSensorManager |
-| `magnetorquerLock` | Output | `mtToggle_p` (`is_locked: bool`) | Lock/unlock command to MagnetorquerManager |
-| `imuDisturbanceOut` | Output | `mtToggle_p` (`is_locked: bool`) | Magnetic disturbance flag to IMMUManager; asserted/cleared together with `magnetorquerLock` |
+| `magnetorquerLock` | Output | `mtToggle_p` with is_locked boolean | Lock/unlock command to MagnetorquerManager |
+| `imuDisturbanceOut` | Output | `mtToggle_p` with is_locked boolean | Magnetic disturbance flag to IMMUManager; asserted/cleared together with `magnetorquerLock` |
 | `filterAttitudeGet` | Output | `Adcs.AttitudePort` | Query AttitudeFilter for estimated attitude quaternion |
 | `filterAngularRateGet` | Output | `Adcs.AngularRatePort` | Query AttitudeFilter for estimated angular rate |
 | `filterBFieldGet` | Output | `Adcs.BFieldPort` | Query AttitudeFilter for previous B-field measurement |
@@ -69,7 +69,7 @@ If the incoming mode matches the current mode, the handler returns immediately (
 | `logOut` | Output | `Fw.Log` | Event logging |
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry (attitude estimate, mode, error state) |
 
-### 3.4 Commands
+##### 3.4 Commands {.unnumbered .unlisted}
 
 | Mnemonic | Args | Description |
 |----------|------|-------------|
@@ -77,7 +77,7 @@ If the incoming mode matches the current mode, the handler returns immediately (
 
 ---
 
-## 4. State Machine
+#### 4. State Machine {.unnumbered .unlisted}
 
 `AdcsApplication` uses a hierarchical F' state machine. Mode is the top-level state; operational substates are nested inside each mode. A single `switchMode: Adcs.Mode` signal defined at the top level is inherited by all leaf states, making mode switches valid from any nested substate.
 
@@ -144,7 +144,7 @@ Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/doc
 
 ---
 
-## 5. Notes
+#### 5. Notes {.unnumbered .unlisted}
 
 **Subtopology wiring - sensor inputs:**
 

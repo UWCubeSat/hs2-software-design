@@ -1,4 +1,4 @@
-# ADCS Hardware Managers
+## ADCS Hardware Managers
 
 The ADCS hardware-manager layer owns sensor and actuator protocols for attitude determination and control. Each manager follows the shared initialization and recovery pattern while `AdcsApplication` selects mission behavior and control targets.
 

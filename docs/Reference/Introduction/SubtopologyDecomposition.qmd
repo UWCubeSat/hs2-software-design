@@ -1,115 +1,90 @@
 # Subtopology Decomposition
 
-Each subsystem is assembled as an F' subtopology containing its application, hardware managers, and driver connections. The diagrams below are the current high-level topology views. Detailed FPP instances, ports, and connections remain subject to the corresponding subsystem designs.
+Each subsystem is assembled as an F' subtopology containing its application, hardware managers, and driver connections. The sections below describe each application or top-level service area independently. Detailed FPP instances, ports, and connections remain subject to the corresponding component designs.
 
-## Sensing and Science Subtopologies
-
-```{mermaid}
-flowchart TB
-    subgraph ADCS["ADCS Subtopology"]
-        direction TB
-        AdcsApp["AdcsApplication"]
-        Immu["ImmuManager"]
-        SunSensor["SunSensorManager"]
-        Mtq["MagnetorquerManager"]
-        AdcsApp --> Immu
-        AdcsApp --> SunSensor
-        AdcsApp --> Mtq
-    end
-
-    subgraph DC["DataCollection Subtopology"]
-        direction TB
-        DCApp["DataCollectionApplication"]
-        Cam1["LOST camera manager"]
-        Cam2["FOUND camera manager"]
-        DCApp --> Cam1
-        DCApp --> Cam2
-    end
-
-    subgraph SI["Science Inference"]
-        direction TB
-        SIApp["ScienceInferenceApplication"]
-    end
-
-    ADCS ~~~ DC
-    DC ~~~ SI
-```
-
-The two camera managers are the software owners for the USB-connected LOST and FOUND cameras. SCOPE uses both cameras during calibration experiments.
-
-## Power and Communications Subtopologies
+## ADCS Subtopology
 
 ```{mermaid}
 flowchart TB
-    subgraph COMMS["Comms Subtopology"]
-        direction TB
-        CommsApp["ComApplication"]
-        TRM["TmtcRadioManager"]
-        CommsApp --> TRM
-    end
-
-    subgraph EPSSUB["EPS Subtopology"]
-        direction TB
-        EPSApp["EPSApplication"]
-        Mppt["MpptManager"]
-        Curr["CurrentSensorManager"]
-        Watchdog["WatchdogPinger"]
-        Deploy["DeployPanelsManager"]
-        Mppt --> EPSApp
-        Curr --> EPSApp
-        EPSApp --> Deploy
-    end
-
-    subgraph THERM["Thermal Subtopology"]
-        direction TB
-        ThermApp["ThermalApplication"]
-        TempSensor["TemperatureSensorManager"]
-        Heater["HeaterManager"]
-        ThermApp --> TempSensor
-        ThermApp --> Heater
-    end
-
-    COMMS ~~~ EPSSUB
-    EPSSUB ~~~ THERM
+    AdcsApp["AdcsApplication"]
+    Immu["ImmuManager"]
+    SunSensor["SunSensorManager"]
+    Mtq["MagnetorquerManager"]
+    AdcsApp --> Immu
+    AdcsApp --> SunSensor
+    AdcsApp --> Mtq
 ```
 
-`WatchdogPinger` is scheduled by the EPS rate-group path and directly services the EPS hardware watchdog. The radio manager is shared with the communications framing services at the top-level topology.
+The ADCS subtopology contains the application-level attitude-control logic and the hardware managers for the IMU, sun sensors, and magnetorquers. The application coordinates these managers and exposes the subsystem's control and telemetry interfaces to the rest of the flight software.
 
-## Shared Infrastructure and Framework Services
+## Data Collection Subtopology
+
+![Data Collection subtopology](images/DataCollection.png){width=0.8\linewidth}
+
+The Data Collection subtopology owns the camera and GNSS data paths. The Camera Manager controls the two USB-connected cameras, LOST and FOUND, while `GnssManager` provides position data to the application and the position filter. The application also coordinates image capture, experiment execution, health monitoring, and interactions with ADCS and the top-level command and scheduling services.
+
+## Science Inference Subtopology
 
 ```{mermaid}
 flowchart TB
-    subgraph SYS["Level 4 - Shared System Services"]
-        direction TB
-        Cmd["Svc::CmdDispatcher"]
-        Events["Svc::EventManager"]
-        Health["Svc::Health"]
-        Fatal["Svc::FatalHandler"]
-        Cmd --> Events
-        Events --> Fatal
-    end
-
-    subgraph CCSDS["ComCcsds (F' provided)"]
-        direction TB
-        ComQueue["Svc::ComQueue and framing chain"]
-    end
-
-    subgraph FH["FileHandling (F' provided)"]
-        direction TB
-        FileIO["Svc::FileUplink / Svc::FileDownlink / Svc::FileManager"]
-    end
-
-    subgraph DP["DataProducts (F' provided)"]
-        direction TB
-        Dp["Svc::DpManager / Svc::DpWriter / Svc::DpCatalog"]
-    end
-
-    SYS ~~~ CCSDS
-    CCSDS ~~~ FH
-    FH ~~~ DP
+    ScienceApp["ScienceApplication"]
+    Lost["LOST image data"]
+    Found["FOUND image data"]
+    ScienceApp --> Lost
+    ScienceApp --> Found
 ```
 
-These are framework services and reusable subtopology groupings, not additional mission-specific hardware-manager layers. Their individual component responsibilities are documented in the Level 3 and Level 4 sections according to whether they are application-facing data-path services or deployment-wide services.
+`ScienceApplication` runs the science and optical-navigation processing chain. It consumes image and experiment data produced by the Data Collection subtopology and coordinates the external science libraries described in its component design.
+
+## Communications Subtopology
+
+```{mermaid}
+flowchart TB
+    CommsApp["ComApplication"]
+    Radio["TmtcRadioManager"]
+    CommsApp --> Radio
+```
+
+The Communications subtopology contains `ComApplication` and `TmtcRadioManager`. The application selects the communications mode, while the radio manager owns the hardware-facing transmit and receive path. Shared F' framing, packet, event, telemetry, and file services connect to this subtopology at the top-level topology.
+
+## EPS Subtopology
+
+```{mermaid}
+flowchart TB
+    EPSApp["EPSApplication"]
+    Mppt["MpptManager"]
+    Current["CurrentSensorManager"]
+    Watchdog["WatchdogPinger"]
+    Deploy["DeployPanelsManager"]
+    Mppt --> EPSApp
+    Current --> EPSApp
+    Watchdog --> EPSApp
+    EPSApp --> Deploy
+```
+
+The EPS subtopology contains power-generation, current-sensing, deployment, and watchdog components. `EPSApplication` coordinates the subsystem, while the hardware managers own their respective device protocols and recovery behavior.
+
+## Thermal Subtopology
+
+![Thermal subtopology](images/Thermals.png){width=0.8\linewidth}
+
+The Thermal subtopology contains `ThermalApplication`, `HeaterManager`, and `TemperatureSensorManager`. The application evaluates temperature and power conditions, commands heater operation, and coordinates the sensor readout path through the SPI, GPIO, multiplexer, and amplifier interfaces shown in the diagram.
+
+## Top-Level Shared Infrastructure
+
+```{mermaid}
+flowchart TB
+    Cmd["Svc::CmdDispatcher"]
+    Events["Svc::EventManager"]
+    Health["Svc::Health"]
+    Fatal["Svc::FatalHandler"]
+    Rate["Svc::ActiveRateGroup"]
+    Cmd --> Events
+    Events --> Fatal
+    Rate --> Health
+```
+
+These deployment-wide services provide command dispatch, event reporting, health monitoring, fatal-event handling, and rate-group scheduling for the subsystem applications and hardware managers. F' communications, file-handling, and data-product services are connected alongside these services in the top-level topology.
 
 ## Satellite-Mode Command Fan-Out
 
@@ -120,7 +95,7 @@ flowchart TB
         direction TB
         AdcsApp["AdcsApplication"]
         DCApp["DataCollectionApplication"]
-        SIApp["ScienceInferenceApplication"]
+        SIApp["ScienceApplication"]
         CommsApp["ComApplication"]
         ThermApp["ThermalApplication"]
         AdcsApp ~~~ DCApp

@@ -1,4 +1,4 @@
-# ThermalApplication
+### ThermalApplication
 
 ThermalApplication is the Layer 3 active component for the Thermal subtopology. On a 1 Hz rate-group
 tick, it reads all onboard temperature sensors (via `TemperatureSensorManager`), runs a PID control
@@ -11,12 +11,12 @@ The component is driven by two synchronous input ports:
 - `modeIn` (`Sat.ThermalModePort`, carrying `Thermals.Mode`) — mode commands from `SatStateMachine`. 
 
 
-## Requirements
+#### Requirements {.unnumbered .unlisted}
 
 | ID | Requirement | Verification |
 |---|---|---|
 | HS2-THA-001 | ThermalApplication shall hold the commanded heater duty cycle at 0% while in `NO_HEATING`, regardless of any active `SET_HEATER_OVERRIDE` | Unit test |
-| HS2-THA-002 | While in `ACTIVE_HEATING`, ThermalApplication shall run a PID control loop each tick (error = `SetpointC` minus the average of all valid sensor readings; duty = `Kp`*error + `Ki`*accumulated error + `Kd`*(error - previous error)) and command the result, clamped to `[0, 100]`%, to `HeaterManager` | Unit test |
+| HS2-THA-002 | While in `ACTIVE_HEATING`, ThermalApplication shall run a PID control loop each tick (error = `SetpointC` minus the average of all valid sensor readings; duty = `Kp`*error + `Ki`*accumulated error + `Kd`*(error - previous error)) and command the result, clamped to the 0-100 percent range, to `HeaterManager` | Unit test |
 | HS2-THA-003 | On any invalid sensor reading, ThermalApplication shall log `SensorInvalid` for that sensor. If fewer than `MIN_VALID_SENSORS` readings remain valid, it shall additionally log `InsufficientValidSensors`, reset the PID integrator and derivative history, and command 0% duty (subject to override) for that tick. | Unit test |
 | HS2-THA-004 | ThermalApplication shall publish every sensor's raw reading and validity flag to the `TempC` telemetry channel each `ACTIVE_HEATING` tick | Unit test |
 | HS2-THA-005 | ThermalApplication shall accept `SET_HEATER_OVERRIDE` to force a fixed, clamped duty cycle regardless of PID output or sensor validity, and `CLEAR_HEATER_OVERRIDE` to resume normal PID-driven control; the PID integral term shall not accumulate for any tick during which an override is engaged | Unit test |
@@ -25,9 +25,9 @@ The component is driven by two synchronous input ports:
 | HS2-THA-008 | ThermalApplication shall emit warning HI specifying which unit is overheating on any sensor reading over its designated threshold | Unit test |
 | HS2-THA-009 | ThermalApplication shall respond to `pingIn` immediately on `pingOut` with the same key | Unit test |
 
-## Design
+#### Design {.unnumbered .unlisted}
 
-### Ports
+##### Ports {.unnumbered .unlisted}
 
 | Port | Kind | Direction | Type | Usage |
 |---|---|---|---|---|
@@ -36,14 +36,14 @@ The component is driven by two synchronous input ports:
 | `tempReadOut` | sync | output | `Thermals.TempRead` | Synchronous read of `TemperatureSensorManager`'s cached readings (array of `{temperatureC, valid}`, one per sensor). |
 | `heaterCmdOut` | sync | output | `Thermals.HeaterCmd` | Duty-cycle command (percent) to `HeaterManager`. |
 
-### Commands
+##### Commands {.unnumbered .unlisted}
 
 | Name | Arguments | Effect |
 |---|---|---|
-| `SET_HEATER_OVERRIDE` | `dutyPercent: F32` | Clamps `dutyPercent` to `[0, 100]`, engages the override (stored, applied by every subsequent `commandHeaterDuty` call regardless of state), logs `OverrideEngaged` with the clamped value, responds `OK` unconditionally. |
+| `SET_HEATER_OVERRIDE` | dutyPercent (F32) | Clamps `dutyPercent` to the 0-100 percent range, engages the override (stored, applied by every subsequent `commandHeaterDuty` call regardless of state), logs `OverrideEngaged` with the clamped value, responds `OK` unconditionally. |
 | `CLEAR_HEATER_OVERRIDE` | — | Disengages the override; subsequent duty commands reflect the PID loop (or 0%, in `NO_HEATING`) again. Logs `OverrideCleared`, responds `OK` unconditionally. |
 
-### State Machine
+##### State Machine {.unnumbered .unlisted}
 
 `thrmAppStateMachine` (`Thermals_ThermalApplicationStateMachine_t`, defined in
 `ThermalApplicationStateMachine.fpp`) switches between idle and the per-tick control loop.
@@ -60,7 +60,7 @@ stateDiagram
   ACTIVE_HEATING --> NO_HEATING: deactivate
 ```
 
-### Parameters
+##### Parameters {.unnumbered .unlisted}
 
 | Name | Type | Default | Purpose |
 |---|---|---|---|
@@ -68,6 +68,5 @@ stateDiagram
 | `Ki` | `F32` | `0.1` | Integral gain for the heater control loop. |
 | `Kd` | `F32` | `0.0` | Derivative gain for the heater control loop. Defaults to `0.0` (a no-op) — not tuned against real hardware yet. |
 | `SetpointC` | `F32` | `20.0` | Target temperature setpoint, in Celsius, that the control loop drives the sensor average toward. |
-| `SENSOR_COLD_THRESH [NUM_SENSORS]` | `F32` | - | Per sensor minimum used to decide whether to activate heaters. |
-| `SENSOR_HOT_THRESH [NUM_SENSORS]` | Per sensor maximum used to emit a fatal warning to shut off nearby components. |
-
+| `SENSOR_COLD_THRESH` (one per sensor) | `F32` | - | Per sensor minimum used to decide whether to activate heaters. |
+| `SENSOR_HOT_THRESH` (one per sensor) | `F32` | - | Per sensor maximum used to emit a fatal warning to shut off nearby components. |

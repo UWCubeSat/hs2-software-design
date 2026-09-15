@@ -4,7 +4,7 @@ Verification proceeds outward from deterministic component behavior toward hardw
 
 ## Component-Level Tests
 
-Unit tests covers algorithms, port handlers, state transitions, parameter handling, command validation, telemetry publication, event severity, and error paths. Passive components will be tested synchronously with controlled inputs. Active and queued components will be tested for queue behavior, scheduling assumptions, and correct responses to health pings and asynchronous completion.
+Unit tests cover algorithms, port handlers, state transitions, parameter handling, command validation, telemetry publication, event severity, and error paths. Passive components will be tested synchronously with controlled inputs. Active and queued components will be tested for queue behavior, scheduling assumptions, and correct responses to health pings and asynchronous completion.
 
 Driver tests will verify configuration, open/close behavior, valid and invalid bus operations, operating-system error translation, and safe behavior after a failed transaction. Hardware managers will be tested with simulated driver responses for initialization, register transactions, timeouts, retries, invalid data, recovery, and escalation to application-visible faults.
 
@@ -33,3 +33,17 @@ Integrated tests will exercise cross-subsystem data flow, shared CDH services, C
 ## Verification Evidence
 
 Each requirement will identify its verification method, such as inspection, unit test, GDS deployment test, subsystem test, or integrated test. Test results will retain the command sequence, configuration, input data, telemetry/events observed, expected result, actual result, and any hardware or simulator version needed to reproduce the run.
+
+## Related Verification Artifacts
+
+This SDD defines the verification strategy and the component-level verification methods shown in the requirements tables. The following controlled documents provide the detailed operational and test evidence rather than duplicating it here:
+
+| Document | Relationship to this SDD |
+|---|---|
+| Command and Telemetry List (CTL) | Defines the operator-visible commands, telemetry channels, events, and command-response expectations used by the ground interface. |
+| Ground Data System (GDS) document | Defines the ground hardware, ground software, and operator workflows used to send commands and observe flight responses during test and operations. |
+| Requirements Verification Matrix (RVM) | Traces mission and system requirements to their verification methods, procedures, evidence, and closure status. |
+| Unit, GDS, subsystem, and integrated test procedures and reports | Define execution steps, pass/fail criteria, configurations, as-run results, and anomaly records for the verification levels described in this SDD. |
+| Data budget | Defines telemetry, event, image, storage, and downlink volume assumptions used to set the test configurations and acceptance criteria. |
+
+The source repository and test records will retain versioned procedures and results. Each verification record will identify the applicable SDD component and requirement IDs so that design, tests, and requirements remain traceable.

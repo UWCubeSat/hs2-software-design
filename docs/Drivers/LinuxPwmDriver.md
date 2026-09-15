@@ -1,6 +1,6 @@
 # LinuxPwmDriver
 
-## 1. Overview
+## 1. Overview {.unnumbered .unlisted}
 
 `LinuxPwmDriver` is a Layer 1 passive driver for one Linux PWM channel. It gives a hardware manager (Layer 2 component) a synchronous F' interface for setting the channel period and duty cycle and for enabling or disabling the output. It contains no device or actuator logic.
 
@@ -8,7 +8,7 @@ It uses the Linux PWM sysfs interface (`/sys/class/pwm/pwmchipN/pwmM/`). One dri
 
 ---
 
-## 2. Requirements
+## 2. Requirements {.unnumbered .unlisted}
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
@@ -20,13 +20,13 @@ It uses the Linux PWM sysfs interface (`/sys/class/pwm/pwmchipN/pwmM/`). One dri
 
 ***
 
-## 3. Design
+## 3. Design {.unnumbered .unlisted}
 
-### 3.1 Component Type
+### 3.1 Component Type {.unnumbered .unlisted}
 
 Passive component. Its port handlers run synchronously on the calling thread. It has no state machine, commands, parameters, telemetry channels, or health-monitoring interface. The driver retains only its open state and the last successfully applied period.
 
-### 3.2 Ports
+### 3.2 Ports {.unnumbered .unlisted}
 
 The following project-defined ports form the `Drv.Pwm` interface.
 
@@ -48,7 +48,7 @@ Each operation returns `Drv.PwmStatus`.
 | `PWM_INVALID_PARAM` | The requested duty cycle exceeds the configured period. |
 | `PWM_OTHER_ERR` | An unexpected driver error occurred. |
 
-### 3.3 Configuration and Operation
+### 3.3 Configuration and Operation {.unnumbered .unlisted}
 
 Topology setup calls `open(chipNum, channelNum)` before the connected manager makes any port calls. The driver exports the selected channel when necessary and opens its `period`, `duty_cycle`, and `enable` entries. If setup fails, port calls return `PWM_NOT_OPENED`.
 

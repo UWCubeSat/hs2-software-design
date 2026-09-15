@@ -1,6 +1,6 @@
-# AttitudeFilter
+### AttitudeFilter
 
-## 1. Overview
+#### 1. Overview {.unnumbered .unlisted}
 
 `AttitudeFilter` is a Layer 2.5 **Queued** component within the ADCS subtopology. It fuses IMU angular rate/acceleration, sun vector, and star tracker attitude quaternion into a satellite state estimate. IMU data is the primary always-on source; sun vector and star tracker attitude are optional, arriving only when those managers are active and healthy.
 
@@ -10,7 +10,7 @@ Each source's last received timestamp is tracked independently. `AdcsApplication
 
 ***
 
-## 2. Requirements
+#### 2. Requirements {.unnumbered .unlisted}
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
@@ -23,17 +23,17 @@ Each source's last received timestamp is tracked independently. `AdcsApplication
 
 ***
 
-## 3. Design
+#### 3. Design {.unnumbered .unlisted}
 
-### 3.1 Component Type
+##### 3.1 Component Type {.unnumbered .unlisted}
 
 Queued component. Manager data arrives asynchronously via async input ports on the rate group tick. `AdcsApplication` queries state synchronously via individual getter ports. The queue serializes writes from the rate group thread against reads from `AdcsApplication`'s Active component thread.
 
-### 3.2 Parameters
+##### 3.2 Parameters {.unnumbered .unlisted}
 
 None.
 
-### 3.3 Ports
+##### 3.3 Ports {.unnumbered .unlisted}
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
@@ -49,13 +49,13 @@ None.
 | `logOut` | Output | `Fw.Log` | Event logging |
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry (estimated attitude, angular rate, per-source last timestamps) |
 
-### 3.4 Commands
+##### 3.4 Commands {.unnumbered .unlisted}
 
 None.
 
 ***
 
-## 4. Notes
+#### 4. Notes {.unnumbered .unlisted}
 
 - `AttitudeFilter` does not implement a formal sensor fusion algorithm (e.g. EKF). It stores the most recent valid reading from each source and makes it available via getter ports. Any fusion logic lives in the algorithm components or `AdcsApplication`.
 - Staleness is determined by `AdcsApplication`: it reads the per-source timestamp getters and decides whether a source is fresh enough for the active algorithm. `AttitudeFilter` makes no staleness judgement itself.

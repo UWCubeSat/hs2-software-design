@@ -1,6 +1,6 @@
-# GnssManager SDD
+### GnssManager
 
-## 1. Overview
+#### 1. Overview {.unnumbered .unlisted}
 
 `GnssManager` is the Layer 2 hardware manager for the GNSS receiver. It is a SkyFox Labs piNAV-NG with DROP (Dead Reckoning Orbital Propagator). Like `StarTrackerManager` and `TmtcRadioManager`, it isn't scoped to a single subtopology and instead it is at the **top-level topology** and shared across `DataCollectionApplication`, `AdcsApplication`, and `SatStateMachine`. It also feeds a PPS (Pulse Per Second) timing signal to Time services, sourced from the receiver's VPP (Valid Position Pulse) output.
 
@@ -8,7 +8,7 @@
 
 ---
 
-## 2. Requirements
+#### 2. Requirements {.unnumbered .unlisted}
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
@@ -25,14 +25,14 @@
 
 ---
 
-## 3. Design
+#### 3. Design {.unnumbered .unlisted}
 
-### 3.1 Component Type
+##### 3.1 Component Type {.unnumbered .unlisted}
 
 Active component and an internal flat F' state machine (`Fw::Sm`). This is a change from the other Queued pattern as the piNAV-NG streams NMEA sentences continuously at a fixed 1 Hz over UART, and the `GnssManager` needs to keep draining that stream on its own schedule rather than only when polled. `schedIn` is driven by `RateGroup2` (1 Hz) so the manager parses every incoming 1 Hz sentence group as it arrives, caches the most recent value, and reports the cached value out on each 1 s tick, matching the receiver's own update rate.
 
 
-### 3.2 Parameters
+##### 3.2 Parameters {.unnumbered .unlisted}
 
 Almost nothing about the receiver itself is changing at run. The baud rate, update rate (fixed 1 Hz), and the output sentence set are all fixed. 
 
@@ -43,7 +43,7 @@ Almost nothing about the receiver itself is changing at run. The baud rate, upda
 | `DROP_MAX_AGE_TICKS` | `U32` | Ticks since the last fix before GnssManager forces a RESET-driven Cold Start |
 | `MAX_CONSECUTIVE_UART_ERRORS` | `U32` | Consecutive errors in RUN before forcing a return to RESET |
 
-### 3.3 Ports
+##### 3.3 Ports {.unnumbered .unlisted}
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
@@ -60,13 +60,13 @@ Almost nothing about the receiver itself is changing at run. The baud rate, upda
 | `logOut` | Output | `Fw.Log` | Event logging (state transitions, fix classification changes, UART errors) |
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry (SM (State Machine) state, failure count, time since last fix, receiver voltages and current and temperature) |
 
-### 3.4 Commands
+##### 3.4 Commands {.unnumbered .unlisted}
 
 `GnssManager` accepts no ground commands as the receiver has no command channel. Not health monitored, same as the rest of Layer 2. All recovery is autonomous, self-healing, or escalated via telemetry.
 
 ---
 
-## 4. State Machine
+#### 4. State Machine {.unnumbered .unlisted}
 
 `GnssManager` uses a variant of the standard Layer 2 SM without a CONFIGURE state. The piNAV-NG has nothing to configure over the bus so this state is unnecessary. F' parameters are loaded from PrmDb during RESET instead of a later CONFIGURE state: `WAIT_RESET` and `ENABLE` both reference parameter values (`RESET_WAIT_TICKS`, `BANNER_WAIT_TICKS`) before they run, so those values need to already be loaded by the time RESET completes.
 
@@ -114,7 +114,7 @@ Reference: [`fprime-community/fprime-sensors` `ImuManager`](https://github.com/f
 
 ---
 
-## 5. Notes
+#### 5. Notes {.unnumbered .unlisted}
 
 - `GnssManager` is created at the top level topology and wires out to three applications: `DataCollectionApplication` (position + time), `AdcsApplication` (position/timing, used in `AntennaPointing`), `SatStateMachine` (orbital state, sun/eclipse). 
 - Reset timing TBD: neither datasheet does not specify a minimum /RESET pulse width or reset settle time. It just says "no reset pulse needed," which doesn't help with the `RESET_WAIT_TICKS` number.

@@ -1,6 +1,6 @@
-# EPSApplication
+### EPSApplication
 
-## 1. Overview
+#### 1. Overview {.unnumbered .unlisted}
 
 `EPSApplication` is the Layer 3 Active component for the EPS subtopology. It monitors battery and power-system health by consuming state data published by `MpptManager` (battery/IC state) and `CurrentSensorManager` (per-rail voltage and current) on each rate group tick, and exposes a health/status struct to `SatStateMachine` via a synchronous get port so submode decisions can be made. It also accepts the panel deployment command from ground and forwards it to `DeployPanelsManager`.
 
@@ -8,7 +8,7 @@ Unlike other Layer 3 components, `EPSApplication` has no internal state machine.
 
 ---
 
-## 2. Requirements
+#### 2. Requirements {.unnumbered .unlisted}
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
@@ -21,13 +21,13 @@ Unlike other Layer 3 components, `EPSApplication` has no internal state machine.
 
 ---
 
-## 3. Design
+#### 3. Design {.unnumbered .unlisted}
 
-### 3.1 Component Type
+##### 3.1 Component Type {.unnumbered .unlisted}
 
 Active component. No hierarchical state machine. `EPSApplication` operates continuously and is fully driven by rate group ticks and incoming commands with no satellite-mode-driven state transitions.
 
-### 3.2 Ports
+##### 3.2 Ports {.unnumbered .unlisted}
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
@@ -44,7 +44,7 @@ Active component. No hierarchical state machine. `EPSApplication` operates conti
 
 `EPSApplication` emits events (e.g. `lowBattery`, `criticalBattery`) but publishes no measurement telemetry. The periodic battery and rail measurement channels are owned and published by `MpptManager` and `CurrentSensorManager` respectively.
 
-### 3.3 Commands
+##### 3.3 Commands {.unnumbered .unlisted}
 
 | Mnemonic | Args | Description |
 |----------|------|-------------|
@@ -52,7 +52,7 @@ Active component. No hierarchical state machine. `EPSApplication` operates conti
 
 ---
 
-## 4. Operational Behavior
+#### 4. Operational Behavior {.unnumbered .unlisted}
 
 `EPSApplication` does not use a hierarchical state machine. Each 1 Hz rate group tick it reads the latest battery state received from `MpptManager` and the latest rail state received from `CurrentSensorManager`, runs protection threshold checks, emits any required fault events, and caches the assembled health struct as the current `powerState`. `SatStateMachine` retrieves that struct on demand by invoking the `powerStateGet` synchronous get port. The `DEPLOY_PANELS` handler is a thin forwarder that validates the request, calls the `deploy` port, and returns a command response.
 
@@ -86,7 +86,7 @@ cmdIn DEPLOY_PANELS
 
 ---
 
-## 5. Notes
+#### 5. Notes {.unnumbered .unlisted}
 
 **Subtopology wiring:**
 

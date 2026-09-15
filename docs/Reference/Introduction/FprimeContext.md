@@ -89,3 +89,5 @@ The downlink path follows:
 HuskySat-2's CCSDS service components fill in the framing and packet-routing stages around `TmtcRadioManager` and `LinuxUartDriver`.
 
 The command and telemetry list, including both F' events and telemetry channels, can be viewed in the CTL document. The CTL document is maintained separately and is not part of this SDD.
+
+The Ground Data System document separately defines the ground-station hardware, ground software, and operator-facing workflows. This SDD defines the flight-software boundary: command decoding, validation, dispatch, status response, telemetry, and event interfaces that the ground system consumes. It does not duplicate the ground-software design.

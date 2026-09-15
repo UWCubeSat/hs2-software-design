@@ -112,9 +112,17 @@ The spacecraft does not rely on the storage devices or RAM being radiation-harde
 - **Atomic and recoverable file operations:** writes use temporary or otherwise clearly marked incomplete records until the final data is committed. Startup code and file services identify incomplete products and prevent them from being mistaken for valid images or state.
 - **Input validation and state-machine recovery:** hardware managers validate register values and sensor ranges, use timeouts and retries for device transactions, and return to their reset or safe state after unrecoverable errors. Applications similarly reject invalid data before it reaches control or science algorithms.
 - **Liveness monitoring and watchdog recovery:** `Svc::Health` detects missed component responses, while `WatchdogPinger` services the EPS hardware watchdog. Fatal conditions are reported through `Svc::EventManager` and `Svc::FatalHandler`; the application-manager interfaces can then apply the appropriate subsystem reset policy.
-- **Safe operational behavior:** after a detected fault, the satellite discards the output, preserves fault context, and the FaultHandler decides whether to reset hardware (if it is a more contained issue) or resetting the system (if it is a larger issue like flight software failing to run).
+- **Safe operational behavior:** after a detected fault, the satellite discards the output, preserves fault context, and `Svc::FatalHandler` decides whether to reset hardware (if it is a more contained issue) or reset the system (if it is a larger issue such as flight software failing to run).
 
 These mechanisms mitigate many software-visible effects of single-event upsets and corrupted storage, and we use both the microSD and SSD for redundancy purposes. 
+
+## Computational Load and Power Protection
+
+Image processing, compression, encryption, and ADCS filtering can create large CPU, memory, storage-I/O, and power demands on the BeagleBone Black. The flight topology will schedule long-running work in active or queued execution contexts rather than in synchronous control or command paths. Rate groups will reserve predictable execution time for health checks, EPS monitoring, telemetry, communications, and safety-critical control work while payload processing runs at a controlled rate.
+
+Before starting or continuing a storage-heavy or compute-heavy payload operation, the owning application will check the current satellite mode, available storage, and EPS-provided power state. The deployment will define limits for processing duration, queued work, buffer allocation, and free storage from the power and data budgets. When an interlock or limit is violated, the application will defer or pause the nonessential operation, preserve a recoverable in-progress marker when possible, emit an event, and leave command, telemetry, health, and safety functions available.
+
+Low-voltage, brownout, thermal, watchdog, or liveness indications will take priority over payload work. `SatStateMachine` can move the spacecraft to a safe or charge-oriented mode, and the application will quiesce its own work in response to that mode change. `Svc::Health`, the EPS watchdog, telemetry, and event logs will provide the evidence needed to diagnose the interruption. The final thresholds and recovery sequence will be verified during GDS, subsystem, and integrated deployment tests with representative processing loads.
 
 ## Data Retention and Ground Operations
 

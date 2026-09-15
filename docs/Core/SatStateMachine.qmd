@@ -1,6 +1,6 @@
-# SatStateMachine SDD
+# SatStateMachine
 
-## 1. Overview
+## 1. Overview {.unnumbered .unlisted}
 
 `SatStateMachine` is the Layer 4 "Mission Orchestration" component. It is an **Active** component, instantiated at the **top-level topology** since it is not scoped to any single subtopology.
  It evaluates the satellite's top level operating mode among five sibling states, SafeSun, Safe, Downlink, Science, and Charge, reevaluated every 1 Hz tick. All condition inputs
@@ -10,7 +10,7 @@ arrive precomputed via typed ports from Layer 3 applications.
 transition it is intended to command each Layer 3 application component's own operating
 mode via a dedicated typed port. 
 
-## 2. Requirements
+## 2. Requirements {.unnumbered .unlisted}
 
 | ID | Requirement | Verification |
 |----|-------------|---------------|
@@ -29,14 +29,14 @@ mode via a dedicated typed port.
 
 ---
 
-## 3. Design
+## 3. Design {.unnumbered .unlisted}
 
-### 3.1 Component Type
+### 3.1 Component Type {.unnumbered .unlisted}
 
 Active component. Internal `Fw::Sm` state machine with five top level sibling states
 (`SAFE_SUN`, `SAFE`, `DOWNLINK`, `SCIENCE`, `CHARGE`). `schedIn` is driven by `RateGroup2` (1 Hz).
 
-### 3.2 Parameters
+### 3.2 Parameters {.unnumbered .unlisted}
 
 | Parameter | Type | Description |
 |-----------|------|--------------|
@@ -46,7 +46,7 @@ Active component. Internal `Fw::Sm` state machine with five top level sibling st
 | `CRITICAL_THRESHOLD` | `F32` | Battery state of charge (%) below which Safe/SafeSun mode is forced. |
 | `DETUMBLE_DURATION_TICKS` | `U32` | Ticks after entering `SafeSun` before commanding `AdcsApplication` from `Detumble` to `SunPointing`. Approximates the mission's estimated detumble duration (~110 minutes per CONOPS, TBR). |
 
-### 3.3 Ports
+### 3.3 Ports {.unnumbered .unlisted}
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
@@ -66,7 +66,7 @@ Active component. Internal `Fw::Sm` state machine with five top level sibling st
 | `logOut` | Output | `Fw.Log` | Event logging |
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry |
 
-### 3.4 Commands
+### 3.4 Commands {.unnumbered .unlisted}
 
 | Mnemonic | Args | Description |
 |----------|------|-------------|
@@ -78,7 +78,7 @@ Active component. Internal `Fw::Sm` state machine with five top level sibling st
 
 ---
 
-## 4. State Machine
+## 4. State Machine {.unnumbered .unlisted}
 
 `SAFE_SUN`, `SAFE`, `DOWNLINK`, `SCIENCE`, and `CHARGE` are flat top-level sibling states; there is no wrapping "Standby" state. `SAFE_SUN` is the boot/first-deploy state and the only one of the five that commands `AdcsApplication` through two phases over its own lifetime, using only `AdcsApplication`'s existing `Detumble` and `SunPointing` modes, no new ADCS mode or port is introduced. `SAFE` is the plain post-checkout safe state, reached from `DOWNLINK`/`SCIENCE`/`CHARGE` on a critical-battery trip or `SAFE_MODE`; `SAFE_SUN` is never re-entered once checkout has completed, since `checkoutComplete` is a one-way latch. The 1 Hz priority evaluation is defined identically on `DOWNLINK`, `SCIENCE`, and `CHARGE`; neither `SAFE_SUN` nor `SAFE` runs it.
 
@@ -164,7 +164,7 @@ flowchart LR
 
 ---
 
-## 5. Notes
+## 5. Notes {.unnumbered .unlisted}
 
 - **Checkout mechanism** (`CHECKOUT_COMPLETE`) is this document's proposed design for an
  unspecified requirement in the top level `sdd.md` §3

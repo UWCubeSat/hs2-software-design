@@ -1,4 +1,4 @@
-# DataCollectionApplication
+### DataCollectionApplication
 
 `DataCollectionApplication` is the Layer 3 active component for the DataCollection subtopology.
 Every image capture is a ground-commanded event: ground sends `RUN_EXPERIMENT` with a complete set
@@ -27,7 +27,7 @@ The component is driven by two synchronous input ports:
 - `modeIn` (`DataCollection.DataColModePort`, carrying `Types.DataColMode`) — mode commands from
   `SatStateMachine`
 
-## Requirements
+#### Requirements {.unnumbered .unlisted}
 
 | ID | Requirement | Verification |
 |----|-------------|-------------|
@@ -44,31 +44,31 @@ The component is driven by two synchronous input ports:
 
 ***
 
-### Ports
+##### Ports {.unnumbered .unlisted}
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
 | `modeIn` | Input | `DataCollection.DataColModePort` | Mode command from SatStateMachine, carrying `Types.DataColMode`. |
 | `schedIn` | Input | `Svc.Sched` | Rate group tick; drives `pingIn`/`pingOut` and the state machine's `tick` signal  |
-| `cameraPower[2]` | Output | `DataCollection.CameraPower(camera, powerOn) -> Types.CameraStatus` | Power `lostCameraManager`/`foundCameraManager` (port index 0/1) on or off. |
-| `cameraCheckup[2]` | Output | `DataCollection.CameraCheckup(camera) -> Types.CameraStatus` | Per-camera health check, used by `HealthCheck` mode's `checkup` action. |
-| `cameraCapture[2]` | Output | `DataCollection.CameraCapture(camera, imageType) -> Types.CameraStatus` | Triggers one camera's capture of the current experiment's `imageType`.  |
-| `positionGet` | Output | `DataCollection.PostionGet() -> Types.PositionData` | Requests the current estimated position vector |
-| `attitudeGet` | Output | `DataCollection.AttitudeGet() -> Types.Quaternion` | Requests the current estimated attitude quaternion. |
-| `attitudeRequest` | Output | `DataCollection.AttitudeRequest() -> Types.Quaternion` | Requests an attitude quaternion. |
+| `cameraPower` (2 instances) | Output | DataCollection.CameraPower for camera and powerOn, returning Types.CameraStatus | Power `lostCameraManager`/`foundCameraManager` (port index 0/1) on or off. |
+| `cameraCheckup` (2 instances) | Output | DataCollection.CameraCheckup for camera, returning Types.CameraStatus | Per-camera health check, used by `HealthCheck` mode's `checkup` action. |
+| `cameraCapture` (2 instances) | Output | DataCollection.CameraCapture for camera and imageType, returning Types.CameraStatus | Triggers one camera's capture of the current experiment's `imageType`.  |
+| `positionGet` | Output | DataCollection.PositionGet returning Types.PositionData | Requests the current estimated position vector |
+| `attitudeGet` | Output | DataCollection.AttitudeGet returning Types.Quaternion | Requests the current estimated attitude quaternion. |
+| `attitudeRequest` | Output | DataCollection.AttitudeRequest returning Types.Quaternion | Requests an attitude quaternion. |
 | `pingIn` / `pingOut` | In/Out | `Svc.Ping` | Health monitoring. |
 
-### Commands
+##### Commands {.unnumbered .unlisted}
 
 | Name | Args | Description |
 |----------|------|-------------|
-| `RUN_EXPERIMENT` | `expId: U8`, `imageTypeCode: Types.ImageTypes` | Takes an image of each requested type and tags them with the specified experiment ID. If the state machine is `RUN_ARMED`, starts immediately; if an experiment is already in flight, queued instead; otherwise rejected with `VALIDATION_ERROR`. |
+| `RUN_EXPERIMENT` | expId (U8), imageTypeCode (Types.ImageTypes) | Takes an image of each requested type and tags them with the specified experiment ID. If the state machine is `RUN_ARMED`, starts immediately; if an experiment is already in flight, queued instead; otherwise rejected with `VALIDATION_ERROR`. |
 
 Once an experiment is commanded, Data Collection calculates and requests an attitude from ADCS based on the required image types. Data Collection then polls the current attitude until the request is satisfied. If no attitude can satisfy the requirements at the current position in orbit, a warning is thrown and Data Collection caches the request to keep working through the queue.
 
 ***
 
-## State Machine
+#### State Machine {.unnumbered .unlisted}
 
 ```{mermaid}
 stateDiagram

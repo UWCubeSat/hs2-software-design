@@ -4,6 +4,10 @@ The complete software topology is shown below as an abstraction stack. The Level
 
 The diagram is a software dependency view rather than a literal list of every FPP connection. Individual component pages define the ports and behavior; subsystem topology pages will add the final instances and connections when those designs are complete.
 
+The following diagram shows the planned top-level software integration. It complements the abstraction stack by showing the major application boundaries, shared system services, fatal-event path, command and telemetry services, and the connections between software layers.
+
+![High-level software topology showing the satellite state machine, system services, subsystem applications, hardware managers, drivers, and hardware.](images/HighLevel.png){#fig-high-level-software-topology width=100%}
+
 ```{mermaid}
 %%{init: {'theme': 'base', 'themeVariables': {'fontSize': '12px'}}}%%
 flowchart TB

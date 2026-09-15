@@ -1,8 +1,8 @@
-# MagnetorquerManager
+### MagnetorquerManager
 
 MagnetorquerManager is a Layer 2 Queued worker component in the ADCS subtopology. It owns the satellite's three magnetorquer actuators (two torque rods and one air coil), converting a desired torque vector into a per-actuator direction/duty-cycle command and enforcing a lock that zeroes all output while the actuators are disabled.
 
-## Introduction
+#### Introduction {.unnumbered .unlisted}
 
 The component has no rate group and no `Reset` port; it does work only when one of its two synchronous input ports is called:
 
@@ -11,7 +11,7 @@ The component has no rate group and no `Reset` port; it does work only when one 
 
 Actuator index `2` is treated as the air coil; indices `0` and `1` are the torque rods. 
 
-## Requirements
+#### Requirements {.unnumbered .unlisted}
 
 | Name | Description | Validation |
 |---|---|---|
@@ -21,19 +21,19 @@ Actuator index `2` is treated as the air coil; indices `0` and `1` are the torqu
 | MTM-004 | The component shall log `invalidDutycycleParam` if any of the six parameters fails to load or update validly. | Unit Test |
 | MTM-005 | If the current measured B-field is zero, the component shall log `noMagneticField` and command all three actuators to zero duty cycle. | Unit Test |
 
-## Design
+#### Design {.unnumbered .unlisted}
 
-### Ports
+##### Ports {.unnumbered .unlisted}
 
 | Port | Kind | Direction | Type | Usage |
 |---|---|---|---|---|
-| `setLock` | sync | input | `mtToggle_p` (`is_locked: bool`) | Requests the actuators be locked (`true`) or unlocked (`false`). |
+| `setLock` | sync | input | `mtToggle_p` with is_locked boolean | Requests the actuators be locked (`true`) or unlocked (`false`). |
 | `desiredTorqueInput` | sync | input | `torqueVector_p` (`torque_vector: Vector3DBase`) | Desired torque vector; triggers a full recompute and re-send of all three actuator commands. |
 | `getCurrentB` | — | output | `bState_p` → `Adcs.BState` | Current measured B-field (`b`, `bDot`), used to project out the non-actuatable component of torque. |
-| `setDutycycle` | — | output, array `[3]` | `mtDutycycle_p` (`dc: F32`) | Commanded duty-cycle magnitude for each actuator, clamped to its configured `[min, max]`. |
-| `setDirection` | — | output, array `[3]` | `mtDirection_p` (`is_high: bool`) | Commanded current direction for each actuator (`true` for a non-negative computed duty cycle). |
+| `setDutycycle` | — | output, 3-element array | `mtDutycycle_p` with dc F32 | Commanded duty-cycle magnitude for each actuator, clamped to its configured minimum and maximum. |
+| `setDirection` | — | output, 3-element array | `mtDirection_p` with is_high boolean | Commanded current direction for each actuator (`true` for a non-negative computed duty cycle). |
 
-### State Machine
+##### State Machine {.unnumbered .unlisted}
 
 ```{mermaid}
 stateDiagram-v2
@@ -48,7 +48,7 @@ stateDiagram-v2
 | `LOCKED` | All three actuators are held at zero duty cycle, regardless of the last commanded torque. |
 
 
-### Parameters
+##### Parameters {.unnumbered .unlisted}
 
 | Name | Type | Default | Applies to |
 |---|---|---|---|

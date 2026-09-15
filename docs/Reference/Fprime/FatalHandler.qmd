@@ -1,16 +1,16 @@
 # Svc::FatalHandler
 
-## Overview
+## Overview {.unnumbered .unlisted}
 
 `Svc::FatalHandler` is an F' system-service component that receives fatal conditions and applies the deployment's terminal fatal-response policy. It is placed in the Level 4 system-services and control layer because its response is satellite-wide rather than specific to one hardware subsystem.
 
-## HuskySat-2 Use
+## HuskySat-2 Use {.unnumbered .unlisted}
 
 Hardware managers remain responsible for detecting device-specific failures and reporting them through typed events. `Svc::FatalHandler` has an application-facing command port for each Level 3 application. When it receives a fatal notification, it uses the appropriate port to send an application command carrying the fatal condition to the owning application. A hardware-related fatal event carries a unique opcode identifying the affected hardware; the application maps that opcode to the appropriate manager and issues that manager's reset command. This preserves the App-Manager-Driver boundary: the application decides what recovery action is appropriate, the manager owns the device-specific reset sequence, and the driver only exposes the low-level interface.
 
 `Svc::FatalHandler` will remain the final system-level path for unhandled or escalated fatal conditions. It does not replace a hardware manager or become a central hardware-reset owner. If an event cannot be mapped safely to an owning application or hardware opcode, the deployment will escalate it to the terminal fatal-response policy.
 
-### Proposed Hardware-Fault Pipeline
+### Proposed Hardware-Fault Pipeline {.unnumbered .unlisted}
 
 The following is a proposed event and recovery flow. The exact event ports, opcode type, and escalation thresholds are TBR.
 
@@ -27,6 +27,6 @@ flowchart TB
 
 This design keeps reset authority with the application-manager path while giving the system a defined terminal response when targeted recovery is unsafe or unavailable. The opcode namespace will be centrally documented so that every hardware manager emits unique, stable identifiers.
 
-## F' Reference
+## F' Reference {.unnumbered .unlisted}
 
 [FatalHandler software design document](https://fprime.jpl.nasa.gov/latest/Svc/FatalHandler/docs/sdd/)
