@@ -1,12 +1,14 @@
-### AdcsApplication
+# AdcsApplication SDD
 
-#### 1. Overview {.unnumbered .unlisted}
+## 1. Overview
 
-`AdcsApplication` is the Layer 3 Active component for the ADCS subsystem. It owns the attitude control loop and switches operating mode on command from `SatStateMachine`. It dispatches sensor requests and actuator commands to Layer 2 hardware managers (`IMMUManager`, `SunSensorManager`, `MagnetorquerManager`) and consumes attitude from `StarTrackerManager` and timing from `GnssManager` (both top-level).
+`AdcsApplication` is the Layer 3 Active component for the ADCS subsystem. It owns the attitude control loop and switches operating mode on command from `SatStateMachine`. It dispatches actuator commands to Layer 2 hardware managers (`IMMUManager`, `SunSensorManager`, `MagnetorquerManager`) and consumes attitude from `StarTrackerManager` and timing from `GnssManager`.
+
+Attitude estimation and all control law computation are internal to `AdcsApplication` itself. `AdcsApplication` receives raw sensor data directly from the hardware managers and `StarTrackerManager`, maintains its own cached state estimate, and runs internal control functions: `DetumbleController` in `Detumble`, `SlewLimiter` in the three maneuvering pointing modes, and `PointingController` in steady-state `AttitudeHold`. It then turns that estimate into a commanded magnetic moment.
 
 ---
 
-#### 2. Requirements {.unnumbered .unlisted}
+## 2. Requirements
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
@@ -15,18 +17,28 @@
 | HS2-ADC-003 | AdcsApplication shall maintain a slew rate under 0.04 degrees per second upon command | Inspection |
 | HS2-ADC-004 | AdcsApplication shall respond to health pings within the required deadline | Inspection |
 | HS2-ADC-005 | AdcsApplication shall assert WARNING_HI events followed by a FATAL if hardware is unable to recover from errors | Inspection |
-| HS2-ADC-006 | AdcsApplication shall answer IMMUManager's `configureDataRequest` with connection port name, accel/gyro and magnetometer data rates, and startup wait time | Inspection |
-| HS2-ADC-007 | AdcsApplication shall lock MagnetorquerManager and assert the IMMUManager magnetic disturbance flag together, and unlock/clear them together | Inspection |
+| HS2-ADC-006 | AdcsApplication shall answer IMMUManager's `configureDataRequest` with connection port name, accel, gyro, and magnetometer data rates, and startup wait time | Inspection |
+| HS2-ADC-007 | AdcsApplication shall lock MagnetorquerManager and assert the IMMUManager magnetic disturbance flag together, and unlock and clear them together | Inspection |
+| HS2-ADC-008 | AdcsApplication shall update its internal estimated angular rate on each received IMU sample | Inspection |
+| HS2-ADC-009 | AdcsApplication shall update its internal estimated attitude quaternion on each received star tracker attitude sample | Inspection |
+| HS2-ADC-010 | AdcsApplication shall update its internal sun vector estimate on each received sun vector sample | Inspection |
+| HS2-ADC-011 | AdcsApplication shall record the timestamp of each received measurement, per source (IMU, sun vector, star tracker) | Inspection |
+| HS2-ADC-012 | AdcsApplication shall retain the previous B-field measurement for use by `DetumbleController`'s derivative term | Inspection |
+| HS2-ADC-013 | AdcsApplication shall compute a magnetic moment vector from the current B-field and previous Bfield via `DetumbleController` (using B-dot law) while in `Detumble` | Inspection |
+| HS2-ADC-014 | AdcsApplication shall compute a magnetic moment vector from the estimated attitude, angular rate, target quaternion, and B-field via `PointingController` (quaternion PD control law) while in `AttitudeHold` | Inspection |
+| HS2-ADC-015 | AdcsApplication shall compute a magnetic moment vector via `SlewLimiter`, capping the commanded rotation to the active slew limit, while in `SunPointing`, `AntennaPointing`, or `EarthLimbPointing` | Inspection |
+| HS2-ADC-016 | AdcsApplication shall compute a body frame sun vector via `SunVectorEstimator` from the six calibrated intensities published by `SunSensorManager` | Inspection |
+
 
 ---
 
-#### 3. Design {.unnumbered .unlisted}
+## 3. Design
 
-##### 3.1 Component Type {.unnumbered .unlisted}
+### 3.1 Component Type
 
 Active component with internal hierarchical F' state machine (`Fw::Sm`).
 
-##### 3.2 Mode Interface {.unnumbered .unlisted}
+### 3.2 Mode Interface
 
 `AdcsApplication` receives its operating mode from `SatStateMachine` via a typed port:
 
@@ -42,34 +54,60 @@ module Adcs {
 }
 ```
 
-If the incoming mode matches the current mode, the handler returns immediately (idempotent).
+If the incoming mode matches the current mode, the handler returns immediately.
 
-##### 3.3 Ports {.unnumbered .unlisted}
+### 3.3 Ports
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
 | `modeIn` | Input | `Sat.AdcsModePort` | Mode command from SatStateMachine |
 | `schedIn` | Input | `Svc.Sched` | Rate group tick (10 Hz) |
-| `imuConfigureGet` | Input (sync) | `immuConfigurationParameters_p` → `Adcs.ConfigureParameters` | Answers IMMUManager's `configureDataRequest` |
+| `immuConfigureGet` | Input (sync) | `immuConfigurationParameters_p` → `Adcs.ConfigureParameters` | Answers IMMUManager's `configureDataRequest` |
+| `immuDataIn` | Input (async) | `Adcs.ImmuDataPort` | IMMU angular rate + acceleration sample from `IMMUManager`; updates the internal angular rate estimate |
+| `sunIntensitiesIn` | Input (async) | `Adcs.SunIntensityPort` | Six calibrated channel intensities + timestamp from `SunSensorManager` run through `SunVectorEstimator` to update the internal sun vector estimate |
+| `attitudeIn` | Input (async) | `Adcs.AttitudePort` | Absolute attitude quaternion from `StarTrackerManager` that updates the internal attitude estimate |
 | `sunSensorControl` | Output | `Adcs.ManagerControlPort` | ON/OFF command to SunSensorManager |
-| `magnetorquerLock` | Output | `mtToggle_p` with is_locked boolean | Lock/unlock command to MagnetorquerManager |
-| `imuDisturbanceOut` | Output | `mtToggle_p` with is_locked boolean | Magnetic disturbance flag to IMMUManager; asserted/cleared together with `magnetorquerLock` |
-| `filterAttitudeGet` | Output | `Adcs.AttitudePort` | Query AttitudeFilter for estimated attitude quaternion |
-| `filterAngularRateGet` | Output | `Adcs.AngularRatePort` | Query AttitudeFilter for estimated angular rate |
-| `filterBFieldGet` | Output | `Adcs.BFieldPort` | Query AttitudeFilter for previous B-field measurement |
-| `filterImuTimestampGet` | Output | `Adcs.TimestampPort` | Query AttitudeFilter for IMU data staleness |
-| `filterSunTimestampGet` | Output | `Adcs.TimestampPort` | Query AttitudeFilter for sun vector staleness |
-| `filterStarTimestampGet` | Output | `Adcs.TimestampPort` | Query AttitudeFilter for star tracker staleness |
-| `bDotCompute` | Output | `Adcs.BDotInputPort` | Call BDotAlgorithm; returns a magnetic moment vector |
-| `quaternionPdCompute` | Output | `Adcs.QuaternionPdInputPort` | Call QuaternionPdAlgorithm; returns a magnetic moment vector |
-| `slewRateCompute` | Output | `Adcs.SlewRateInputPort` | Call SlewRateAlgorithm; returns a slew-limited magnetic moment vector |
+| `magnetorquerLock` | Output | `mtToggle_p` (`is_locked: bool`) | Lock/unlock command to MagnetorquerManager |
+| `immuDisturbanceOut` | Output | `mtToggle_p` (`is_locked: bool`) | Magnetic disturbance flag to IMMUManager which is asserted/cleared together with `magnetorquerLock` |
 | `momentVectorOut` | Output | `Adcs.MomentVectorPort` | Send computed moment vector to MagnetorquerManager |
 | `positionGet` | Output | `Fw.Dp` | Request position/timing from GnssManager |
 | `pingIn` / `pingOut` | In/Out | `Svc.Ping` | Health monitoring |
 | `logOut` | Output | `Fw.Log` | Event logging |
-| `tlmOut` | Output | `Fw.Tlm` | Telemetry (attitude estimate, mode, error state) |
+| `tlmOut` | Output | `Fw.Tlm` | Telemetry |
 
-##### 3.4 Commands {.unnumbered .unlisted}
+
+### 3.4 Internal State Estimate
+
+Referred to as `AttitudeFilter` in the diagrams below (its name when it was a separate component) — internal to `AdcsApplication` now, not a distinct component.
+
+| Field | Updated by | Description |
+|---|---|---|
+| Estimated attitude quaternion | `attitudeIn` | Most recent absolute attitude from `StarTrackerManager` |
+| Estimated angular rate | `immuDataIn` | Most recent angular rate from `IMMUManager` |
+| Estimated angular acceleration | `immuDataIn` | Difference of consecutive angular rate samples over the tick period. `SlewLimiter` needs this in addition to rate |
+| Sun vector estimate | `sunIntensitiesIn`, via `SunVectorEstimator` | Sun vector computed from the six calibrated intensities |
+| Current & previous B-field | `immuDataIn` | Current and prior B-feild, retained for `DetumbleController`'s derivative term |
+| Timestamps | each of the above | Last received time for IMU, sun vector, and star tracker samples, used to judge data freshness |
+
+#### Kalman filter
+
+- **State vector:** attitude quaternion `q`, angular velocity `ω` (3), gyro bias `b_g` (3), 9-element error-state covariance (`Matrix<9>`) over attitude-error/rate/bias. Parameters are `sigma_gyr` (gyro noise), `sigma_omega_rw` (rate random walk), `sigma_bg_rw` (bias random walk), `sigma_st` (star tracker noise)
+
+**9-state MEKF** Attitude error (3) + angular velocity (3) + gyro bias (3) as filter states. Gyro readings treated as a noisy *measurement* of a separately propagating rate state (Kalman corrected each tick), not fed straight into propagation. Prediction created by propagating quaternion via kinematics driven by the current rate estimate, propagating the 9×9 covariance with process noise `sigma_omega_rw`/`sigma_bg_rw`. Star tracker gives a full quaternion correction (`sigma_st`), gyro gives a rate correction (`sigma_gyr`).
+
+
+### 3.5 Internal Control Functions
+
+Three control law computations are internal functions inside `AdcsApplication`. 
+
+| Function | Inputs | Output | Called from |
+|---|---|---|---|
+| `DetumbleController` | Current B-field, previous Bfield | Magnetic moment vector: `m = -k · dB/dt` (using B-dot law) | `DETUMBLE`/`RUNNING`, each tick. The only control function active in `Detumble` |
+| `SlewLimiter` | Estimated attitude, angular rate, angular acceleration, target quaternion, B-field, slew rate limit | Magnetic moment vector, via a cascaded control law. Outer P loop on the attitude error angle (capped to the slew limit) produces a rate command, inner rate PID loop (using angular acceleration as its derivative term) turns that into a torque, torque is converted to moment via `m = (B x τ) / \|B\|²` | `SUN_POINTING`, `ANTENNA_POINTING`, and `EARTH_LIMB_POINTING`'s `TRACKING` substate |
+| `PointingController` | Estimated attitude, angular rate, target quaternion, B-field | Magnetic moment vector. Quaternion PD law computes torque from attitude/rate error against the target, converted to moment the same way as `SlewLimiter` | `ATTITUDE_HOLD`'s `HOLDING` substate |
+
+
+### 3.6 Commands
 
 | Mnemonic | Args | Description |
 |----------|------|-------------|
@@ -77,54 +115,49 @@ If the incoming mode matches the current mode, the handler returns immediately (
 
 ---
 
-#### 4. State Machine {.unnumbered .unlisted}
+## 4. State Machine
 
-`AdcsApplication` uses a hierarchical F' state machine. Mode is the top-level state; operational substates are nested inside each mode. A single `switchMode: Adcs.Mode` signal defined at the top level is inherited by all leaf states, making mode switches valid from any nested substate.
+`AdcsApplication` uses a hierarchical F' state machine. A single `switchMode: Adcs.Mode` signal defined at the top level is inherited by all leaf states, making mode switches valid from any nested substate.
 
-Entry/exit actions follow the FPP Least Common Ancestor rule. Every mode re-entry starts from its `initial` substate — no history.
 
 ```
 OFF
   entry: send ManagerControl.OFF via sunSensorControl
-         call magnetorquerLock(true) and imuDisturbanceOut(true)
+         call magnetorquerLock(true) and immuDisturbanceOut(true)
   exit:  send ManagerControl.ON  via sunSensorControl
-         call magnetorquerLock(false) and imuDisturbanceOut(false)
+         call magnetorquerLock(false) and immuDisturbanceOut(false)
 
 DETUMBLE
   └─ RUNNING
-       on tick: query filterAngularRateGet, filterBFieldGet, filterImuTimestampGet
-                call bDotCompute(currentBField, previousBField, angularRate) → momentVector
+       on tick: read cached current/previous B-field
+                DetumbleController(currentBField, previousBField) → momentVector
                 send momentVectorOut
 
 SUN_POINTING
-  ├─ ACQUIRING       (on tick: check filterSunTimestampGet; wait for valid sun vector)
+  ├─ ACQUIRING       (on tick: check cached sun-vector freshness; wait for valid sun vector)
   └─ TRACKING
-       on tick: query filterAttitudeGet, filterAngularRateGet, filterSunTimestampGet
-                call slewRateCompute(attitude, angularRate, targetQuaternion, 0.04°/s) → momentVector
-                call quaternionPdCompute(attitude, angularRate, targetQuaternion) → momentVector
+       on tick: read cached attitude, angular rate, angular acceleration, B-field, sun-vector freshness
+                SlewLimiter(attitude, angularRate, angularAccel, targetQuaternion, bField, 0.04°/s) → momentVector
                 send momentVectorOut
 
 ANTENNA_POINTING
   ├─ ACQUIRING       (on tick: compute ground station quaternion via GNSS ephemeris)
   └─ TRACKING
-       on tick: query filterAttitudeGet, filterAngularRateGet
-                call slewRateCompute(attitude, angularRate, targetQuaternion, 0.04°/s) → momentVector
-                call quaternionPdCompute(attitude, angularRate, targetQuaternion) → momentVector
+       on tick: read cached attitude, angular rate, angular acceleration, B-field
+                SlewLimiter(attitude, angularRate, angularAccel, targetQuaternion, bField, 0.04°/s) → momentVector
                 send momentVectorOut
 
 EARTH_LIMB_POINTING
   ├─ ACQUIRING       (on tick: acquire lit Earth limb target + solar optimization)
   └─ TRACKING
-       on tick: query filterAttitudeGet, filterAngularRateGet, filterStarTimestampGet
-                call slewRateCompute(attitude, angularRate, targetQuaternion, 0.04°/s) → momentVector
-                call quaternionPdCompute(attitude, angularRate, targetQuaternion) → momentVector
+       on tick: read cached attitude, angular rate, angular acceleration, B-field, star-tracker freshness
+                SlewLimiter(attitude, angularRate, angularAccel, targetQuaternion, bField, 0.04°/s) → momentVector
                 send momentVectorOut
 
 ATTITUDE_HOLD
   └─ HOLDING
-       on tick: query filterAttitudeGet, filterAngularRateGet
-                call slewRateCompute(attitude, angularRate, targetQuaternion, 0.04°/s) → momentVector
-                call quaternionPdCompute(attitude, angularRate, targetQuaternion) → momentVector
+       on tick: read cached attitude, angular rate, B-field
+                PointingController(attitude, angularRate, targetQuaternion, bField) → momentVector
                 send momentVectorOut
 
 # Inherited by all leaf states:
@@ -144,45 +177,24 @@ Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/doc
 
 ---
 
-#### 5. Notes {.unnumbered .unlisted}
+## 5. Notes
 
-**Subtopology wiring - sensor inputs:**
+**ADCS Subtopology**:
 
-```mermaid
-flowchart LR
-    SSM["SatStateMachine"] -->|adcsModeOut| App["AdcsApplication"]
-    Gnss["GnssManager<br/>(top-level, shared)"] -->|positionGet| App
-    StarTracker["StarTrackerManager<br/>(top-level, shared)"] -->|attitudeIn| Filter["AttitudeFilter"]
-    Filter -->|getIMUData, getMagnetometer| Imu["IMMUManager"]
-    Sun["SunSensorManager"] -->|sunVectorIn| Filter
-    Imu -->|configureDataRequest| App
-    App -->|imuConfigureGet| Imu
-```
+![AdcsApplication topology diagram](./images/AdcsApplicationTopology.png)
 
-**Subtopology wiring - control loop dispatch:**
+**Internal control flow**:
 
 ```mermaid
 flowchart LR
-    App["AdcsApplication"] -->|filter*Get, 6 ports| Filter["AttitudeFilter"]
-    App -->|bDotCompute| BDot["BDotAlgorithm"]
-    App -->|quaternionPdCompute| QPd["QuaternionPdAlgorithm"]
-    App -->|slewRateCompute| Slew["SlewRateAlgorithm"]
-    App -->|momentVectorOut| Mtq["MagnetorquerManager"]
+    Imu["IMMUManager"] -->|immuDataIn| AF
+    Sun["SunSensorManager"] -->|sunIntensitiesIn| AF
+    Star["StarTrackerManager"] -->|attitudeIn| AF
+    AF["AttitudeFilter<br/>(Kalman filter)"] --> DC["DetumbleController<br/>(Detumble)"]
+    AF --> SL["SlewLimiter<br/>(SunPointing/AntennaPointing/EarthLimbPointing)"]
+    AF --> PC["PointingController<br/>(AttitudeHold)"]
+    DC --> Out["momentVectorOut"]
+    SL --> Out
+    PC --> Out
+    Out --> Mtq["MagnetorquerManager"]
 ```
-
-**Subtopology wiring - hardware power/lock sequencing:**
-
-```mermaid
-flowchart LR
-    App["AdcsApplication"] -->|sunSensorControl| Sun["SunSensorManager"]
-    App -->|magnetorquerLock| Mtq["MagnetorquerManager"]
-    App -->|imuDisturbanceOut| Imu["IMMUManager"]
-```
-
-- `StarTrackerManager` and `GnssManager` are top-level components shared with `DataCollectionApplication`; connections are wired at the top-level topology.
-- Hardware managers (`IMMUManager`, `SunSensorManager`, `MagnetorquerManager`) and Layer 2.5 components (`AttitudeFilter`, `BDotAlgorithm`, `QuaternionPdAlgorithm`, `SlewRateAlgorithm`) are all instantiated inside the ADCS subtopology.
-- `AdcsApplication` controls `SunSensorManager` via `ManagerControlPort` ON/OFF. `MagnetorquerManager` and `IMMUManager` are controlled via the lock/disturbance pair instead; neither has an ON/OFF port.
-- `EarthLimbPointing` uses star tracker for precision attitude knowledge — `StarTrackerManager` must be operational and `filterStarTimestampGet` must return a fresh timestamp.
-- Mid-operation mode switch behavior (e.g., mode switch arriving mid-maneuver) to be defined during detailed design.
-- `BDotAlgorithm`, `QuaternionPdAlgorithm`, and `SlewRateAlgorithm` each return a magnetic moment vector; `QuaternionPdAlgorithm` computes a PD torque internally and converts it to moment itself using its own B-field input before returning. `momentVectorOut` sends this moment to `MagnetorquerManager`.
-- `MagnetorquerManager`'s own design (per Senuka's update) expects a torque vector on `getDesiredTorque` and does its own torque-to-moment conversion via `getCurrentB`. Sending it the moment `momentVectorOut` already produces would run that conversion a second time. This is unresolved and needs to be reconciled before the two are wired together — either `MagnetorquerManager` accepts a moment directly, or the algorithm components stop converting internally and return the raw PD torque instead.
