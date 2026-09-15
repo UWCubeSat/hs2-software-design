@@ -57,7 +57,7 @@ Queued component with internal flat F' state machine (`Fw::Sm`). Has a message q
 | `getSunIntensities` | Input (sync) | Custom port (`intensityGetter_p`) | Returns the most recently cached calibrated channel intensities on demand, independent of the tick cycle |
 | `csOut` | Output | `Drv.GpioWrite` | Pulls the ADC's chip select pin low before each SPI transaction; released high immediately after |
 | `spiWriteRead` | Output | `Drv.SpiWriteRead` | SPI transaction with the ADC, used for the RESET ping and channel reads. One transaction per channel. |
-| `sunIntensitiesOut` | Output | `Adcs.SunIntensityPort` | Publish the six calibrated channel intensities + timestamp to AttitudeFilter (queried by AdcsApplication via its `filter*Get` ports, not read directly from SunSensorManager) |
+| `sunIntensitiesOut` | Output | `Adcs.SunIntensityPort` | Publish the six calibrated channel intensities + timestamp directly to `AdcsApplication`'s `sunIntensitiesIn` port; `AdcsApplication`'s internal `SunVectorEstimator` converts them into a body-frame sun vector (formerly `AttitudeFilter`'s role, which never actually specified this conversion) |
 | `controlIn` | Input (async) | `Adcs.ManagerControlPort` | ON/OFF command from AdcsApplication |
 | `prmGet` | Output | `Fw.PrmGet` | Load parameters from PrmDb during the WAIT_RESET-to-RUN transition, and on parameter updates thereafter |
 | `logOut` | Output | `Fw.Log` | Event logging (state transitions, errors) |
@@ -133,7 +133,7 @@ Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fpr
 ## 5. Notes
 
 - `SunSensorManager` is instantiated inside the ADCS subtopology. Its `spiWriteRead` port connects to a `LinuxSpiDriver` instance and its `csOut` port connects to a `LinuxGpioDriver` instance, both at the top-level topology.
-- `sunIntensitiesOut` connects to `AttitudeFilter` within the ADCS subtopology, not to `AdcsApplication` directly. `AdcsApplication` reads the fused result back out via its `filter*Get` ports.
+- `sunIntensitiesOut` connects directly to `AdcsApplication`'s `sunIntensitiesIn` port. `AdcsApplication`'s internal `SunVectorEstimator` (see `AdcsApplication.md` §3.4) converts the six intensities into a body-frame sun vector; `AttitudeFilter` (which previously sat between them) no longer exists as a separate component.
 - `SunSensorManager` is **excluded from health monitoring** (`Svc::Health`). Only `AdcsApplication` is health-checked.
 - The `Adcs.SunIntensityPort` type (carrying the six calibrated channel intensities and a timestamp) is defined in the ADCS module and shared with `AdcsApplication`.
 - Deferred: exact `consecutiveFailures` threshold that triggers `AdcsApplication` to cut sensor power is a system-level parameter to be defined during detailed design.
