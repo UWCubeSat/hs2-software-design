@@ -25,6 +25,10 @@ The HS2 sun sensor array consists of six photodiode sensors mounted on the solar
 | HS2-SSM-009 | SunSensorManager shall apply updated F' parameter values by reloading them from PrmDb while remaining in RUN, without a full reset | Inspection |
 | HS2-SSM-010 | SunSensorManager shall not perform any bus operations while in WAIT_RESET | Inspection |
 | HS2-SSM-011 | SunSensorManager shall expose the most recently cached calibrated channel intensities via a synchronous getter port, so a consumer can obtain the current values on demand rather than waiting for the next RUN publish cycle | Inspection |
+| HS2-SSM-012 | SunSensorManager shall transition to OFF from any state on receipt of an OFF command via controlIn | Inspection |
+| HS2-SSM-013 | SunSensorManager shall perform no bus operations while in OFF | Inspection |
+| HS2-SSM-014 | SunSensorManager shall re-enter RESET on receipt of an ON command via controlIn while in OFF | Inspection |
+| HS2-SSM-015 | SunSensorManager OFF entry hardware shutdown sequence is TBD pending ADC hardware selection | Deferred |
 
 ---
 
@@ -32,7 +36,7 @@ The HS2 sun sensor array consists of six photodiode sensors mounted on the solar
 
 ### 3.1 Component Type
 
-Queued component with internal flat F' state machine (`Fw::Sm`). Has a message queue but no dedicated thread — executes on the `RateGroup1` caller thread each 10 Hz tick.
+Queued component with internal flat F' state machine (`Fw::Sm`). Has a message queue but no dedicated thread; it executes on the `RateGroup1` caller thread each 10 Hz tick.
 
 ### 3.2 Parameters
 
@@ -49,11 +53,11 @@ Queued component with internal flat F' state machine (`Fw::Sm`). Has a message q
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
-| `schedIn` | Input | `Svc.Sched` | 10 Hz rate group tick — drives the SM step |
+| `schedIn` | Input | `Svc.Sched` | 10 Hz rate group tick that drives the SM step |
 | `getSunIntensities` | Input (sync) | Custom port (`intensityGetter_p`) | Returns the most recently cached calibrated channel intensities on demand, independent of the tick cycle |
 | `csOut` | Output | `Drv.GpioWrite` | Pulls the ADC's chip select pin low before each SPI transaction; released high immediately after |
 | `spiWriteRead` | Output | `Drv.SpiWriteRead` | SPI transaction with the ADC, used for the RESET ping and channel reads. One transaction per channel. |
-| `sunIntensitiesOut` | Output | `Adcs.SunIntensityPort` | Publish the six calibrated channel intensities + timestamp to AttitudeFilter (queried by AdcsApplication via its `filter*Get` ports, not read directly from SunSensorManager) |
+| `sunIntensitiesOut` | Output | `Adcs.SunIntensityPort` | Publish the six calibrated channel intensities + timestamp directly to `AdcsApplication`'s `sunIntensitiesIn` port; `AdcsApplication`'s internal `SunVectorEstimator` converts them into a body-frame sun vector (formerly `AttitudeFilter`'s role, which never actually specified this conversion) |
 | `controlIn` | Input (async) | `Adcs.ManagerControlPort` | ON/OFF command from AdcsApplication |
 | `prmGet` | Output | `Fw.PrmGet` | Load parameters from PrmDb during the WAIT_RESET-to-RUN transition, and on parameter updates thereafter |
 | `logOut` | Output | `Fw.Log` | Event logging (state transitions, errors) |
@@ -67,9 +71,14 @@ Queued component with internal flat F' state machine (`Fw::Sm`). Has a message q
 
 ## 4. State Machine
 
-`SunSensorManager` uses a single flat F' state machine following the `fprime-community/fprime-sensors` `ImuManager` reference pattern. All states are peers — no nesting.
+`SunSensorManager` uses a single flat F' state machine following the `fprime-community/fprime-sensors` `ImuManager` reference pattern. All states are peers; there is no nesting.
 
 ```
+OFF
+  entry: zero all channel intensity buffers [further shutdown protocol TBD - see HS2-SSM-015]
+  on tick: no action (no bus operations)
+  on controlIn(ON) → RESET
+
 RESET
   entry: zero all channel intensity buffers
          reset wait-tick counter
@@ -99,9 +108,17 @@ RUN
   on reconfigure signal: reload CALIBRATION_SCALE_0-5, CALIBRATION_OFFSET_0-5
                           from PrmDb in place (no state transition)
 
-# From any state:
-on error signal → RESET        # self-healing fallback
+# Global signals - reachable from any state:
+on error signal       → RESET   # existing - self-healing fallback
+on controlIn(OFF)     → OFF     # new - immediate from any state, including mid-startup
+on controlIn(ON)      → RESET   # new - only meaningful from OFF; no-op from all other states
 ```
+
+**Error recovery:** `RESET` retries itself on a ping failure; `RUN` returns to `RESET` on a read error.
+
+**OFF power control:** `controlIn(OFF)` enters `OFF` from `RESET`, `WAIT_RESET`, or `RUN`.
+
+**Powering back on:** `OFF --> RESET` on `controlIn(ON)`, from any state.
 
 **Error self-healing:** Any SPI error or ADC framing loss from `RESET` or `RUN` emits a throttled `WARNING_HI` event, increments the `consecutiveFailures` telemetry channel, and re-enters `RESET`. The SM retries the full startup sequence automatically.
 
@@ -116,7 +133,9 @@ Reference: [`fprime-community/fprime-sensors/ImuManager`](https://github.com/fpr
 ## 5. Notes
 
 - `SunSensorManager` is instantiated inside the ADCS subtopology. Its `spiWriteRead` port connects to a `LinuxSpiDriver` instance and its `csOut` port connects to a `LinuxGpioDriver` instance, both at the top-level topology.
-- `sunIntensitiesOut` connects to `AttitudeFilter` within the ADCS subtopology, not to `AdcsApplication` directly. `AdcsApplication` reads the fused result back out via its `filter*Get` ports.
+- `sunIntensitiesOut` connects directly to `AdcsApplication`'s `sunIntensitiesIn` port. `AdcsApplication`'s internal `SunVectorEstimator` (see `AdcsApplication.md` §3.4) converts the six intensities into a body-frame sun vector; `AttitudeFilter` (which previously sat between them) no longer exists as a separate component.
 - `SunSensorManager` is **excluded from health monitoring** (`Svc::Health`). Only `AdcsApplication` is health-checked.
 - The `Adcs.SunIntensityPort` type (carrying the six calibrated channel intensities and a timestamp) is defined in the ADCS module and shared with `AdcsApplication`.
 - Deferred: exact `consecutiveFailures` threshold that triggers `AdcsApplication` to cut sensor power is a system-level parameter to be defined during detailed design.
+- Deferred: OFF entry hardware shutdown sequence beyond zeroing the intensity buffers depends on the selected ADC hardware (HS2-SSM-015).
+- `controlIn` is driven by `AdcsApplication`'s `sunSensorControl` output port; `AdcsApplication` sends `OFF` on entry to its own `Off` mode and `ON` on exit, per `docs/superpowers/specs/2026-05-05-adcs-hardware-manager-off-state-design.md`.
