@@ -1,4 +1,4 @@
-### EPSApplication
+# EPSApplication
 
 #### 1. Overview {.unnumbered .unlisted}
 
@@ -6,7 +6,6 @@
 
 Unlike other Layer 3 components, `EPSApplication` has no internal state machine. It operates identically regardless of satellite mode.
 
----
 
 #### 2. Requirements {.unnumbered .unlisted}
 
@@ -19,7 +18,6 @@ Unlike other Layer 3 components, `EPSApplication` has no internal state machine.
 | HS2-EPS-005 | EPSApplication shall operate continuously regardless of satellite mode. | Inspection |
 | HS2-EPS-006 | EPSApplication shall respond to health ping within the required deadline. | Inspection |
 
----
 
 #### 3. Design {.unnumbered .unlisted}
 
@@ -50,7 +48,6 @@ Active component. No hierarchical state machine. `EPSApplication` operates conti
 |----------|------|-------------|
 | `DEPLOY_PANELS` | - | Trigger panel deployment sequence via DeployPanelsManager |
 
----
 
 #### 4. Operational Behavior {.unnumbered .unlisted}
 
@@ -84,7 +81,6 @@ cmdIn DEPLOY_PANELS
   → send cmdResponse OK
 ```
 
----
 
 #### 5. Notes {.unnumbered .unlisted}
 

@@ -6,7 +6,6 @@
 
 It uses the Linux PWM sysfs interface (`/sys/class/pwm/pwmchipN/pwmM/`). One driver instance owns one channel. 
 
----
 
 ## 2. Requirements {.unnumbered .unlisted}
 
@@ -18,7 +17,6 @@ It uses the Linux PWM sysfs interface (`/sys/class/pwm/pwmchipN/pwmM/`). One dri
 | HS2-PWM-004 | LinuxPwmDriver shall report an open failure, an invalid request, or a runtime write failure to its caller. | Inspection |
 | HS2-PWM-005 | LinuxPwmDriver shall report open and runtime failures through F' events. | Inspection |
 
-***
 
 ## 3. Design {.unnumbered .unlisted}
 

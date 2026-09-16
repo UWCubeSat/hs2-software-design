@@ -1,4 +1,4 @@
-### TemperatureSensorManager
+## TemperatureSensorManager
 
 TemperatureSensorManager is a Layer 2 Queued worker component in the Thermal subtopology. It owns all onboard temperature sensors, sequencing their power-up and configuration through an internal state machine, polling them once per rate-group tick.
 

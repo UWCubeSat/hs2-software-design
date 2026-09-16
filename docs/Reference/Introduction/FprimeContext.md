@@ -90,4 +90,4 @@ HuskySat-2's CCSDS service components fill in the framing and packet-routing sta
 
 The command and telemetry list, including both F' events and telemetry channels, can be viewed in the CTL document. The CTL document is maintained separately and is not part of this SDD.
 
-The Ground Data System document separately defines the ground-station hardware, ground software, and operator-facing workflows. This SDD defines the flight-software boundary: command decoding, validation, dispatch, status response, telemetry, and event interfaces that the ground system consumes. It does not duplicate the ground-software design.
+Refer to the separate Ground Data System (GDS) document for the ground-station hardware, ground software, networking, and operator-facing workflows. This SDD defines the flight-software boundary: command decoding, validation, dispatch, status response, telemetry, and event interfaces that the ground system consumes. It does not duplicate the ground-software design; the GDS document is the authoritative source for that material.

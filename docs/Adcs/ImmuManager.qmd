@@ -1,4 +1,4 @@
-### ImmuManager
+## ImmuManager
 
 ImmuManager is a Layer 2 Queued worker component in the ADCS subtopology. It owns the VN-100 IMU/AHRS sensor, bringing it up over a serial link through an internal state machine and serving cached accel/gyro/magnetometer/temperature readings to the rest of ADCS.
 

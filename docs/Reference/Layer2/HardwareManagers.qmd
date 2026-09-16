@@ -1,37 +1,41 @@
-# Hardware Managers
-
-Level 2 owns hardware protocols, initialization, device-specific telemetry, and recovery behavior. The following subsections organize the managers by the subsystem that owns their hardware interfaces.
-
 {{< include Adcs.md >}}
 
+\newpage
 {{< include ../../Adcs/ImmuManager.qmd >}}
 
+\newpage
 {{< include ../../Adcs/SunSensorManager.qmd >}}
 
+\newpage
 {{< include ../../Adcs/MagnetorquerManager.qmd >}}
 
 {{< include Communications.md >}}
-
+\newpage
 {{< include ../../Comms/TmtcRadioManager.md >}}
 
 {{< include Payload.md >}}
-
+\newpage
 {{< include ../../DataCollection/CameraManager.md >}}
 
+\newpage
 {{< include ../../DataCollection/GnssManager.qmd >}}
 
 {{< include Eps.md >}}
-
+\newpage
 {{< include ../../EPS/CurrentSensorManager.qmd >}}
 
+\newpage
 {{< include ../../EPS/DeployPanelsManager.md >}}
 
+\newpage
 {{< include ../../EPS/MpptManager.qmd >}}
 
+\newpage
 {{< include ../../EPS/WatchdogPinger.md >}}
 
 {{< include Thermal.md >}}
-
+\newpage
 {{< include ../../Thermal/HeaterManager.qmd >}}
 
+\newpage
 {{< include ../../Thermal/TemperatureSensorManager.qmd >}}

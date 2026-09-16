@@ -1,37 +1,19 @@
-# Application Components
-
-Level 3 applies mission and subsystem policy through F' applications, data services, and ADCS algorithms. Each subsection below identifies the owning subsystem and the components that implement its behavior.
-
 {{< include ../Fprime/ProvidedApplicationServices.md >}}
 
-{{< include Adcs.md >}}
-
+\newpage
 {{< include ../../Adcs/AdcsApplication.qmd >}}
 
-{{< include ../../Adcs/AttitudeFilter.md >}}
-
-{{< include ../../Adcs/BDotAlgorithm.md >}}
-
-{{< include ../../Adcs/QuaternionPdAlgorithm.md >}}
-
-{{< include ../../Adcs/SlewRateAlgorithm.md >}}
-
-{{< include DataCollection.md >}}
-
+\newpage
 {{< include ../../DataCollection/DataCollectionApplication.qmd >}}
 
-{{< include Communications.md >}}
-
+\newpage
 {{< include ../../Comms/ComApplication.qmd >}}
 
-{{< include Eps.md >}}
-
+\newpage
 {{< include ../../EPS/EPSApplication.qmd >}}
 
-{{< include Science.md >}}
-
+\newpage
 {{< include ../../ScienceInference/ScienceInferenceApplication.qmd >}}
 
-{{< include Thermal.md >}}
-
+\newpage
 {{< include ../../Thermal/ThermalApplication.qmd >}}

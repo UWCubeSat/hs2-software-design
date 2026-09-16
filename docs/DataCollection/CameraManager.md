@@ -1,4 +1,4 @@
-### CameraManager
+## CameraManager
 
 `CameraManager` is a Layer 2 queued component driving one physical camera. It is meant to be
 instantiated once per camera.

@@ -18,7 +18,7 @@ Code will use clear names, concise comments where intent is not evident from the
 
 The verification sequence is component test, GDS deployment test, subsystem test, and integrated-topology test, as defined in the Verification and Test Plan appendix. Test procedures and reports will state their configuration, pass/fail criteria, observed telemetry and events, anomalies, and the source revision tested. A release candidate will be tagged or otherwise identified only after the required evidence for its intended test level has been reviewed.
 
-The team will track work in the program schedule and task tracker. Each task will identify an owner, dependencies, planned milestone, and completion criteria. Milestones will cover component completion, hardware-manager integration, application/subsystem deployment, integrated flight-software deployment, and the test-readiness points needed for the UNP review schedule.
+The team will track work in the program schedule and task tracker. Each task will identify an owner, dependencies, planned milestone, and completion criteria. The Schedule document is the authoritative source for milestone dates, deadlines, and review dates; this SDD will refer to that document rather than duplicate dates that can become stale. Milestones will cover component completion, hardware-manager integration, application/subsystem deployment, integrated flight-software deployment, and the test-readiness points needed for the UNP review schedule.
 
 ## Roles and Accountability
 

@@ -1,4 +1,4 @@
-### DataCollectionApplication
+# DataCollectionApplication
 
 `DataCollectionApplication` is the Layer 3 active component for the DataCollection subtopology.
 Every image capture is a ground-commanded event: ground sends `RUN_EXPERIMENT` with a complete set
@@ -42,7 +42,6 @@ The component is driven by two synchronous input ports:
 | HS2-DCA-009 | DataCollectionApplication shall switch operating mode on command from SatStateMachine | Inspection |
 | HS2-DCA-010 | DataCollectionApplication shall respond to health ping within the required deadline | Inspection |
 
-***
 
 ##### Ports {.unnumbered .unlisted}
 
@@ -66,7 +65,6 @@ The component is driven by two synchronous input ports:
 
 Once an experiment is commanded, Data Collection calculates and requests an attitude from ADCS based on the required image types. Data Collection then polls the current attitude until the request is satisfied. If no attitude can satisfy the requirements at the current position in orbit, a warning is thrown and Data Collection caches the request to keep working through the queue.
 
-***
 
 #### State Machine {.unnumbered .unlisted}
 
@@ -109,7 +107,6 @@ stateDiagram
     }
     RUN --> OFF : disableSuccess
 ```
-
 ```
 [*] --> INIT
 INIT --> OFF : tick

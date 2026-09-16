@@ -42,6 +42,7 @@ This SDD defines the verification strategy and the component-level verification 
 |---|---|
 | Command and Telemetry List (CTL) | Defines the operator-visible commands, telemetry channels, events, and command-response expectations used by the ground interface. |
 | Ground Data System (GDS) document | Defines the ground hardware, ground software, and operator workflows used to send commands and observe flight responses during test and operations. |
+| Schedule document | Defines the authoritative development milestones, review dates, and deadlines; this SDD does not duplicate those dates. |
 | Requirements Verification Matrix (RVM) | Traces mission and system requirements to their verification methods, procedures, evidence, and closure status. |
 | Unit, GDS, subsystem, and integrated test procedures and reports | Define execution steps, pass/fail criteria, configurations, as-run results, and anomaly records for the verification levels described in this SDD. |
 | Data budget | Defines telemetry, event, image, storage, and downlink volume assumptions used to set the test configurations and acceptance criteria. |

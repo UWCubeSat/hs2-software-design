@@ -1,10 +1,9 @@
-### DeployPanelsManager
+## DeployPanelsManager
 
 #### 1. Overview {.unnumbered .unlisted}
 
 `DeployPanelsManager` is a Layer 2 Active component that executes the solar panel deployment sequence when commanded by `EPSApplication`. It maintains a two-state machine tracking whether deployment has previously occurred. In both states the burn wire sequence executes; in the `DEPLOYED` state an additional `WARNING_HI` event is emitted to notify the operator that this is a re-attempt. There is no automatic retry — each deployment attempt requires an explicit `DEPLOY_PANELS` command from ground via `EPSApplication`.
 
-***
 
 #### 2. Requirements {.unnumbered .unlisted}
 
@@ -13,7 +12,6 @@
 | HS2-DPM-001 | `DeployPanelsManager` shall activate the burn wire sequence upon receipt of a deploy command originating from ground. | Test |
 | HS2-DPM-002 | `DeployPanelsManager` shall emit events upon beginning and ending the burn sequence. | Test |
 
-***
 
 #### 3. Design {.unnumbered .unlisted}
 
@@ -33,7 +31,6 @@ Active component with internal flat F' state machine (`Fw::Sm`).
 
 None. `DeployPanelsManager` is driven entirely by the `deploy` port call from `EPSApplication`, which itself accepts the ground `DEPLOY_PANELS` command.
 
-***
 
 #### 4. State Machine {.unnumbered .unlisted}
 
@@ -57,7 +54,6 @@ DEPLOYED
                         (remain in DEPLOYED)
 ```
 
-***
 
 #### 5. Notes {.unnumbered .unlisted}
 

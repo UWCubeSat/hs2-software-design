@@ -14,6 +14,7 @@ book:
     - part: "Level 4 - System Services and Control Layer"
       chapters:
         - docs/Core/SatStateMachine.qmd
+        - docs/Reference/Fprime/CmdDispatcher.qmd
         - docs/Reference/Fprime/ProvidedSystemServices.md
         - docs/Reference/Fprime/FatalHandler.qmd
 
@@ -40,6 +41,7 @@ book:
         - docs/Reference/Introduction/RadiationToleranceAndStorage.qmd
         - docs/Reference/Introduction/VerificationAndTestPlan.md
         - docs/Reference/Introduction/SoftwareDevelopmentProcess.md
+        - docs/Reference/Introduction/RevisionHistory.md
         - docs/Reference/Introduction/Acronyms.md
 
     - docs/Reference/References.md

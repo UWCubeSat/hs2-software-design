@@ -47,7 +47,6 @@ This section collects the external documentation and design sources referenced b
 - [Svc::CmdDispatcher](https://fprime.jpl.nasa.gov/latest/Svc/CmdDispatcher/docs/sdd/)
 - [Svc::ComAggregator](https://github.com/nasa/fprime/tree/devel/Svc/ComAggregator)
 - [Svc::ComQueue](https://github.com/nasa/fprime/tree/devel/Svc/ComQueue)
-- [Svc::ComStub](https://github.com/nasa/fprime/tree/devel/Svc/ComStub)
 - [Svc::DpCatalog](https://github.com/nasa/fprime/tree/devel/Svc/DpCatalog)
 - [Svc::DpManager](https://github.com/nasa/fprime/tree/devel/Svc/DpManager)
 - [Svc::DpWriter](https://github.com/nasa/fprime/tree/devel/Svc/DpWriter)

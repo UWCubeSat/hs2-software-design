@@ -1,14 +1,13 @@
-# AdcsApplication SDD
+# AdcsApplication
 
-## 1. Overview
+## Overview {.unnumbered .unlisted}
 
 `AdcsApplication` is the Layer 3 Active component for the ADCS subsystem. It owns the attitude control loop and switches operating mode on command from `SatStateMachine`. It dispatches actuator commands to Layer 2 hardware managers (`IMMUManager`, `SunSensorManager`, `MagnetorquerManager`) and consumes attitude from `StarTrackerManager` and timing from `GnssManager`.
 
 Attitude estimation and all control law computation are internal to `AdcsApplication` itself. `AdcsApplication` receives raw sensor data directly from the hardware managers and `StarTrackerManager`, maintains its own cached state estimate, and runs internal control functions: `DetumbleController` in `Detumble`, `SlewLimiter` in the three maneuvering pointing modes, and `PointingController` in steady-state `AttitudeHold`. It then turns that estimate into a commanded magnetic moment.
 
----
 
-## 2. Requirements
+## Requirements {.unnumbered .unlisted}
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
@@ -30,15 +29,14 @@ Attitude estimation and all control law computation are internal to `AdcsApplica
 | HS2-ADC-016 | AdcsApplication shall compute a body frame sun vector via `SunVectorEstimator` from the six calibrated intensities published by `SunSensorManager` | Inspection |
 
 
----
 
-## 3. Design
+## Design {.unnumbered .unlisted}
 
-### 3.1 Component Type
+### Component Type {.unnumbered .unlisted}
 
 Active component with internal hierarchical F' state machine (`Fw::Sm`).
 
-### 3.2 Mode Interface
+### Mode Interface {.unnumbered .unlisted}
 
 `AdcsApplication` receives its operating mode from `SatStateMachine` via a typed port:
 
@@ -56,7 +54,7 @@ module Adcs {
 
 If the incoming mode matches the current mode, the handler returns immediately.
 
-### 3.3 Ports
+### Ports {.unnumbered .unlisted}
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
@@ -76,7 +74,7 @@ If the incoming mode matches the current mode, the handler returns immediately.
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry |
 
 
-### 3.4 Internal State Estimate
+### Internal State Estimate {.unnumbered .unlisted}
 
 Referred to as `AttitudeFilter` in the diagrams below (its name when it was a separate component) — internal to `AdcsApplication` now, not a distinct component.
 
@@ -96,26 +94,25 @@ Referred to as `AttitudeFilter` in the diagrams below (its name when it was a se
 **9-state MEKF** Attitude error (3) + angular velocity (3) + gyro bias (3) as filter states. Gyro readings treated as a noisy *measurement* of a separately propagating rate state (Kalman corrected each tick), not fed straight into propagation. Prediction created by propagating quaternion via kinematics driven by the current rate estimate, propagating the 9×9 covariance with process noise `sigma_omega_rw`/`sigma_bg_rw`. Star tracker gives a full quaternion correction (`sigma_st`), gyro gives a rate correction (`sigma_gyr`).
 
 
-### 3.5 Internal Control Functions
+### Internal Control Functions {.unnumbered .unlisted}
 
 Three control law computations are internal functions inside `AdcsApplication`. 
 
 | Function | Inputs | Output | Called from |
 |---|---|---|---|
-| `DetumbleController` | Current B-field, previous Bfield | Magnetic moment vector: `m = -k · dB/dt` (using B-dot law) | `DETUMBLE`/`RUNNING`, each tick. The only control function active in `Detumble` |
-| `SlewLimiter` | Estimated attitude, angular rate, angular acceleration, target quaternion, B-field, slew rate limit | Magnetic moment vector, via a cascaded control law. Outer P loop on the attitude error angle (capped to the slew limit) produces a rate command, inner rate PID loop (using angular acceleration as its derivative term) turns that into a torque, torque is converted to moment via `m = (B x τ) / \|B\|²` | `SUN_POINTING`, `ANTENNA_POINTING`, and `EARTH_LIMB_POINTING`'s `TRACKING` substate |
+| `DetumbleController` | Current B-field, previous B-field | Magnetic moment vector computed from the change in the B-field using the B-dot law. | `DETUMBLE`/`RUNNING`, each tick. The only control function active in `Detumble` |
+| `SlewLimiter` | Estimated attitude, angular rate, angular acceleration, target quaternion, B-field, slew rate limit | Magnetic moment vector, via a cascaded control law. Outer P loop on the attitude error angle (capped to the slew limit) produces a rate command, inner rate PID loop (using angular acceleration as its derivative term) turns that into a torque, then computes the magnetic moment as the cross product of B and torque divided by the squared magnitude of B. | `SUN_POINTING`, `ANTENNA_POINTING`, and `EARTH_LIMB_POINTING`'s `TRACKING` substate |
 | `PointingController` | Estimated attitude, angular rate, target quaternion, B-field | Magnetic moment vector. Quaternion PD law computes torque from attitude/rate error against the target, converted to moment the same way as `SlewLimiter` | `ATTITUDE_HOLD`'s `HOLDING` substate |
 
 
-### 3.6 Commands
+### Commands {.unnumbered .unlisted}
 
 | Mnemonic | Args | Description |
 |----------|------|-------------|
 | `RESET` | — | Force transition back to current mode's initial substate |
 
----
 
-## 4. State Machine
+## State Machine {.unnumbered .unlisted}
 
 `AdcsApplication` uses a hierarchical F' state machine. A single `switchMode: Adcs.Mode` signal defined at the top level is inherited by all leaf states, making mode switches valid from any nested substate.
 
@@ -175,17 +172,16 @@ on switchMode(Adcs.Mode.AttitudeHold)      enter ATTITUDE_HOLD
 
 Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions), [FPP substates](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#substates)
 
----
 
-## 5. Notes
+## Notes {.unnumbered .unlisted}
 
 **ADCS Subtopology**:
 
-![AdcsApplication topology diagram](./images/AdcsApplicationTopology.png)
+![AdcsApplication topology diagram](../../Adcs/images/AdcsApplicationTopology.png)
 
 **Internal control flow**:
 
-```mermaid
+```{mermaid}
 flowchart LR
     Imu["IMMUManager"] -->|immuDataIn| AF
     Sun["SunSensorManager"] -->|sunIntensitiesIn| AF

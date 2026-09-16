@@ -1,8 +1,8 @@
-## F' Application and Data Services
+# F' Application and Data Services
 
 These F' components support the Level 3 application and data paths. They are grouped here so that short framework-component descriptions do not each force a new PDF page.
 
-### Svc::ComQueue
+## Svc::ComQueue
 
 **Type:** Active component.
 
@@ -10,15 +10,7 @@ These F' components support the Level 3 application and data paths. They are gro
 
 [ComQueue source and interface](https://github.com/nasa/fprime/tree/devel/Svc/ComQueue)
 
-### Svc::ComStub
-
-**Type:** Passive communications bridge.
-
-`Svc::ComStub` connects packet-oriented F' components to a byte-stream driver. The CCSDS communications path uses it to connect framing and deframing components to `LinuxUartDriver` through the radio manager.
-
-[ComStub source and interface](https://github.com/nasa/fprime/tree/devel/Svc/ComStub)
-
-### Svc::FrameAccumulator
+## Svc::FrameAccumulator
 
 **Type:** Passive component.
 
@@ -26,7 +18,7 @@ These F' components support the Level 3 application and data paths. They are gro
 
 [FrameAccumulator source and interface](https://github.com/nasa/fprime/tree/devel/Svc/FrameAccumulator)
 
-### Svc::FprimeRouter
+## Svc::FprimeRouter
 
 **Type:** Passive component.
 
@@ -34,7 +26,7 @@ These F' components support the Level 3 application and data paths. They are gro
 
 [FprimeRouter source and interface](https://github.com/nasa/fprime/tree/devel/Svc/FprimeRouter)
 
-### Svc::FprimeFramer and Svc::FprimeDeframer
+## Svc::FprimeFramer and Svc::FprimeDeframer
 
 **Type:** Passive components.
 
@@ -43,7 +35,7 @@ These F' components support the Level 3 application and data paths. They are gro
 [FprimeFramer source and interface](https://github.com/nasa/fprime/tree/devel/Svc/FprimeFramer)  
 [FprimeDeframer source and interface](https://github.com/nasa/fprime/tree/devel/Svc/FprimeDeframer)
 
-### Svc::Ccsds::TmFramer and Svc::Ccsds::TcDeframer
+## Svc::Ccsds::TmFramer and Svc::Ccsds::TcDeframer
 
 **Type:** Passive components.
 
@@ -52,7 +44,7 @@ These F' components support the Level 3 application and data paths. They are gro
 [CCSDS TM framer source](https://github.com/nasa/fprime/tree/devel/Svc/Ccsds/TmFramer)  
 [CCSDS TC deframer source](https://github.com/nasa/fprime/tree/devel/Svc/Ccsds/TcDeframer)
 
-### Svc::Ccsds::SpacePacketFramer and Svc::Ccsds::SpacePacketDeframer
+## Svc::Ccsds::SpacePacketFramer and Svc::Ccsds::SpacePacketDeframer
 
 **Type:** Passive components.
 
@@ -61,7 +53,7 @@ These F' components support the Level 3 application and data paths. They are gro
 [CCSDS space-packet framer source](https://github.com/nasa/fprime/tree/devel/Svc/Ccsds/SpacePacketFramer)  
 [CCSDS space-packet deframer source](https://github.com/nasa/fprime/tree/devel/Svc/Ccsds/SpacePacketDeframer)
 
-### Svc::Ccsds::ApidManager
+## Svc::Ccsds::ApidManager
 
 **Type:** Passive component.
 
@@ -69,7 +61,7 @@ These F' components support the Level 3 application and data paths. They are gro
 
 [CCSDS APID manager source](https://github.com/nasa/fprime/tree/devel/Svc/Ccsds/ApidManager)
 
-### Svc::ComAggregator
+## Svc::ComAggregator
 
 **Type:** Passive component.
 
@@ -77,7 +69,7 @@ These F' components support the Level 3 application and data paths. They are gro
 
 [ComAggregator source and interface](https://github.com/nasa/fprime/tree/devel/Svc/ComAggregator)
 
-### Svc::FileUplink and Svc::FileDownlink
+## Svc::FileUplink and Svc::FileDownlink
 
 **Type:** Active components.
 
@@ -86,7 +78,7 @@ These F' components support the Level 3 application and data paths. They are gro
 [FileUplink source and interface](https://github.com/nasa/fprime/tree/devel/Svc/FileUplink)  
 [FileDownlink source and interface](https://github.com/nasa/fprime/tree/devel/Svc/FileDownlink)
 
-### Svc::FileManager
+## Svc::FileManager
 
 **Type:** Active component.
 
@@ -94,7 +86,7 @@ These F' components support the Level 3 application and data paths. They are gro
 
 [FileManager source and interface](https://github.com/nasa/fprime/tree/devel/Svc/FileManager)
 
-### Svc::PrmDb
+## Svc::PrmDb
 
 **Type:** Active component.
 
@@ -102,7 +94,7 @@ These F' components support the Level 3 application and data paths. They are gro
 
 [PrmDb source and interface](https://github.com/nasa/fprime/tree/devel/Svc/PrmDb)
 
-### Svc::DpManager, Svc::DpWriter, and Svc::DpCatalog
+## Svc::DpManager, Svc::DpWriter, and Svc::DpCatalog
 
 **Type:** Active components.
 

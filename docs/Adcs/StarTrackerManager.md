@@ -1,13 +1,12 @@
-# StarTrackerManager SDD
+# StarTrackerManager
 
-## 1. Overview
+## Overview {.unnumbered .unlisted}
 
 `StarTrackerManager` is the Layer 2 hardware manager for the star tracker, an arcsec NV **Sagitta**. 
 The Sagitta determines attitude on its own (camera + onboard lost-in-space and tracking algorithms) and reports it as a mounting calibrated quaternion. `StarTrackerManager`'s job is to boot the device into main firmware, load its configuration, subscribe to its solution telemetry, and cache/republish the calibrated attitude.
 
----
 
-## 2. Requirements
+## Requirements {.unnumbered .unlisted}
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
@@ -22,21 +21,20 @@ The Sagitta determines attitude on its own (camera + onboard lost-in-space and t
 | HS2-STR-009 | StarTrackerManager shall log a WARNING_HI event and increment a consecutive failure counter on any communication or action reply error | Inspection |
 | HS2-STR-010 | StarTrackerManager shall return to RESET after `MAX_CONSECUTIVE_COMM_ERRORS` is reached | Inspection |
 
----
 
-## 3. Design
+## Design {.unnumbered .unlisted}
 
-### 3.1 Component Type
+### Component Type {.unnumbered .unlisted}
 
 Active component with an internal flat F' state machine (`Fw::Sm`). All bus access goes through `LinuxUartDriver`, wired to the `ByteStreamDriverClient` port pattern.
 
 The Omnetics connector has no dedicated hardware reset line so `StarTrackerManager` has no `resetOut`/`GpioWrite` port. Power sequencing of the unit itself is owned by EPS. RESET here just means waiting for the star tracker's own power on boot into its bootloader to settle.
 
-### 3.2 Reference Frame & Mounting
+### Reference Frame & Mounting {.unnumbered .unlisted}
 
 The Sagitta's local frame has its origin at the center of the camera, X out through the aperture (boresight), Y in the mounting plane, Z completing the right hand set (Manual Figure 2.2, §2.2, p.17). The star tracker itself rotates its raw tracking solution into the spacecraft frame onboard, using a mounting quaternion that must be uploaded during CONFIGURE. The `CalibratedQuaternion_*` fields of the Solution telemetry are already expressed in the spacecraft frame. `StarTrackerManager` reads and republishes those fields directly, with no additional rotation.
 
-### 3.3 Parameters
+### Parameters {.unnumbered .unlisted}
 
 
 | Parameter | Type | Description |
@@ -46,7 +44,7 @@ The Sagitta's local frame has its origin at the center of the camera, X out thro
 | `SETTIME_RESYNC_TICKS` | `U32` | Ticks between periodic SetTime resyncs in RUN, bounding RTC drift |
 | `MAX_CONSECUTIVE_COMM_ERRORS` | `U32` | Consecutive comm/action reply errors in RUN before forcing a return to RESET |
 
-### 3.4 Ports
+### Ports {.unnumbered .unlisted}
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
@@ -63,7 +61,7 @@ The Sagitta's local frame has its origin at the center of the camera, X out thro
 | `logOut` | Output | `Fw.Log` | Event logging |
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry |
 
-### 3.5 Commands
+### Commands {.unnumbered .unlisted}
 
 | Command Name | Parameters | Description | Response format | Postcondition |
 |--------------|------------|-------------|--------------------------------------|----------------|
@@ -73,9 +71,8 @@ The Sagitta's local frame has its origin at the center of the camera, X out thro
 | `CAPTURE_CALIBRATION_FRAME` | — | Issues a Camera action (ID 15, `actionid=4`, "take a frame"). The frame must already be held in memory (`ImageProcessor.store = 1`) for Download to retrieve it. Then issues repeated Download actions (ID 9), each returning at most 1024 bytes. | Camera response is empty. Each Download response returns `position: u32` (echoed) + `data: u8[1024]` | A calibration frame is captured and downloaded, for ground troubleshooting or in-orbit diagnostics |
 | `FORCE_RESET` | — | Forces `StarTrackerManager`'s own state machine back to RESET | N/A | `StarTrackerManager` is in `RESET` |
 
----
 
-## 4. State Machine
+## State Machine {.unnumbered .unlisted}
 
 ```
 RESET
@@ -128,6 +125,5 @@ RUN
 
 Reference: [`fprime-community/fprime-sensors` `ImuManager`](https://github.com/fprime-community/fprime-sensors/tree/devel/fprime-sensors/MpuImu/Components/ImuManager) (flat SM reference pattern), [FPP flat state machines](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc)
 
----
 
-## 5. Notes
+## Notes {.unnumbered .unlisted}

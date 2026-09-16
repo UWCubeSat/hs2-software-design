@@ -1,6 +1,6 @@
-# SatStateMachine SDD
+# SatStateMachine
 
-## 1. Overview
+## Overview {.unnumbered .unlisted}
 
 `SatStateMachine` is the Layer 4 "Mission Orchestration" component. It is an **Active** component, instantiated at the **top-level topology** since it is not scoped to any single subtopology.
  It evaluates the satellite's top level operating mode among four sibling states, Safe, Downlink, Science, and Charge, reevaluated every 1 Hz tick. All condition inputs
@@ -10,7 +10,7 @@ arrive precomputed via typed ports from Layer 3 applications.
 transition it is intended to command each Layer 3 application component's own operating
 mode via a dedicated typed port. 
 
-## 2. Requirements
+## Requirements {.unnumbered .unlisted}
 
 | ID | Requirement | Verification |
 |----|-------------|---------------|
@@ -26,16 +26,15 @@ mode via a dedicated typed port.
 | HS2-SAT-010 | SatStateMachine shall not enter Downlink unless `ComApplication` reports downlink readiness via `commsReadyIn` | Inspection |
 | HS2-SAT-011 | SatStateMachine shall command `AdcsApplication` into `Detumble` on entry to `Safe`, then into `SunPointing` once `DETUMBLE_DURATION_TICKS` ticks have elapsed in `Safe`, checking the persisted `PANELS_DEPLOYED` parameter at that point to determine whether panel deployment is still needed | Inspection |
 
----
 
-## 3. Design
+## Design {.unnumbered .unlisted}
 
-### 3.1 Component Type
+### Component Type {.unnumbered .unlisted}
 
 Active component. Internal `Fw::Sm` state machine with four top level sibling states
 (`SAFE`, `DOWNLINK`, `SCIENCE`, `CHARGE`). `schedIn` is driven by `RateGroup2` (1 Hz).
 
-### 3.2 Parameters
+### Parameters {.unnumbered .unlisted}
 
 | Parameter | Type | Description |
 |-----------|------|--------------|
@@ -45,7 +44,7 @@ Active component. Internal `Fw::Sm` state machine with four top level sibling st
 | `DETUMBLE_DURATION_TICKS` | `U32` | Ticks after entering `Safe` before commanding `AdcsApplication` from `Detumble` to `SunPointing`. |
 | `PANELS_DEPLOYED` | `bool` | Set once solar panel deployment has completed. Read by `SatStateMachine` at the `DETUMBLE_DURATION_TICKS` boundary to determine whether deployment is still needed, so a completed deployment is not requested again. |
 
-### 3.3 Ports
+### Ports {.unnumbered .unlisted}
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
@@ -64,7 +63,7 @@ Active component. Internal `Fw::Sm` state machine with four top level sibling st
 | `logOut` | Output | `Fw.Log` | Event logging |
 | `tlmOut` | Output | `Fw.Tlm` | Telemetry |
 
-### 3.4 Commands
+### Commands {.unnumbered .unlisted}
 
 | Command Name | Parameters | Description | Postcondition |
 |--------------|------------|-------------|----------------|
@@ -74,9 +73,8 @@ Active component. Internal `Fw::Sm` state machine with four top level sibling st
 | `RESET` | — | Forces reentry to `SAFE` | `SatStateMachine` is in `SAFE`; `detumbleTickCounter` reset to 0 |
 
 
----
 
-## 4. State Machine
+## State Machine {.unnumbered .unlisted}
 
 ![SatStateMachine mode transitions](./images/SatStateMachineModeDiagram.png)
 
@@ -130,7 +128,10 @@ DOWNLINK / SCIENCE / CHARGE
      one already active)
 ```
 
+\newpage
+
 **Mode to app translation table**
+
 | Mode | Safe | Downlink | Science | Charge |
 |---|---|---|---|---|
 | `AdcsApplication` | Detumble | AntennaPointing | EarthLimbPointing | SunPointing |
@@ -139,10 +140,12 @@ DOWNLINK / SCIENCE / CHARGE
 | `ComApplication` | Beacon | StandardDownlink | Beacon | Beacon |
 | `ThermalApplication` | NoHeating | ActiveHeating | ActiveHeating | ActiveHeating |
 
----
 
+
+\newpage
 
 **Hardware in each Mode**
+
 | Mode | Safe | Charge | Downlink | Science |
 |---|---|---|---|---|
 | ADCS |   |   |   |   |
@@ -164,10 +167,10 @@ DOWNLINK / SCIENCE / CHARGE
 | Temperature Sensors | 1 | 1 | 1 | 1 |
 | Heaters | 0 | 1 | 1 | 1 |
 
----
 
 '*' indicates that the panel deployment is not always on in safe mode but that that is the only time that could happen 
-## 5. Notes
+
+## Notes {.unnumbered .unlisted}
 
 - Reference: [FPP flat/hierarchical state machines, choice pseudostates, inherited
   transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc)

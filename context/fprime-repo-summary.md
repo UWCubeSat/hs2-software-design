@@ -123,7 +123,6 @@ Six steps in `<Project>Topology.cpp`:
 |-----------|------|---------|
 | `Svc::ComQueue` | Active | Queues events and telemetry packets for downlink |
 | `Svc::ComAggregator` | Passive | Aggregates multiple outgoing data streams |
-| `Svc::ComStub` | Passive | Com interface bridge to byte-stream driver |
 | `Svc::FrameAccumulator` | Passive | Accumulates bytes into complete frames |
 | `Svc::FprimeRouter` | Passive | Routes deframed packets to correct destinations |
 | `Svc::FprimeFramer` | Passive | Frames packets in F' native protocol |
@@ -216,10 +215,10 @@ Full CCSDS communications stack. Includes:
 - `comQueue`, `frameAccumulator`, `commsBufferManager`, `fprimeRouter`
 - `tcDeframer`, `spacePacketDeframer` (uplink)
 - `framer` (TmFramer), `spacePacketFramer`, `apidManager`, `aggregator` (downlink)
-- `comStub` (bridges to byte-stream driver)
+The HuskySat-2 deployment does not instantiate `Svc::ComStub`; `TmtcRadioManager` provides the byte-stream adapter boundary directly.
 
-Downlink path: `ComQueue → SpacePacketFramer → Aggregator → TmFramer → ComStub → Driver`
-Uplink path: `Driver → ComStub → FrameAccumulator → TcDeframer → SpacePacketDeframer → FprimeRouter`
+Downlink path: `ComQueue → SpacePacketFramer → Aggregator → TmFramer → TmtcRadioManager → Driver`
+Uplink path: `Driver → TmtcRadioManager → FrameAccumulator → TcDeframer → SpacePacketDeframer → FprimeRouter`
 
 ### FileHandling (`Svc/Subtopologies/FileHandling/FileHandling.fpp`)
 File uplink, downlink, and management. Includes:
