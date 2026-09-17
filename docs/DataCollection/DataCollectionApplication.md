@@ -58,7 +58,7 @@ The component is driven by two synchronous input ports:
 | `cameraCapture[2]` | Output | `DataCollection.CameraCapture(camera, imageType) -> Types.CameraStatus` | Triggers one camera's capture of the current experiment's `imageType`.  |
 | `positionGet` | Output | `DataCollection.PostionGet() -> Types.PositionData` | Requests the current estimated position vector |
 | `attitudeGet` | Output | `DataCollection.AttitudeGet() -> Types.Quaternion` | Requests the current estimated attitude quaternion. |
-| `attitudeRequest` | Output | `DataCollection.AttitudeRequest() -> Types.Quaternion` | Requests an attitude quaternion. |
+| `OrientationRequest` | Output | `DataCollection.OrientationRequest() -> Types.Quaternion` | Requests a satellite orientation |
 | `pingIn` / `pingOut` | In/Out | `Svc.Ping` | Health monitoring. |
 
 ### Commands
