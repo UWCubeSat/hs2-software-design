@@ -1,0 +1,19 @@
+{{< include ../Fprime/ProvidedApplicationServices.md >}}
+
+\newpage
+{{< include ../../Adcs/AdcsApplication.qmd >}}
+
+\newpage
+{{< include ../../DataCollection/DataCollectionApplication.qmd >}}
+
+\newpage
+{{< include ../../Comms/ComApplication.qmd >}}
+
+\newpage
+{{< include ../../EPS/EPSApplication.qmd >}}
+
+\newpage
+{{< include ../../ScienceInference/ScienceApplication.md >}}
+
+\newpage
+{{< include ../../Thermal/ThermalApplication.qmd >}}

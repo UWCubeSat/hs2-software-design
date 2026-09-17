@@ -2,7 +2,7 @@
 > Reference guide for writing a satellite Software Design Document using the F' framework.
 > Sources: `nasa/fprime@devel` and `nasa/fprime-examples@devel`
 
----
+***
 
 ## 1. Framework Overview
 
@@ -15,7 +15,7 @@ F' (F Prime) is a **component-driven embedded software framework** developed at 
 - C++ runtime infrastructure providing message queues and threading
 - Pre-built library of reusable service and driver components
 
----
+***
 
 ## 2. Repository Structure (`nasa/fprime@devel`)
 
@@ -43,12 +43,13 @@ fprime/
 
 **Rule:** Always check docs first (markdown), then FPP source code, then C++ implementation.
 
----
+***
 
 ## 3. Core Concepts
 
 ### 3.1 Ports
 Typed interfaces between components. Four kinds:
+
 | Kind | Synchronous | Thread | Returns data |
 |------|-------------|--------|--------------|
 | `output` | Yes | Caller's | Yes |
@@ -60,6 +61,7 @@ Typed interfaces between components. Four kinds:
 
 ### 3.2 Components
 Three types:
+
 | Type | Queue | Thread | Use case |
 |------|-------|--------|----------|
 | Passive | No | No | Simple logic, called inline |
@@ -88,7 +90,7 @@ Six steps in `<Project>Topology.cpp`:
 **Key doc:** `docs/user-manual/framework/building-topology.md`
 **Code example:** `Ref/Top/RefTopology.cpp`, `Ref/Top/topology.fpp`
 
----
+***
 
 ## 4. Pre-Built Service Components (`Svc/`)
 
@@ -121,7 +123,6 @@ Six steps in `<Project>Topology.cpp`:
 |-----------|------|---------|
 | `Svc::ComQueue` | Active | Queues events and telemetry packets for downlink |
 | `Svc::ComAggregator` | Passive | Aggregates multiple outgoing data streams |
-| `Svc::ComStub` | Passive | Com interface bridge to byte-stream driver |
 | `Svc::FrameAccumulator` | Passive | Accumulates bytes into complete frames |
 | `Svc::FprimeRouter` | Passive | Routes deframed packets to correct destinations |
 | `Svc::FprimeFramer` | Passive | Frames packets in F' native protocol |
@@ -171,7 +172,7 @@ Six steps in `<Project>Topology.cpp`:
 | `Svc::PassiveConsoleTextLogger` | Passive | Console text event logger |
 | `Svc::PolyDb` | Passive | Generic polymorphic data store |
 
----
+***
 
 ## 5. Pre-Built Driver Components (`Drv/`)
 
@@ -192,7 +193,7 @@ Six steps in `<Project>Topology.cpp`:
 - `recv` port → deliver received data; returns `OP_OK`, `RECV_NO_DATA`, or `OTHER_ERROR`
 - `ready`, `poll` ports for driver signaling
 
----
+***
 
 ## 6. Pre-Built Subtopologies (`Svc/Subtopologies/`)
 
@@ -214,10 +215,10 @@ Full CCSDS communications stack. Includes:
 - `comQueue`, `frameAccumulator`, `commsBufferManager`, `fprimeRouter`
 - `tcDeframer`, `spacePacketDeframer` (uplink)
 - `framer` (TmFramer), `spacePacketFramer`, `apidManager`, `aggregator` (downlink)
-- `comStub` (bridges to byte-stream driver)
+The HuskySat-2 deployment does not instantiate `Svc::ComStub`; `TmtcRadioManager` provides the byte-stream adapter boundary directly.
 
-Downlink path: `ComQueue → SpacePacketFramer → Aggregator → TmFramer → ComStub → Driver`
-Uplink path: `Driver → ComStub → FrameAccumulator → TcDeframer → SpacePacketDeframer → FprimeRouter`
+Downlink path: `ComQueue → SpacePacketFramer → Aggregator → TmFramer → TmtcRadioManager → Driver`
+Uplink path: `Driver → TmtcRadioManager → FrameAccumulator → TcDeframer → SpacePacketDeframer → FprimeRouter`
 
 ### FileHandling (`Svc/Subtopologies/FileHandling/FileHandling.fpp`)
 File uplink, downlink, and management. Includes:
@@ -229,7 +230,7 @@ File uplink, downlink, and management. Includes:
 ### DataProducts (`Svc/Subtopologies/DataProducts/DataProducts.fpp`)
 Science/recorded data pipeline. Includes DpManager, DpWriter, DpCatalog.
 
----
+***
 
 ## 7. Design Patterns (Documentation)
 
@@ -309,7 +310,7 @@ Ports:
 3. **Parallel Ports** — port arrays connecting to multiple components; use `match A with B` in FPP for auto-validation
 4. **Synchronous Cancel** — sync port sets atomic flag; async handler checks flag periodically
 
----
+***
 
 ## 8. Framework Features
 
@@ -339,7 +340,7 @@ State machine definitions integrated into FPP; `Fw/Sm/` provides the base framew
 ### Multi-Core Support
 **File:** `docs/user-manual/framework/run-multi-core.md`
 
----
+***
 
 ## 9. Reference Application (`Ref/`)
 
@@ -364,11 +365,12 @@ The best existing example of a full F' deployment assembly. Study this when writ
 - `Ref::SendBuff` / `Ref::RecvBuff` — buffer passing demo (queued)
 - `Ref::DpDemo` — data product demonstration (active)
 
----
+***
 
 ## 10. Framework Core (`Fw/`)
 
 Key framework modules:
+
 | Module | Purpose |
 |--------|---------|
 | `Fw::Buffer` | Fundamental data buffer type |
@@ -384,7 +386,7 @@ Key framework modules:
 | `Fw::Obj` | Component base object |
 | `Fw::Comp` | Component base classes |
 
----
+***
 
 ## 11. FPP Language Quick Reference
 
@@ -432,39 +434,39 @@ instance myComp: ManagerWorker.Manager base id 0x1000 \
 match pingIn with pingOut
 ```
 
----
+***
 
 ## 12. Key Documentation URLs
 
 | Topic | URL |
 |-------|-----|
-| Ports, Components, Topology | `https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/overview/03-port-comp-top.md` |
-| Commands, Events, Channels, Params | `https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/overview/04-cmd-evt-chn-prm.md` |
-| Rate Group Pattern | `https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/design-patterns/rate-group.md` |
-| Health Checking Pattern | `https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/design-patterns/health-checking.md` |
-| Manager-Worker Pattern | `https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/design-patterns/manager-worker.md` |
-| App-Manager-Driver Pattern | `https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/design-patterns/app-man-drv.md` |
-| Subtopologies Pattern | `https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/design-patterns/subtopologies.md` |
-| Common Port Patterns | `https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/design-patterns/common-port-patterns.md` |
-| Ground Interface | `https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/framework/ground-interface.md` |
-| Data Products | `https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/framework/data-products.md` |
-| Building Topology | `https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/framework/building-topology.md` |
-| CdhCore subtopology FPP | `https://raw.githubusercontent.com/nasa/fprime/devel/Svc/Subtopologies/CdhCore/CdhCore.fpp` |
-| ComCcsds subtopology FPP | `https://raw.githubusercontent.com/nasa/fprime/devel/Svc/Subtopologies/ComCcsds/ComCcsds.fpp` |
-| FileHandling subtopology FPP | `https://raw.githubusercontent.com/nasa/fprime/devel/Svc/Subtopologies/FileHandling/FileHandling.fpp` |
-| DataProducts subtopology FPP | `https://raw.githubusercontent.com/nasa/fprime/devel/Svc/Subtopologies/DataProducts/DataProducts.fpp` |
-| Ref instances.fpp | `https://raw.githubusercontent.com/nasa/fprime/devel/Ref/Top/instances.fpp` |
-| Ref topology.fpp | `https://raw.githubusercontent.com/nasa/fprime/devel/Ref/Top/topology.fpp` |
-| Manager SDD | `https://raw.githubusercontent.com/nasa/fprime-examples/devel/FlightExamples/ManagerWorker/Manager/docs/sdd.md` |
-| Worker SDD | `https://raw.githubusercontent.com/nasa/fprime-examples/devel/FlightExamples/ManagerWorker/Worker/docs/sdd.md` |
-| Subtopology SDD | `https://raw.githubusercontent.com/nasa/fprime-examples/devel/FlightExamples/ManagerWorker/Subtopology/docs/sdd.md` |
-| Manager.fpp | `https://raw.githubusercontent.com/nasa/fprime-examples/devel/FlightExamples/ManagerWorker/Manager/Manager.fpp` |
-| Worker.fpp | `https://raw.githubusercontent.com/nasa/fprime-examples/devel/FlightExamples/ManagerWorker/Worker/Worker.fpp` |
-| ManagerWorker subtopology.fpp | `https://raw.githubusercontent.com/nasa/fprime-examples/devel/FlightExamples/ManagerWorker/Subtopology/ManagerWorker.fpp` |
-| ByteStreamDriverModel SDD | `https://raw.githubusercontent.com/nasa/fprime/devel/Drv/ByteStreamDriverModel/docs/sdd.md` |
-| Health.fpp | `https://raw.githubusercontent.com/nasa/fprime/devel/Svc/Health/Health.fpp` |
+| Ports, Components, Topology | [03-port-comp-top.md](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/overview/03-port-comp-top.md) |
+| Commands, Events, Channels, Params | [04-cmd-evt-chn-prm.md](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/overview/04-cmd-evt-chn-prm.md) |
+| Rate Group Pattern | [rate-group.md](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/design-patterns/rate-group.md) |
+| Health Checking Pattern | [health-checking.md](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/design-patterns/health-checking.md) |
+| Manager-Worker Pattern | [manager-worker.md](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/design-patterns/manager-worker.md) |
+| App-Manager-Driver Pattern | [app-man-drv.md](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/design-patterns/app-man-drv.md) |
+| Subtopologies Pattern | [subtopologies.md](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/design-patterns/subtopologies.md) |
+| Common Port Patterns | [common-port-patterns.md](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/design-patterns/common-port-patterns.md) |
+| Ground Interface | [ground-interface.md](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/framework/ground-interface.md) |
+| Data Products | [data-products.md](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/framework/data-products.md) |
+| Building Topology | [building-topology.md](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/framework/building-topology.md) |
+| CdhCore subtopology FPP | [CdhCore.fpp](https://raw.githubusercontent.com/nasa/fprime/devel/Svc/Subtopologies/CdhCore/CdhCore.fpp) |
+| ComCcsds subtopology FPP | [ComCcsds.fpp](https://raw.githubusercontent.com/nasa/fprime/devel/Svc/Subtopologies/ComCcsds/ComCcsds.fpp) |
+| FileHandling subtopology FPP | [FileHandling.fpp](https://raw.githubusercontent.com/nasa/fprime/devel/Svc/Subtopologies/FileHandling/FileHandling.fpp) |
+| DataProducts subtopology FPP | [DataProducts.fpp](https://raw.githubusercontent.com/nasa/fprime/devel/Svc/Subtopologies/DataProducts/DataProducts.fpp) |
+| Ref instances.fpp | [instances.fpp](https://raw.githubusercontent.com/nasa/fprime/devel/Ref/Top/instances.fpp) |
+| Ref topology.fpp | [topology.fpp](https://raw.githubusercontent.com/nasa/fprime/devel/Ref/Top/topology.fpp) |
+| Manager SDD | [Manager/docs/sdd.md](https://raw.githubusercontent.com/nasa/fprime-examples/devel/FlightExamples/ManagerWorker/Manager/docs/sdd.md) |
+| Worker SDD | [Worker/docs/sdd.md](https://raw.githubusercontent.com/nasa/fprime-examples/devel/FlightExamples/ManagerWorker/Worker/docs/sdd.md) |
+| Subtopology SDD | [Subtopology/docs/sdd.md](https://raw.githubusercontent.com/nasa/fprime-examples/devel/FlightExamples/ManagerWorker/Subtopology/docs/sdd.md) |
+| Manager.fpp | [Manager.fpp](https://raw.githubusercontent.com/nasa/fprime-examples/devel/FlightExamples/ManagerWorker/Manager/Manager.fpp) |
+| Worker.fpp | [Worker.fpp](https://raw.githubusercontent.com/nasa/fprime-examples/devel/FlightExamples/ManagerWorker/Worker/Worker.fpp) |
+| ManagerWorker subtopology.fpp | [ManagerWorker.fpp](https://raw.githubusercontent.com/nasa/fprime-examples/devel/FlightExamples/ManagerWorker/Subtopology/ManagerWorker.fpp) |
+| ByteStreamDriverModel SDD | [Drv/ByteStreamDriverModel/docs/sdd.md](https://raw.githubusercontent.com/nasa/fprime/devel/Drv/ByteStreamDriverModel/docs/sdd.md) |
+| Health.fpp | [Health.fpp](https://raw.githubusercontent.com/nasa/fprime/devel/Svc/Health/Health.fpp) |
 
----
+***
 
 ## 13. Guidance for Writing the Satellite SDD
 

@@ -1,0 +1,81 @@
+# References
+
+This section collects the external documentation and design sources referenced by the SDD. Component pages describe how each source applies to HuskySat-2; this list provides the direct links in one place.
+
+## F' Framework and FPP
+
+- [F' ports, components, and topologies](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/overview/03-port-comp-top.md)
+- [F' commands, events, channels, and parameters](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/overview/04-cmd-evt-chn-prm.md)
+- [FPP state-machine guide](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc)
+- [FPP state-machine inherited transitions](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#inherited-transitions)
+- [FPP state-machine substates](https://github.com/nasa/fpp/blob/main/docs/users-guide/Defining-State-Machines.adoc#substates)
+- [F' rate-group pattern](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/design-patterns/rate-group.md)
+- [F' health-checking pattern](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/design-patterns/health-checking.md)
+- [F' manager-worker pattern](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/design-patterns/manager-worker.md)
+- [F' application-manager-driver pattern](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/design-patterns/app-man-drv.md)
+- [F' subtopologies pattern](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/design-patterns/subtopologies.md)
+- [F' common port patterns](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/design-patterns/common-port-patterns.md)
+- [F' ground interface](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/framework/ground-interface.md)
+- [F' data products](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/framework/data-products.md)
+- [F' building a topology](https://raw.githubusercontent.com/nasa/fprime/devel/docs/user-manual/framework/building-topology.md)
+- [CdhCore subtopology definition](https://raw.githubusercontent.com/nasa/fprime/devel/Svc/Subtopologies/CdhCore/CdhCore.fpp)
+- [ComCcsds subtopology definition](https://raw.githubusercontent.com/nasa/fprime/devel/Svc/Subtopologies/ComCcsds/ComCcsds.fpp)
+- [FileHandling subtopology definition](https://raw.githubusercontent.com/nasa/fprime/devel/Svc/Subtopologies/FileHandling/FileHandling.fpp)
+- [DataProducts subtopology definition](https://raw.githubusercontent.com/nasa/fprime/devel/Svc/Subtopologies/DataProducts/DataProducts.fpp)
+- [F' reference deployment instances](https://raw.githubusercontent.com/nasa/fprime/devel/Ref/Top/instances.fpp)
+- [F' reference deployment topology](https://raw.githubusercontent.com/nasa/fprime/devel/Ref/Top/topology.fpp)
+- [Svc::Health FPP definition](https://raw.githubusercontent.com/nasa/fprime/devel/Svc/Health/Health.fpp)
+
+## F' Drivers and OSAL
+
+- [Drv::LinuxGpioDriver](https://github.com/nasa/fprime/tree/devel/Drv/LinuxGpioDriver)
+- [Drv::LinuxI2cDriver](https://github.com/nasa/fprime/tree/devel/Drv/LinuxI2cDriver)
+- [Drv::LinuxPwmDriver](https://github.com/nasa/fprime/tree/devel/Drv/LinuxPwmDriver)
+- [Drv::LinuxSpiDriver](https://github.com/nasa/fprime/tree/devel/Drv/LinuxSpiDriver)
+- [Drv::LinuxUartDriver](https://github.com/nasa/fprime/tree/devel/Drv/LinuxUartDriver)
+- [F' OSAL source](https://github.com/nasa/fprime/tree/devel/Os)
+
+## F' Services and Components
+
+- [Svc::ActiveRateGroup](https://github.com/nasa/fprime/tree/devel/Svc/ActiveRateGroup)
+- [Svc::AssertFatalAdapter](https://fprime.jpl.nasa.gov/latest/Svc/AssertFatalAdapter/docs/sdd/)
+- [Svc::Ccsds::ApidManager](https://github.com/nasa/fprime/tree/devel/Svc/Ccsds/ApidManager)
+- [Svc::Ccsds::SpacePacketDeframer](https://github.com/nasa/fprime/tree/devel/Svc/Ccsds/SpacePacketDeframer)
+- [Svc::Ccsds::SpacePacketFramer](https://github.com/nasa/fprime/tree/devel/Svc/Ccsds/SpacePacketFramer)
+- [Svc::Ccsds::TcDeframer](https://github.com/nasa/fprime/tree/devel/Svc/Ccsds/TcDeframer)
+- [Svc::Ccsds::TmFramer](https://github.com/nasa/fprime/tree/devel/Svc/Ccsds/TmFramer)
+- [Svc::CmdDispatcher](https://fprime.jpl.nasa.gov/latest/Svc/CmdDispatcher/docs/sdd/)
+- [Svc::ComAggregator](https://github.com/nasa/fprime/tree/devel/Svc/ComAggregator)
+- [Svc::ComQueue](https://github.com/nasa/fprime/tree/devel/Svc/ComQueue)
+- [Svc::DpCatalog](https://github.com/nasa/fprime/tree/devel/Svc/DpCatalog)
+- [Svc::DpManager](https://github.com/nasa/fprime/tree/devel/Svc/DpManager)
+- [Svc::DpWriter](https://github.com/nasa/fprime/tree/devel/Svc/DpWriter)
+- [Svc::EventManager](https://fprime.jpl.nasa.gov/latest/Svc/EventManager/docs/sdd/)
+- [Svc::FatalHandler](https://fprime.jpl.nasa.gov/latest/Svc/FatalHandler/docs/sdd/)
+- [Svc::FileDownlink](https://github.com/nasa/fprime/tree/devel/Svc/FileDownlink)
+- [Svc::FileManager](https://github.com/nasa/fprime/tree/devel/Svc/FileManager)
+- [Svc::FileUplink](https://github.com/nasa/fprime/tree/devel/Svc/FileUplink)
+- [Svc::FprimeDeframer](https://github.com/nasa/fprime/tree/devel/Svc/FprimeDeframer)
+- [Svc::FprimeFramer](https://github.com/nasa/fprime/tree/devel/Svc/FprimeFramer)
+- [Svc::FprimeRouter](https://github.com/nasa/fprime/tree/devel/Svc/FprimeRouter)
+- [Svc::FrameAccumulator](https://github.com/nasa/fprime/tree/devel/Svc/FrameAccumulator)
+- [Svc::Health](https://fprime.jpl.nasa.gov/latest/Svc/Health/docs/sdd/)
+- [Svc::PrmDb](https://github.com/nasa/fprime/tree/devel/Svc/PrmDb)
+- [Svc::RateGroupDriver](https://fprime.jpl.nasa.gov/latest/Svc/RateGroupDriver/docs/sdd/)
+- [Svc::TlmChan](https://fprime.jpl.nasa.gov/latest/Svc/TlmChan/docs/sdd/)
+- [Svc::TlmPacketizer](https://github.com/nasa/fprime/tree/devel/Svc/TlmPacketizer)
+- [Svc::Version](https://fprime.jpl.nasa.gov/latest/Svc/Version/docs/sdd/)
+
+## HuskySat-2 and Mission References
+
+- [HuskySat-2 software-design repository](https://github.com/UWCubeSat/hs2-software-design)
+- [UWCubeSat GitHub organization](https://github.com/UWCubeSat)
+- [Archived FlightComputerMemory design](https://github.com/UWCubeSat/hs2-software-design/blob/storage/docs/Core/FlightComputerMemory.md)
+- [fprime-community sensor component reference](https://github.com/fprime-community/fprime-sensors/tree/devel/fprime-sensors/MpuImu/Components/ImuManager)
+- [F' Manager-Worker example](https://raw.githubusercontent.com/nasa/fprime-examples/devel/FlightExamples/ManagerWorker/Manager/docs/sdd.md)
+- [F' Worker example](https://raw.githubusercontent.com/nasa/fprime-examples/devel/FlightExamples/ManagerWorker/Worker/docs/sdd.md)
+- [F' Manager-Worker subtopology example](https://raw.githubusercontent.com/nasa/fprime-examples/devel/FlightExamples/ManagerWorker/Subtopology/docs/sdd.md)
+- [F' Manager component definition](https://raw.githubusercontent.com/nasa/fprime-examples/devel/FlightExamples/ManagerWorker/Manager/Manager.fpp)
+- [F' Worker component definition](https://raw.githubusercontent.com/nasa/fprime-examples/devel/FlightExamples/ManagerWorker/Worker/Worker.fpp)
+- [F' Manager-Worker subtopology definition](https://raw.githubusercontent.com/nasa/fprime-examples/devel/FlightExamples/ManagerWorker/Subtopology/ManagerWorker.fpp)
+- [F' ByteStreamDriverModel reference](https://raw.githubusercontent.com/nasa/fprime/devel/Drv/ByteStreamDriverModel/docs/sdd.md)

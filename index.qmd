@@ -1,0 +1,16 @@
+# Introduction and System Context
+
+This document defines the HuskySat-2 flight-software design and the interfaces between its software layers. It is written for a 3U CubeSat flight computer running Linux and F' (F Prime). The document introduces the software context first, then describes the Level 4 system-services and control components, Level 3 applications, Level 2 hardware managers, and Level 1 drivers.
+
+HuskySat-2 is a 3U CubeSat mission that uses optical-navigation experiments to validate the LOST, FOUND, and SCOPE algorithms. The flight software supports that objective by commanding experiments, collecting and processing payload data, retaining selected products for downlink, and keeping the spacecraft in a safe, recoverable operating state while it performs those activities.
+
+The scope of this Software Design Document is the HuskySat-2 flight-software repository and the deployment architecture required to run it on the BeagleBone Black flight computer. It covers:
+
+- software interfaces, ports, commands, events, telemetry, parameters, and state machines for components represented in this repository;
+- Linux-backed Level 1 drivers and the Level 2 hardware managers that own device protocols and recovery behavior;
+- Level 3 subsystem applications, ADCS algorithms, and the F' framework components used by the application topology;
+- the intended decomposition of subsystem topologies and their cross-layer connections;
+- integration of the LOST, FOUND, and SCOPE mission libraries; and
+- the staged verification path from unit tests through GDS, subsystem, and integrated deployment testing.
+
+The Level 4 system-services and control layer contains the satellite state machine, deployment-wide F' services, and fatal handling; hardware-reset ownership remains with the application-manager interfaces described in that layer.

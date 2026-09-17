@@ -1,8 +1,12 @@
-# Science::ScienceApplication
+# ScienceApplication
 
 ScienceApplication is the Layer 3 active component for the Science subtopology. On a schedule, it
 reads a manifest of imaging opportunities logged on the external disk, finds the first one that
 has every image type a ground-configured algorithm chain needs, and runs that chain against it.
+
+**Payload software topology**:
+
+![Payload software topology diagram](../../ScienceInference/images/PayloadTopology.png){width=100%}
 
 The component is driven by two synchronous input ports:
 
@@ -21,7 +25,7 @@ Each experiment opportunity has:
 - `timeScienceFinished` as `YYYY:MM:DD:HH:MM:SS`, 
 -  `positionKnown` as `bool`,
 -  `position` as `x:y:z`
--  `attidue` as `x:y:z:w` (quaternion),
+- `attitude` as `x:y:z:w` (quaternion),
 -  `availableImageTypes` a `U16` bitmask representing `Science.ImageType`
 -  `experimentID` as a `U16`
 
@@ -31,7 +35,7 @@ Each experiment opportunity has:
 
 
 
-## Requirements
+#### Requirements {.unnumbered .unlisted}
 
 | ID | Requirement | Verification |
 |---|---|---|
@@ -47,9 +51,9 @@ Each experiment opportunity has:
 | HS2-SIA-010 | ScienceApplication shall respond to `pingIn` immediately on `pingOut` with the same key | Unit test |
 | HS2-SIA-011 | Once every configured algorithm has succeeded against an experiment, ScienceApplication shall move that experiment's manifest line from `experiments.csv` to `completeExperiments.csv`, tagged with the ordered list of algorithms that ran | Unit test |
 
-## Design
+#### Design {.unnumbered .unlisted}
 
-### Ports
+##### Ports {.unnumbered .unlisted}
 
 | Port | Kind | Direction | Type | Usage |
 |---|---|---|---|---|
@@ -59,21 +63,21 @@ Each experiment opportunity has:
 | `pingIn` / `pingOut` | sync / — | in / out | `Svc.Ping` | Health monitoring; every `pingIn` is echoed immediately on `pingOut`. |
 | `timeCaller`, `Fw.Command`, `Fw.Event`, `Fw.Channel` | standard AC ports | — | — | Boilerplate command/event/telemetry/time wiring. |
 
-### Commands
+##### Commands {.unnumbered .unlisted}
 
 | Name | Arguments | Effect |
 |---|---|---|
-| `SET_ALGORITHM` | `index: U8`, `algorithm: Science.Algorithm` | Sets topology slot `index` to `algorithm` |
-| `SET_ALGORITHM_PRESET` | `index: U8`, `preset: Science.AlgorithmPreset`, `inputImage: Science.ImageType`, `camera: Science.Camera` | Sets topology slot `index` to a named predefined algorithm |
-| `CLEAR_ALGORITHM` | `index: U8` | Resets topology slot `index` to an unconfigured `Science.Algorithm`. |
+| `SET_ALGORITHM` | index (U8), algorithm (Science.Algorithm) | Sets topology slot `index` to `algorithm` |
+| `SET_ALGORITHM_PRESET` | index (U8), preset (Science.AlgorithmPreset), inputImage (Science.ImageType), camera (Science.Camera) | Sets topology slot `index` to a named predefined algorithm |
+| `CLEAR_ALGORITHM` | index (U8) | Resets topology slot `index` to an unconfigured `Science.Algorithm`. |
 | `CLEAR_SCIENCE_TOPOLOGY` | — | Resets every one of the 10 topology slots to a default `Science.Algorithm` |
 
-### State Machine
+##### State Machine {.unnumbered .unlisted}
 
 `sciAppStateMachine` (`Science_ScienceApplicationStateMachine_t`, defined in
 `ScienceApplicationStateMachine.fpp`) tracks operating mode.
 
-```mermaid
+```{mermaid}
 stateDiagram
   state "PROCESS_IMAGES
     tick: runNextAvailableExperiment
@@ -90,5 +94,3 @@ stateDiagram
 | `INIT` | Idle until the first `schedIn` tick, which transitions out immediately without touching any output port. | (transitions to `OFF`) |
 | `OFF` | Idle: `experiments.csv` is never read, no images processed. | ignored |
 | `PROCESS_IMAGES` | Steady state: at most one experiment is found and its full algorithm chain processed per tick. | `runNextAvailableExperiment` |
-
-

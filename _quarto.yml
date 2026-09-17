@@ -1,0 +1,67 @@
+project:
+  type: book
+  output-dir: build
+
+book:
+  title: "HuskySat-2 Software Design Document"
+  output-file: "HS2-Software-Design-Document"
+  chapters:
+    - index.qmd
+    - docs/Reference/Introduction/ArchitectureOverview.qmd
+    - docs/Reference/Introduction/FprimeContext.md
+
+    - part: "Level 4 - System Services and Control Layer"
+      chapters:
+        - docs/Core/SatStateMachine.qmd
+        - docs/Reference/Fprime/CmdDispatcher.qmd
+        - docs/Reference/Fprime/ProvidedSystemServices.md
+        - docs/Reference/Fprime/FatalHandler.qmd
+
+    - part: "Level 3 - Application Layer"
+      chapters:
+        - docs/Reference/Layer3/ApplicationLayer.qmd
+
+    - part: "Level 2 - Hardware Managers"
+      chapters:
+        - docs/Reference/Layer2/HardwareManagers.qmd
+
+    - part: "Level 1 - Drivers"
+      chapters:
+        - docs/Reference/OSAL/OsalAndLinux.md
+        - docs/Drivers/LinuxPwmDriver.md
+        - docs/Reference/Drivers/LinuxUartDriver.md
+        - docs/Reference/Drivers/LinuxI2cDriver.md
+        - docs/Reference/Drivers/LinuxSpiDriver.md
+        - docs/Reference/Drivers/LinuxGpioDriver.md
+
+    - part: "Appendix"
+      chapters:
+        - docs/Reference/Introduction/HardwarePlatformInventory.md
+        - docs/Reference/Introduction/RadiationToleranceAndStorage.qmd
+        - docs/Reference/Introduction/VerificationAndTestPlan.md
+        - docs/Reference/Introduction/SoftwareDevelopmentProcess.md
+        - docs/Reference/Introduction/RevisionHistory.md
+        - docs/Reference/Introduction/Acronyms.md
+
+    - docs/Reference/References.md
+
+format:
+  pdf:
+    pdf-engine: lualatex
+    include-in-header: latex/preamble.tex
+    resource-path:
+      - .
+      - docs/Comms
+    toc: true
+    toc-title: "Table of Contents"
+    toc-depth: 3
+    number-sections: true
+    mermaid-format: png
+    papersize: letter
+    fontsize: 10pt
+    geometry: margin=0.65in
+    colorlinks: true
+    linkcolor: black
+    urlcolor: blue
+    citecolor: black
+    filecolor: black

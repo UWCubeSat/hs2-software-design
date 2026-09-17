@@ -1,0 +1,111 @@
+## TemperatureSensorManager
+
+TemperatureSensorManager is a Layer 2 Queued worker component in the Thermal subtopology. It owns all onboard temperature sensors, sequencing their power-up and configuration through an internal state machine, polling them once per rate-group tick.
+
+The component is driven by two synchronous input ports:
+
+- `schedIn` (`Svc.Sched`) — a rate-group tick. All state-machine progression and sensor polling happens here.
+- `tempReadIn` (`Thermals.TempRead`, sized `[NUM_TEMPERATURE_SENSORS]`) — lets other components pull the most recently cached readings without waiting on the bus.
+
+
+#### Requirements {.unnumbered .unlisted}
+
+| Name | Description | Validation |
+|---|---|---|
+| TSM-001 | While in `WAIT_RESET`, the component shall wait `WAIT_TICKS` scheduler ticks before signaling `waitSuccess` and advancing to `CONFIGURE`.  | Unit Test |
+| TSM-002 | While in `RUN`, the component shall poll all `NUM_TEMPERATURE_SENSORS` sensors once per `schedIn` tick and publish the results as the `temperature` telemetry channel. | Unit Test |
+| TSM-003 | The component shall serve the last cached readings on `tempReadIn` regardless of state, invalidating all entries (setting each reading's valid flag to false) whenever the state machine (re-)enters any state other than `RUN`. | Unit Test |
+| TSM-004 | On any bus error, the component shall log a warning, invalidate all cached readings (setting each reading's valid flag to false), and return to `RESET`. | Unit Test |
+| TSM-005 | While in `CONFIGURE`, the component shall write each sensor's Configuration Register 0 (Automatic Conversion mode) and Configuration Register 1 (Type K, no averaging) over SPI. | Unit Test |
+| TSM-006 | While in `RUN`, the component shall skip that sensor's SPI read on ticks where `DRDY` reports not-ready. | Unit Test |\
+| TSM-07 | `setSensorSkip` with `resetComponent` set shall drive the state machine back to `RESET` (from any of `WAIT_RESET`, `CONFIGURE`, `RUN`) without logging `SMsignalInvalid`, invalidating all cached readings in the process. | Unit Test |
+
+#### Design {.unnumbered .unlisted}
+
+##### Ports {.unnumbered .unlisted}
+
+| Port | Kind | Direction | Type | Usage |
+|---|---|---|---|---|
+| `schedIn` | sync | input | `Svc.Sched` | Rate-group tick; drives state-machine progression and sensor polling. |
+| `tempReadIn` | sync | input, one per temperature sensor | `Thermals.TempRead` | Returns the last cached `TemperatureReadings` to a caller |
+| `spiWriteRead` | — | output | `Drv.SpiWriteRead` | SPI transaction (address byte + data byte(s)) used to read/write each sensor's registers. |
+| `sensorSelect` | — | output, one per sensor-select pin | `Drv.GpioWrite` | Binary-encoded GPIO select lines addressing which sensor is active on the shared SPI bus for the current transaction. |
+| `sensorDRDY` | — | output | `Drv.GpioRead` | Signal from amplifier for whether the selected sensor is safe to read |
+
+##### State Machine {.unnumbered .unlisted}
+
+`tempSenseManagerSM` (`Thermals_TemperatureSensorManagerStateMachine_t`, defined in `TemperatureSensorManagerStateMachine.fpp`) owns the bring-up and fault-recovery sequence. Its current state mirrors the `State` telemetry channel via the `TemperatureSensorManagerState` enum.
+
+```{mermaid}
+stateDiagram-v2
+  state "RESET
+    entry: declare, clear
+  " as RESET
+
+  state "WAIT_RESET
+    entry: declare
+    tick: wait
+  " as WAIT_RESET
+
+  state "CONFIGURE
+    entry: declare, configure
+  " as CONFIGURE
+
+  state "RUN
+    entry: declare
+    tick: read
+  " as RUN
+
+  [*] --> INIT
+  INIT --> RESET: tick
+  RESET --> WAIT_RESET: resetSuccess
+  WAIT_RESET --> CONFIGURE: waitSuccess
+  WAIT_RESET --> RESET: SPIerror
+  WAIT_RESET --> RESET: manualReset
+  CONFIGURE --> RUN: configureSuccess
+  CONFIGURE --> RESET: SPIerror
+  CONFIGURE --> RESET: manualReset
+  RUN --> RESET: SPIerror
+  RUN --> RESET: manualReset
+```
+
+```
+INIT
+  on tick → RESET
+
+RESET
+  entry: clear — reset the wait-tick counter to 0, log cleared
+         → WAIT_RESET immediately (clear unconditionally signals resetSuccess - RESET is
+           effectively a one-tick pass-through, not a place that waits for anything itself)
+
+WAIT_RESET
+  on tick: wait — increment the wait-tick counter, telemeter ticksWaited
+             once counter >= WAIT_TICKS → CONFIGURE
+  on SPIerror → RESET
+  on manualReset → RESET
+
+CONFIGURE
+  entry: configure — for each sensor not marked skipped (via setSensorSkip):
+           write Configuration Register 0 (CMODE=1, Automatic Conversion mode) and
+           Configuration Register 1 (TC_TYPE=0011 Type K, AVGSEL=000 no averaging) in one
+           multi-byte SPI transaction
+           on SPI error (any sensor) → log SPIError → RESET immediately, without
+             configuring the remaining sensors
+           on success (all non-skipped sensors) → log configured → RUN
+         a skipped sensor receives no SPI traffic at all
+  on SPIerror → RESET
+  on manualReset → RESET
+
+RUN
+  on tick: read — for each sensor:
+             if marked skipped (via setSensorSkip) → ignored entirely (no select, no SPI)
+             else if a connected sensorDRDY reports not-ready → skip this sensor this tick
+             else → SPI read; update cached reading + per-sensor nominality; publish to
+               the temperature telemetry channel; emit Overheating/Cold/Nominal on a
+               threshold crossing (edge-triggered, not every tick)
+           a sensor skipped for either reason (setSensorSkip or not-ready DRDY) is left out
+           of temperature for that tick - its entry publishes as invalid rather than
+           repeating a stale value
+  on SPIerror → RESET
+  on manualReset → RESET
+```

@@ -1,0 +1,173 @@
+# DataCollectionApplication
+
+`DataCollectionApplication` is the Layer 3 active component for the DataCollection subtopology.
+Every image capture is a ground-commanded event: ground sends `QUEUE_EXPERIMENT` with a complete set
+of experiment parameters.
+
+**Data Collection software topology**:
+
+![Data Collection application topology diagram](../../DataCollection/images/DataCollectionApplicationTopology.png){width=100%}
+
+**File system**\
+The partition holds two things: a manifest, and one subdirectory per `Science.ImageType` integer value. `<imagePartitionDir>/experiments.csv` logs imaging opportunities.
+
+
+Each experiment opportunity has:
+
+- `timeRequested` as `YYYY:MM:DD:HH:MM:SS`, 
+- `timeDataCollected` as `YYYY:MM:DD:HH:MM:SS`, 
+- `timeScienceStarted` as `YYYY:MM:DD:HH:MM:SS`, 
+- `timeScienceFinished` as `YYYY:MM:DD:HH:MM:SS`, 
+-  `positionKnown` as `bool`,
+-  `position` as `x:y:z`
+- `attitude` as `x:y:z:w` (quaternion),
+-  `availableImageTypes` a `U16` bitmask representing `Science.ImageType`
+-  `experimentID` as a `U16`
+
+`<imagePartitionDir>/1/` holds `STARS` images,
+`<imagePartitionDir>/2/` holds `HORIZON` images, etc.\
+`fileName` is the experiment ID
+
+The component is driven by two synchronous input ports:
+
+- `schedIn` (`Svc.Sched`) — a rate-group tick, used only for `pingIn`/`pingOut` liveness and polling camera status
+- `modeIn` (`DataCollection.DataColModePort`, carrying `Types.DataColMode`) — mode commands from
+  `SatStateMachine`
+
+#### Requirements {.unnumbered .unlisted}
+
+| ID | Requirement | Verification |
+|----|-------------|-------------|
+| HS2-DCA-001 | DataCollectionApplication shall capture data only in response to a ground-issued `QUEUE_EXPERIMENT` command, using that command's own arguments — never automatically or on a schedule | Inspection |
+| HS2-DCA-002 | DataCollectionApplication shall power on both cameras prior to a commanded experiment | Inspection |
+| HS2-DCA-003 | DataCollectionApplication shall perform a health check on both cameras before running an experiment and reject the command with `WARNING_HI` if any check fails | Inspection |
+| HS2-DCA-004 | DataCollectionApplication shall simultaneously acquire images, attitude, and position within 50ms of each other | Inspection |
+| HS2-DCA-005 | DataCollectionApplication shall write each captured image into Science's image partition under its `Types.ImageType`/camera-prefix path, and append one row describing the opportunity to `experiments.csv` | Inspection |
+| HS2-DCA-006 | DataCollectionApplication shall reject a `QUEUE_EXPERIMENT` command with `WARNING_HI` and take no images if the image-partition mount is at or above its configured full threshold | Inspection |
+| HS2-DCA-007 | DataCollectionApplication shall power off both cameras upon experiment completion or error | Inspection |
+| HS2-DCA-008 | DataCollectionApplication shall report experiment success or failure upon completion | Inspection |
+| HS2-DCA-009 | DataCollectionApplication shall switch operating mode on command from SatStateMachine | Inspection |
+| HS2-DCA-010 | DataCollectionApplication shall respond to health ping within the required deadline | Inspection |
+
+##### Ports {.unnumbered .unlisted}
+
+| Port | Direction | Type | Purpose |
+|------|-----------|------|---------|
+| `modeIn` | Input | `DataCollection.DataColModePort` | Mode command from SatStateMachine, carrying `Types.DataColMode`. |
+| `schedIn` | Input | `Svc.Sched` | Rate group tick; drives `pingIn`/`pingOut` and the state machine's `tick` signal  |
+| `cameraPower[2]` | Output | DataCollection.CameraPower(camera, powerOn); returns Types.CameraStatus | Power `lostCameraManager`/`foundCameraManager` (port index 0/1) on or off. |
+| `cameraCheckup[2]` | Output | DataCollection.CameraCheckup(camera); returns Types.CameraStatus | Per-camera health check, used by `HealthCheck` mode's `checkup` action. |
+| `cameraCapture[2]` | Output | DataCollection.CameraCapture(camera, imageType); returns Types.CameraStatus | Triggers one camera's capture of the current experiment's `imageType`.  |
+| `positionGet` | Output | DataCollection.PositionGet(); returns Types.PositionData | Requests the current estimated position vector |
+| `attitudeGet` | Output | DataCollection.AttitudeGet(); returns Types.Quaternion | Requests the current estimated attitude quaternion. |
+| `OrientationRequest` | Output | DataCollection.OrientationRequest(); returns Types.Quaternion | Requests a satellite orientation |
+| `pingIn` / `pingOut` | In/Out | `Svc.Ping` | Health monitoring. |
+
+##### Commands {.unnumbered .unlisted}
+
+| Name | Args | Description |
+|----------|------|-------------|
+| `QUEUE_EXPERIMENT` | expId (U8); imageTypeCode (Types.ImageTypes); count (U8) | Adds a new entry into experiments.csv to queue an experiment. expId parameter reserves all ids from expId to expId+(count-1) |
+
+Once an experiment is commanded, Data Collection calculates and requests an attitude from ADCS based on the required image types. Data Collection then polls the current attitude until the request is satisfied. If no attitude can satisfy the requirements at the current position in orbit, a warning is thrown and Data Collection caches the request to keep working through the queue.
+
+#### State Machine {.unnumbered .unlisted}
+
+```{mermaid}
+stateDiagram
+    [*] --> INIT
+    INIT --> OFF : tick
+
+    state OFF_SWITCH_MODE <<choice>>
+    OFF --> OFF_SWITCH_MODE : switchMode
+    OFF_SWITCH_MODE --> HEALTH_CHECK
+    OFF_SWITCH_MODE --> RUN
+
+    state HEALTH_CHECK_SWITCH_MODE <<choice>>
+    HEALTH_CHECK --> OFF
+
+    state RUN_SWITCH_MODE <<choice>>
+    RUN --> RUN_SWITCH_MODE : switchMode
+    RUN_SWITCH_MODE --> OFF
+    RUN_SWITCH_MODE --> HEALTH_CHECK
+
+    state RUN {
+        [*] --> ENABLE
+
+        RESET --> ENABLE : resetSuccess
+        ENABLE --> ARMED : powerOnSuccess
+        ENABLE --> RESET : powerFailure
+
+        state STORAGE_CHECK <<choice>>
+        ARMED --> STORAGE_CHECK : executeExperiment
+        STORAGE_CHECK --> CAPTURE : storageAvailable
+        STORAGE_CHECK --> DISABLE : else
+
+        CAPTURE --> STORE : captureSuccess
+        CAPTURE --> DISABLE : captureFailure
+        STORE --> ARMED : storeSuccess
+        STORE --> DISABLE : storeFailure
+
+        DISABLE --> [*] : disableSuccess
+    }
+    RUN --> OFF : disableSuccess
+```
+
+```
+[*] --> INIT
+INIT --> OFF : tick
+
+OFF
+  entry: declare
+  on switchMode --> OFF_SWITCH_MODE (choice)
+    if modeIsHealthCheck --> HEALTH_CHECK
+    else                 --> RUN          
+
+HEALTH_CHECK
+  entry: powerOn                        
+  on powerFailure:   powerOff, --> OFF
+  on checkupSuccess: powerOff, --> OFF
+  on checkupFailure: powerOff, --> OFF
+  on switchMode:     powerOff, --> HEALTH_CHECK_SWITCH_MODE (choice)
+    if modeIsOff --> OFF
+    else         --> RUN                  
+
+RUN
+  initial --> ENABLE
+  on switchMode: powerOff, --> RUN_SWITCH_MODE (choice)   [inherited by every substate below]
+    if modeIsOff --> OFF                                   
+    else         --> HEALTH_CHECK                          
+
+  RESET
+    entry: powerOff
+    on resetSuccess --> ENABLE
+
+  ENABLE
+    entry: powerOn
+    on powerOnSuccess --> ARMED
+    on powerFailure   --> RESET
+
+  ARMED
+    entry: (none beyond declare)
+    on executeExperiment --> STORAGE_CHECK
+
+  STORAGE_CHECK (choice)
+    if storageAvailable --> CAPTURE
+    else                --> DISABLE
+
+  CAPTURE
+    entry: captureData
+    on captureSuccess --> STORE
+    on captureSlow    --> CAPTURE  
+    on captureFailure --> DISABLE
+
+  STORE
+    entry: storeFiles
+    on retryStore   --> STORE        
+    on storeSuccess --> ARMED
+    on storeFailure --> DISABLE
+
+  DISABLE
+    entry: declare, powerOff
+    on disableSuccess --> OFF       
+```

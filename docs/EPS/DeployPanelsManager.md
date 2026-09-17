@@ -1,27 +1,25 @@
-# DeployPanelsManager SDD
+## DeployPanelsManager
 
-## 1. Overview
+#### 1. Overview {.unnumbered .unlisted}
 
 `DeployPanelsManager` is a Layer 2 Active component that executes the solar panel deployment sequence when commanded by `EPSApplication`. It maintains a two-state machine tracking whether deployment has previously occurred. In both states the burn wire sequence executes; in the `DEPLOYED` state an additional `WARNING_HI` event is emitted to notify the operator that this is a re-attempt. There is no automatic retry — each deployment attempt requires an explicit `DEPLOY_PANELS` command from ground via `EPSApplication`.
 
----
 
-## 2. Requirements
+#### 2. Requirements {.unnumbered .unlisted}
 
 | ID | Requirement | Verification |
 |----|-------------|--------------|
 | HS2-DPM-001 | `DeployPanelsManager` shall activate the burn wire sequence upon receipt of a deploy command originating from ground. | Test |
 | HS2-DPM-002 | `DeployPanelsManager` shall emit events upon beginning and ending the burn sequence. | Test |
 
----
 
-## 3. Design
+#### 3. Design {.unnumbered .unlisted}
 
-### 3.1 Component Type
+##### 3.1 Component Type {.unnumbered .unlisted}
 
 Active component with internal flat F' state machine (`Fw::Sm`).
 
-### 3.2 Ports
+##### 3.2 Ports {.unnumbered .unlisted}
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
@@ -29,13 +27,12 @@ Active component with internal flat F' state machine (`Fw::Sm`).
 | `burnWire` | Output | `Drv.GpioWrite` | Burn wire GPIO; asserted for deployment duration then deasserted |
 | `logOut` | Output | `Fw.Log` | Event logging |
 
-### 3.3 Commands
+##### 3.3 Commands {.unnumbered .unlisted}
 
 None. `DeployPanelsManager` is driven entirely by the `deploy` port call from `EPSApplication`, which itself accepts the ground `DEPLOY_PANELS` command.
 
----
 
-## 4. State Machine
+#### 4. State Machine {.unnumbered .unlisted}
 
 `DeployPanelsManager` uses a flat two-state F' state machine:
 
@@ -57,9 +54,8 @@ DEPLOYED
                         (remain in DEPLOYED)
 ```
 
----
 
-## 5. Notes
+#### 5. Notes {.unnumbered .unlisted}
 
 - Burn wire active duration is a hardcoded constant in the component. Value TBD pending hardware team specification. This MAY eventually become a parameter stored in `PrmDb`, but we see no compelling reason for this right now.
 - Burn wire duration is timed via `Os::Task::delay()` called from the deploy handler on the Active component's thread. The handler asserts the burn wire GPIO, calls `Os::Task::delay(BURN_DURATION)`, then deasserts the GPIO. No `schedIn` or timer port is required — `Os::Task::delay()` is a direct call into F''s OS abstraction layer and blocks only the component's own thread, leaving all other components unaffected. Tradeoff: the burn cannot be cancelled mid-sequence.
