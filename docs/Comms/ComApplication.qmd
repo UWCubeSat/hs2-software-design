@@ -4,6 +4,10 @@
 
 `ComApplication` is the Layer 3 Active component for the Comms subtopology. It manages the EnduroSat S-band radio operating mode, switching between `BEACON` to transmit real-time SOH telemetry at 1Hz, `STANDARD_DOWNLINK` mode to transmit all real-time telemetry including payload experiment data, `STORED_PLAYBACK` mode to downlink stored and real-time SOH telemetry concurrently, and `NO_DOWNLINK` to cease transmission upon command.
 
+**Communications software topology**:
+
+![Communications application topology diagram](../../Comms/images/ComApplicationTopology.png){width=100%}
+
 
 ## Terminology {.unnumbered .unlisted}
 
@@ -22,6 +26,7 @@
 | HS2-COM-005 | ComApplication shall enable the transmission of stored telemetry along with real-time telemetry when `STORED_PLAYBACK` downlink mode is activated | Inspection |
 | HS2-COM-006 | ComApplication shall enable the transmission of SOH telemetry only at a 1Hz rate when `BEACON` downlink mode is activated | Inspection |
 | HS2-COM-007 | ComApplication shall enable the transmission of all real-time telemetry when `STANDARD_DOWNLINK` downlink mode is activated | Inspection |
+| HS2-COM-008 | ComApplication shall disable all transmission when `NO_DOWNLINK` mode is actived | Inspection |
 
 
 ## Design {.unnumbered .unlisted}
@@ -103,7 +108,7 @@ The following events will be emitted by the `ComApplication`:
 
 | Event Name | Severity Level | Description |
 |------------|----------------|-------------|
-| DownlinkModeUpdateCmd | COMMAND | Emitted when ground issues a command to `ComApplication` to update downlink mode |
+| DownlinkModeUpdateCmd | COMMAND | Emitted when ComApplication processes a command from the ground to update downlink mode |
 | DownlinkModeSatStateUpdate | ACTIVITY_HI | Emitted when `SatStateMachine` updates the link mode through the `modeIn` input port |
 
 

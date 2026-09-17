@@ -6,6 +6,10 @@
 
 Unlike other Layer 3 components, `EPSApplication` has no internal state machine. It operates identically regardless of satellite mode.
 
+**EPS software topology**:
+
+![EPS application topology diagram](../../EPS/images/EPSApplicationTopology.png){width=100%}
+
 
 #### 2. Requirements {.unnumbered .unlisted}
 

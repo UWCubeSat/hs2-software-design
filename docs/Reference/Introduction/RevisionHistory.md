@@ -17,5 +17,6 @@ The project history identifies an initial LaTeX version of the SDD authored by *
 | September 10, 2026 | Senuka Liyanage; Eleanor Marso; Ojeet Deol; Mahir Emran | Reorganized the SDD, resolved naming and diagram conflicts, aligned ADCS and SatStateMachine interfaces, documented communications events, and updated subsystem modes and application behavior. |
 | September 11–15, 2026 | Senuka Liyanage; Eleanor Marso; Mahir Emran | Integrated the latest Science Inference, Thermal, Camera, StarTracker, SatStateMachine, and ADCS application updates, including state diagrams, table fixes, Kalman-filter material, and the ADCS topology diagram. |
 | September 16, 2026 | Senuka Liyanage; Mahir Emran | Integrated the latest Data Collection, Camera Manager, and Science Application changes from `main`; standardized the component name as `ScienceApplication`, resolved the file-name conflict, and aligned the merged content with the current SDD structure. |
+| September 16, 2026 (diagram update) | Mahir Emran | Replaced the high-level, payload, and thermal topology figures; added communications and EPS topology figures; documented PAY/ADCS ActiveRateGroup phase offsets; and clarified the 10 Hz, 1 Hz, and 0.1 Hz rate-group assignments. |
 
 The current PDF build also includes document-structure, formatting, and compilation fixes maintained on the SDD build branch.

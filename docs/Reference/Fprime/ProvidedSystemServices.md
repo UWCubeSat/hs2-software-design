@@ -36,6 +36,20 @@ These F' components provide deployment-wide telemetry, health, scheduling, and v
 [RateGroupDriver software design document](https://fprime.jpl.nasa.gov/latest/Svc/RateGroupDriver/docs/sdd/)  
 [ActiveRateGroup source and interface](https://github.com/nasa/fprime/tree/devel/Svc/ActiveRateGroup)
 
+HuskySat-2 designates the primary rate groups as follows:
+
+| Rate group | Frequency | Role |
+|------------|-----------|------|
+| `RateGroup1` | 10 Hz | Fast ADCS sensing, estimation, and control work. |
+| `RateGroup2` | 1 Hz | Satellite-state evaluation and nominal application, manager, and housekeeping work. |
+| `RateGroup3` | 0.1 Hz | Lower-rate ADCS and payload work that does not require the faster control-loop cadence. |
+
+### HuskySat-2 rate-group offsets
+
+The PAY and ADCS deployments will use configured phase offsets for selected work within an active rate-group period. For example, PAY will phase camera triggers, camera measurements, and associated attitude or position sampling; ADCS will phase sensor reads, filter updates, and actuator commands. These offsets keep the relative timing of measurements and commands repeatable, reduce contention from simultaneous thread wake-ups, and limit the effect of Linux scheduler jitter on control and image-capture timing.
+
+The exact offsets and allowable jitter will be determined through hardware and deployment timing tests. Components will use the rate-group tick together with available hardware or measurement timestamps, so an offset will provide scheduling guidance rather than replace a sensor timestamp. If work misses its expected phase or produces stale data, the owning application will detect that condition and will not treat the sample as current.
+
 ## Svc::Version
 
 **Type:** Passive component.
