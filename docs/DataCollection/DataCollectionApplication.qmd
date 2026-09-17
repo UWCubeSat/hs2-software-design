@@ -2,7 +2,11 @@
 
 `DataCollectionApplication` is the Layer 3 active component for the DataCollection subtopology.
 Every image capture is a ground-commanded event: ground sends `RUN_EXPERIMENT` with a complete set
-of experiment parameters
+of experiment parameters.
+
+**Data Collection software topology**:
+
+![Data Collection application topology diagram](../../DataCollection/images/DataCollectionApplicationTopology.png){width=100%}
 
 **File system**\
 The partition holds two things: a manifest, and one subdirectory per `Science.ImageType` integer value. `<imagePartitionDir>/experiments.csv` logs imaging opportunities.

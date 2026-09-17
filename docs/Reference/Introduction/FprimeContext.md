@@ -30,6 +30,24 @@ F' supports four important port execution styles:
 
 The main F' data interfaces are commands, events, telemetry channels, and parameters. Commands represent uplinked operator instructions and are routed through `Svc::CmdDispatcher`. Events record component activity and faults and are routed through `Svc::EventManager`. Telemetry channels represent current state and are collected by `Svc::TlmChan` and `Svc::TlmPacketizer`. Parameters hold configurable values and may be persisted by `Svc::PrmDb`.
 
+## From Component SDD to FPP and C++
+
+The component SDD is the design contract for implementation: its port, command, event, telemetry, parameter, and state-machine descriptions are translated into an FPP component definition. The FPP file is the interface source of truth, similar to an API or header, but it is also machine-readable so F' can check connections and generate code.
+
+For example, a port and command from an SDD become declarations in a component model:
+
+```fpp
+active component Example {
+    sync input port dataIn: ExampleData
+    output port resultOut: ExampleResult
+    async command PROCESS(value: U32)
+}
+```
+
+Running the F' tooling (often through `fprime-util new --component`, `fprime-util impl`, and the deployment build) generates typed C++ base files such as `ExampleComponentAc.hpp` and `ExampleComponentAc.cpp`. These generated files provide the base class, port and command plumbing, and framework integration. Developers implement the behavior in the hand-written `Example.hpp` and `Example.cpp` files by filling in the generated handler methods; they do not edit the generated `Ac` files. The topology's FPP definitions then instantiate the component and connect its ports. In this workflow, the SDD tells an implementer what the component must do, the FPP defines the precise machine-checked interface, and the generated C++ files provide the implementation starting point.
+
+See the F' [component development process](https://fprime.jpl.nasa.gov/latest/docs/user-manual/overview/development-practice/), [Hello World component tutorial](https://fprime.jpl.nasa.gov/latest/tutorials-hello-world/docs/hello-world), and [autocoded functions reference](https://fprime.jpl.nasa.gov/latest/docs/user-manual/framework/autocoded-functions/) for the complete workflow.
+
 ## Topology Assembly
 
 The deployment topology is responsible for more than simply listing components. It must:

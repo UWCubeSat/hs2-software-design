@@ -8,7 +8,6 @@ book:
   chapters:
     - index.qmd
     - docs/Reference/Introduction/ArchitectureOverview.qmd
-    - docs/Reference/Introduction/SubtopologyDecomposition.qmd
     - docs/Reference/Introduction/FprimeContext.md
 
     - part: "Level 4 - System Services and Control Layer"

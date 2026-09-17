@@ -7,6 +7,9 @@
 {{< include ../../Adcs/SunSensorManager.qmd >}}
 
 \newpage
+{{< include ../../Adcs/StarTrackerManager.md >}}
+
+\newpage
 {{< include ../../Adcs/MagnetorquerManager.qmd >}}
 
 {{< include Communications.md >}}

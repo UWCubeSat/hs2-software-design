@@ -10,6 +10,9 @@ The component is driven by two synchronous input ports:
 - `schedIn` (`Svc.Sched`) — a 1 Hz rate-group tick. All sensor polling and PID computation happens here.
 - `modeIn` (`Sat.ThermalModePort`, carrying `Thermals.Mode`) — mode commands from `SatStateMachine`. 
 
+**Thermal software topology**:
+
+![Thermal application topology diagram](../../Thermal/images/ThermalApplicationTopology.png){width=100%}
 
 #### Requirements {.unnumbered .unlisted}
 

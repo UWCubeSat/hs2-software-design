@@ -4,6 +4,10 @@ ScienceApplication is the Layer 3 active component for the Science subtopology. 
 reads a manifest of imaging opportunities logged on the external disk, finds the first one that
 has every image type a ground-configured algorithm chain needs, and runs that chain against it.
 
+**Payload software topology**:
+
+![Payload software topology diagram](../../ScienceInference/images/PayloadTopology.png){width=100%}
+
 The component is driven by two synchronous input ports:
 
 - `schedIn` (`Svc.Sched`) — a rate-group tick. All manifest scanning and processing happens here.

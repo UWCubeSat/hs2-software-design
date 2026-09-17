@@ -6,6 +6,10 @@
 
 Attitude estimation and all control law computation are internal to `AdcsApplication` itself. `AdcsApplication` receives raw sensor data directly from the hardware managers and `StarTrackerManager`, maintains its own cached state estimate, and runs internal control functions: `DetumbleController` in `Detumble`, `SlewLimiter` in the three maneuvering pointing modes, and `PointingController` in steady-state `AttitudeHold`. It then turns that estimate into a commanded magnetic moment.
 
+**ADCS software topology**:
+
+![ADCS application topology diagram](../../Adcs/images/AdcsApplicationTopology.png){width=100%}
+
 
 ## Requirements {.unnumbered .unlisted}
 
@@ -174,10 +178,6 @@ Reference: [FPP inherited transitions](https://github.com/nasa/fpp/blob/main/doc
 
 
 ## Notes {.unnumbered .unlisted}
-
-**ADCS Subtopology**:
-
-![AdcsApplication topology diagram](../../Adcs/images/AdcsApplicationTopology.png)
 
 **Internal control flow**:
 
