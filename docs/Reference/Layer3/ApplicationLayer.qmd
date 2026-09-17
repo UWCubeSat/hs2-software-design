@@ -13,7 +13,7 @@
 {{< include ../../EPS/EPSApplication.qmd >}}
 
 \newpage
-{{< include ../../ScienceInference/ScienceInferenceApplication.qmd >}}
+{{< include ../../ScienceInference/ScienceApplication.md >}}
 
 \newpage
 {{< include ../../Thermal/ThermalApplication.qmd >}}

@@ -16,14 +16,17 @@ The component is driven by two synchronous input ports:
 **File system**\
 The partition holds two things: a manifest, and one subdirectory per `Science.ImageType` integer value. `<imagePartitionDir>/experiments.csv` logs imaging opportunities.
 
+
 Each experiment opportunity has:
 
-- `time` as `HH:MM:SS`, 
--  `date` as `DD:MM:YYYY`, 
+- `timeRequested` as `YYYY:MM:DD:HH:MM:SS`, 
+- `timeDataCollected` as `YYYY:MM:DD:HH:MM:SS`, 
+- `timeScienceStarted` as `YYYY:MM:DD:HH:MM:SS`, 
+- `timeScienceFinished` as `YYYY:MM:DD:HH:MM:SS`, 
 -  `positionKnown` as `bool`,
 -  `position` as `x:y:z`
--  `attidue` as `x:y:z:w` (quaternion),
--  `availableImageTypes` a `U16` bitmask representing `Science.ImageType` 
+- `attitude` as `x:y:z:w` (quaternion),
+-  `availableImageTypes` a `U16` bitmask representing `Science.ImageType`
 -  `experimentID` as a `U16`
 
 `<imagePartitionDir>/1/` holds `STARS` images,
@@ -32,7 +35,7 @@ Each experiment opportunity has:
 
 
 
-#### Requirements
+#### Requirements {.unnumbered .unlisted}
 
 | ID | Requirement | Verification |
 |---|---|---|
@@ -48,9 +51,9 @@ Each experiment opportunity has:
 | HS2-SIA-010 | ScienceApplication shall respond to `pingIn` immediately on `pingOut` with the same key | Unit test |
 | HS2-SIA-011 | Once every configured algorithm has succeeded against an experiment, ScienceApplication shall move that experiment's manifest line from `experiments.csv` to `completeExperiments.csv`, tagged with the ordered list of algorithms that ran | Unit test |
 
-#### Design
+#### Design {.unnumbered .unlisted}
 
-##### Ports
+##### Ports {.unnumbered .unlisted}
 
 | Port | Kind | Direction | Type | Usage |
 |---|---|---|---|---|
@@ -60,7 +63,7 @@ Each experiment opportunity has:
 | `pingIn` / `pingOut` | sync / — | in / out | `Svc.Ping` | Health monitoring; every `pingIn` is echoed immediately on `pingOut`. |
 | `timeCaller`, `Fw.Command`, `Fw.Event`, `Fw.Channel` | standard AC ports | — | — | Boilerplate command/event/telemetry/time wiring. |
 
-##### Commands
+##### Commands {.unnumbered .unlisted}
 
 | Name | Arguments | Effect |
 |---|---|---|
@@ -69,7 +72,7 @@ Each experiment opportunity has:
 | `CLEAR_ALGORITHM` | index (U8) | Resets topology slot `index` to an unconfigured `Science.Algorithm`. |
 | `CLEAR_SCIENCE_TOPOLOGY` | — | Resets every one of the 10 topology slots to a default `Science.Algorithm` |
 
-##### State Machine
+##### State Machine {.unnumbered .unlisted}
 
 `sciAppStateMachine` (`Science_ScienceApplicationStateMachine_t`, defined in
 `ScienceApplicationStateMachine.fpp`) tracks operating mode.

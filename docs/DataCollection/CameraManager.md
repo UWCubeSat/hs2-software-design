@@ -1,4 +1,4 @@
-## CameraManager
+# CameraManager
 
 `CameraManager` is a Layer 2 queued component driving one physical camera. It is meant to be
 instantiated once per camera.
@@ -20,9 +20,10 @@ operations, except for image captures which happens through a GPIO pin.
 
 | Port | Direction | Type | Purpose |
 |------|-----------|------|---------|
-| `captureImageIn` | Input, async | DataCollection.CameraCapture with imageType Types.ImageType, delay F32, and outputPath string | Requests one capture of `imageType`, writing the retrieved frame to `outputPath`. |
-| `healthCheckIn` | Input, sync | DataCollection.CameraCheckup returning Types.CameraStatus | Per-camera health check |
-| `cameraTriggerOut` | Output | Drv.GpioWrite with state Fw.Logic, returning Drv.GpioStatus | Drives the GPIO pin wired to this camera's hardware trigger input |
+| `captureImageIn` | Input, async | DataCollection.CameraCapture(imageType, delay, outputPath); types are ImageType, F32, and string | Requests one capture of `imageType`, writing the retrieved frame to `outputPath`. |
+| `healthCheckIn` | Input, sync | `DataCollection.CameraCheckup()` returns `Types.CameraStatus` | Per-camera health check |
+| `cameraPower` | Input, async | `DataCollection.CameraPower()` returns `Types.CameraStatus` | Camera power command |
+| `cameraTriggerOut` | Output | Drv.GpioWrite(state); state type is Fw.Logic; returns Drv.GpioStatus | Drives the GPIO pin wired to this camera's hardware trigger input |
 
 #### Parameters {.unnumbered .unlisted}
 

@@ -1,7 +1,7 @@
 # DataCollectionApplication
 
 `DataCollectionApplication` is the Layer 3 active component for the DataCollection subtopology.
-Every image capture is a ground-commanded event: ground sends `RUN_EXPERIMENT` with a complete set
+Every image capture is a ground-commanded event: ground sends `QUEUE_EXPERIMENT` with a complete set
 of experiment parameters.
 
 **Data Collection software topology**:
@@ -11,13 +11,16 @@ of experiment parameters.
 **File system**\
 The partition holds two things: a manifest, and one subdirectory per `Science.ImageType` integer value. `<imagePartitionDir>/experiments.csv` logs imaging opportunities.
 
+
 Each experiment opportunity has:
 
-- `time` as `HH:MM:SS`, 
--  `date` as `DD:MM:YYYY`, 
+- `timeRequested` as `YYYY:MM:DD:HH:MM:SS`, 
+- `timeDataCollected` as `YYYY:MM:DD:HH:MM:SS`, 
+- `timeScienceStarted` as `YYYY:MM:DD:HH:MM:SS`, 
+- `timeScienceFinished` as `YYYY:MM:DD:HH:MM:SS`, 
 -  `positionKnown` as `bool`,
 -  `position` as `x:y:z`
--  `attidue` as `x:y:z:w` (quaternion),
+- `attitude` as `x:y:z:w` (quaternion),
 -  `availableImageTypes` a `U16` bitmask representing `Science.ImageType`
 -  `experimentID` as a `U16`
 
@@ -35,17 +38,16 @@ The component is driven by two synchronous input ports:
 
 | ID | Requirement | Verification |
 |----|-------------|-------------|
-| HS2-DCA-001 | DataCollectionApplication shall capture data only in response to a ground-issued `RUN_EXPERIMENT` command, using that command's own arguments — never automatically or on a schedule | Inspection |
+| HS2-DCA-001 | DataCollectionApplication shall capture data only in response to a ground-issued `QUEUE_EXPERIMENT` command, using that command's own arguments — never automatically or on a schedule | Inspection |
 | HS2-DCA-002 | DataCollectionApplication shall power on both cameras prior to a commanded experiment | Inspection |
 | HS2-DCA-003 | DataCollectionApplication shall perform a health check on both cameras before running an experiment and reject the command with `WARNING_HI` if any check fails | Inspection |
 | HS2-DCA-004 | DataCollectionApplication shall simultaneously acquire images, attitude, and position within 50ms of each other | Inspection |
 | HS2-DCA-005 | DataCollectionApplication shall write each captured image into Science's image partition under its `Types.ImageType`/camera-prefix path, and append one row describing the opportunity to `experiments.csv` | Inspection |
-| HS2-DCA-006 | DataCollectionApplication shall reject a `RUN_EXPERIMENT` command with `WARNING_HI` and take no images if the image-partition mount is at or above its configured full threshold | Inspection |
+| HS2-DCA-006 | DataCollectionApplication shall reject a `QUEUE_EXPERIMENT` command with `WARNING_HI` and take no images if the image-partition mount is at or above its configured full threshold | Inspection |
 | HS2-DCA-007 | DataCollectionApplication shall power off both cameras upon experiment completion or error | Inspection |
 | HS2-DCA-008 | DataCollectionApplication shall report experiment success or failure upon completion | Inspection |
 | HS2-DCA-009 | DataCollectionApplication shall switch operating mode on command from SatStateMachine | Inspection |
 | HS2-DCA-010 | DataCollectionApplication shall respond to health ping within the required deadline | Inspection |
-
 
 ##### Ports {.unnumbered .unlisted}
 
@@ -53,22 +55,21 @@ The component is driven by two synchronous input ports:
 |------|-----------|------|---------|
 | `modeIn` | Input | `DataCollection.DataColModePort` | Mode command from SatStateMachine, carrying `Types.DataColMode`. |
 | `schedIn` | Input | `Svc.Sched` | Rate group tick; drives `pingIn`/`pingOut` and the state machine's `tick` signal  |
-| `cameraPower` (2 instances) | Output | DataCollection.CameraPower for camera and powerOn, returning Types.CameraStatus | Power `lostCameraManager`/`foundCameraManager` (port index 0/1) on or off. |
-| `cameraCheckup` (2 instances) | Output | DataCollection.CameraCheckup for camera, returning Types.CameraStatus | Per-camera health check, used by `HealthCheck` mode's `checkup` action. |
-| `cameraCapture` (2 instances) | Output | DataCollection.CameraCapture for camera and imageType, returning Types.CameraStatus | Triggers one camera's capture of the current experiment's `imageType`.  |
-| `positionGet` | Output | DataCollection.PositionGet returning Types.PositionData | Requests the current estimated position vector |
-| `attitudeGet` | Output | DataCollection.AttitudeGet returning Types.Quaternion | Requests the current estimated attitude quaternion. |
-| `attitudeRequest` | Output | DataCollection.AttitudeRequest returning Types.Quaternion | Requests an attitude quaternion. |
+| `cameraPower[2]` | Output | DataCollection.CameraPower(camera, powerOn); returns Types.CameraStatus | Power `lostCameraManager`/`foundCameraManager` (port index 0/1) on or off. |
+| `cameraCheckup[2]` | Output | DataCollection.CameraCheckup(camera); returns Types.CameraStatus | Per-camera health check, used by `HealthCheck` mode's `checkup` action. |
+| `cameraCapture[2]` | Output | DataCollection.CameraCapture(camera, imageType); returns Types.CameraStatus | Triggers one camera's capture of the current experiment's `imageType`.  |
+| `positionGet` | Output | DataCollection.PositionGet(); returns Types.PositionData | Requests the current estimated position vector |
+| `attitudeGet` | Output | DataCollection.AttitudeGet(); returns Types.Quaternion | Requests the current estimated attitude quaternion. |
+| `OrientationRequest` | Output | DataCollection.OrientationRequest(); returns Types.Quaternion | Requests a satellite orientation |
 | `pingIn` / `pingOut` | In/Out | `Svc.Ping` | Health monitoring. |
 
 ##### Commands {.unnumbered .unlisted}
 
 | Name | Args | Description |
 |----------|------|-------------|
-| `RUN_EXPERIMENT` | expId (U8), imageTypeCode (Types.ImageTypes) | Takes an image of each requested type and tags them with the specified experiment ID. If the state machine is `RUN_ARMED`, starts immediately; if an experiment is already in flight, queued instead; otherwise rejected with `VALIDATION_ERROR`. |
+| `QUEUE_EXPERIMENT` | expId (U8); imageTypeCode (Types.ImageTypes); count (U8) | Adds a new entry into experiments.csv to queue an experiment. expId parameter reserves all ids from expId to expId+(count-1) |
 
 Once an experiment is commanded, Data Collection calculates and requests an attitude from ADCS based on the required image types. Data Collection then polls the current attitude until the request is satisfied. If no attitude can satisfy the requirements at the current position in orbit, a warning is thrown and Data Collection caches the request to keep working through the queue.
-
 
 #### State Machine {.unnumbered .unlisted}
 
@@ -111,6 +112,7 @@ stateDiagram
     }
     RUN --> OFF : disableSuccess
 ```
+
 ```
 [*] --> INIT
 INIT --> OFF : tick

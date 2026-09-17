@@ -56,7 +56,7 @@ Active component. Internal `Fw::Sm` state machine with four top level sibling st
 | `pingIn` / `pingOut` | Input / Output | `Svc.Ping` | Health monitoring |
 | `adcsModeOut` | Output | `Sat.AdcsModePort` | Mode command to `AdcsApplication` |
 | `dataColModeOut` | Output | `Sat.DataColModePort` | Mode command to `DataCollectionApplication` |
-| `scienceInferenceModeOut` | Output | `Sat.ScienceInferenceModePort` | Mode command to `ScienceInferenceApplication` |
+| `scienceInferenceModeOut` | Output | `Sat.ScienceInferenceModePort` | Mode command to `ScienceApplication` |
 | `commsModeOut` | Output | `Sat.CommsModePort` | Mode command to `ComApplication` |
 | `thermalModeOut` | Output | `Sat.ThermalModePort` | Mode command to `ThermalApplication` |
 | `prmGet` | Output | `Fw.PrmGet` | Load parameters from PrmDb |
@@ -136,7 +136,7 @@ DOWNLINK / SCIENCE / CHARGE
 |---|---|---|---|---|
 | `AdcsApplication` | Detumble | AntennaPointing | EarthLimbPointing | SunPointing |
 | `DataCollectionApplication` | Off | Off | RunExperiment | Off |
-| `ScienceInferenceApplication` | Off | Off | ProcessImages | Off |
+| `ScienceApplication` | Off | Off | ProcessImages | Off |
 | `ComApplication` | Beacon | StandardDownlink | Beacon | Beacon |
 | `ThermalApplication` | NoHeating | ActiveHeating | ActiveHeating | ActiveHeating |
 
