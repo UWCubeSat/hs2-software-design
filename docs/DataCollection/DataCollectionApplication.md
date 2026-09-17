@@ -7,10 +7,13 @@ of experiment parameters
 **File system**\
 The partition holds two things: a manifest, and one subdirectory per `Science.ImageType` integer value. `<imagePartitionDir>/experiments.csv` logs imaging opportunities.
 
+
 Each experiment opportunity has:
 
-- `time` as `HH:MM:SS`, 
--  `date` as `DD:MM:YYYY`, 
+- `timeRequested` as `YYYY:MM:DD:HH:MM:SS`, 
+- `timeDataCollected` as `YYYY:MM:DD:HH:MM:SS`, 
+- `timeScienceStarted` as `YYYY:MM:DD:HH:MM:SS`, 
+- `timeScienceFinished` as `YYYY:MM:DD:HH:MM:SS`, 
 -  `positionKnown` as `bool`,
 -  `position` as `x:y:z`
 -  `attidue` as `x:y:z:w` (quaternion),
@@ -62,7 +65,7 @@ The component is driven by two synchronous input ports:
 
 | Name | Args | Description |
 |----------|------|-------------|
-| `RUN_EXPERIMENT` | `expId: U8`, `imageTypeCode: Types.ImageTypes` | Takes an image of each requested type and tags them with the specified experiment ID. If the state machine is `RUN_ARMED`, starts immediately; if an experiment is already in flight, queued instead; otherwise rejected with `VALIDATION_ERROR`. |
+| `QUEUE_EXPERIMENT` | `expId: U8`, `imageTypeCode: Types.ImageTypes`, `count: U8` | Adds a new entry into experiments.csv to queue an experiment. expId parameter reserves all ids from expId to expId+(count-1) |
 
 Once an experiment is commanded, Data Collection calculates and requests an attitude from ADCS based on the required image types. Data Collection then polls the current attitude until the request is satisfied. If no attitude can satisfy the requirements at the current position in orbit, a warning is thrown and Data Collection caches the request to keep working through the queue.
 
