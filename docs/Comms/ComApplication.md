@@ -22,6 +22,7 @@
 | HS2-COM-005 | ComApplication shall enable the transmission of stored telemetry along with real-time telemetry when `STORED_PLAYBACK` downlink mode is activated | Inspection |
 | HS2-COM-006 | ComApplication shall enable the transmission of SOH telemetry only at a 1Hz rate when `BEACON` downlink mode is activated | Inspection |
 | HS2-COM-007 | ComApplication shall enable the transmission of all real-time telemetry when `STANDARD_DOWNLINK` downlink mode is activated | Inspection |
+| HS2-COM-008| ComApplication shall disable all transmission when `NO_DOWNLINK` mode is actived | Inspection |
 
 ---
 
@@ -105,7 +106,7 @@ The following telemetry will be used for the `ComApplication`:
 The following events will be emitted by the `ComApplication`:
 | Event Name | Severity Level | Description |
 |------------|----------------|-------------|
-| DownlinkModeUpdateCmd | COMMAND | Emitted when ground issues a command to `ComApplication` to update downlink mode |
+| DownlinkModeUpdateCmd | COMMAND | Emitted when ComApplication processes a command from the ground to update downlink mode |
 | DownlinkModeSatStateUpdate | ACTIVITY_HI | Emitted when `SatStateMachine` updates the link mode through the `modeIn` input port |
 
 ---
