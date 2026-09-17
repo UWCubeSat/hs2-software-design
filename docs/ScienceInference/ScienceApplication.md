@@ -12,14 +12,17 @@ The component is driven by two synchronous input ports:
 **File system**\
 The partition holds two things: a manifest, and one subdirectory per `Science.ImageType` integer value. `<imagePartitionDir>/experiments.csv` logs imaging opportunities.
 
+
 Each experiment opportunity has:
 
-- `time` as `HH:MM:SS`, 
--  `date` as `DD:MM:YYYY`, 
+- `timeRequested` as `YYYY:MM:DD:HH:MM:SS`, 
+- `timeDataCollected` as `YYYY:MM:DD:HH:MM:SS`, 
+- `timeScienceStarted` as `YYYY:MM:DD:HH:MM:SS`, 
+- `timeScienceFinished` as `YYYY:MM:DD:HH:MM:SS`, 
 -  `positionKnown` as `bool`,
 -  `position` as `x:y:z`
 -  `attidue` as `x:y:z:w` (quaternion),
--  `availableImageTypes` a `U16` bitmask representing `Science.ImageType` 
+-  `availableImageTypes` a `U16` bitmask representing `Science.ImageType`
 -  `experimentID` as a `U16`
 
 `<imagePartitionDir>/1/` holds `STARS` images,
