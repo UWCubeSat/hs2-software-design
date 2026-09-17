@@ -22,6 +22,7 @@ operations, except for image captures which happens through a GPIO pin.
 |------|-----------|------|---------|
 | `captureImageIn` | Input, async | `DataCollection.CameraCapture(imageType: Types.ImageType, delay: F32, outputPath: string)` | Requests one capture of `imageType`, writing the retrieved frame to `outputPath`. |
 | `healthCheckIn` | Input, sync | `DataCollection.CameraCheckup() -> Types.CameraStatus` | Per-camera health check |
+| `cameraPower` | Input, async | `DataCollection.CameraPower() -> Types.CameraStatus` | Camera power command |
 | `cameraTriggerOut` | Output | `Drv.GpioWrite($state: Fw.Logic) -> Drv.GpioStatus` | Drives the GPIO pin wired to this camera's hardware trigger input |
 
 ## Parameters
