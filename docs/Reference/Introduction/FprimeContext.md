@@ -34,17 +34,35 @@ The main F' data interfaces are commands, events, telemetry channels, and parame
 
 The component SDD is the design contract for implementation: its port, command, event, telemetry, parameter, and state-machine descriptions are translated into an FPP component definition. The FPP file is the interface source of truth, similar to an API or header, but it is also machine-readable so F' can check connections and generate code.
 
-For example, a port and command from an SDD become declarations in a component model:
+This translation is close to mechanical, and that's the point. Every table in the SDD maps to a specific FPP construct:
+
+| SDD element | FPP construct |
+|---|---|
+| Port table (name, direction, type, purpose) | `sync input port` / `output port` declarations |
+| Commands table (mnemonic, args) | `async command` / `sync command` declarations with opcodes |
+| Events (e.g. `WARNING_HI`, activity logs) | `event` declarations with severity and format strings |
+| Telemetry channels | `telemetry` declarations with type and update rate |
+| Parameters (thresholds, config values) | `param` declarations with default values |
+| Operational behavior / flow diagrams | The body of the hand-written handler functions |
+
+So a port and command from an SDD become declarations in a component model:
 
 ```fpp
 active component Example {
     sync input port dataIn: ExampleData
     output port resultOut: ExampleResult
     async command PROCESS(value: U32)
+    event ProcessFailed(reason: string) severity warning high format "Process failed: {}"
+    telemetry ProcessCount: U32
+    param PROCESS_THRESHOLD: U32 default 100
 }
 ```
 
-Running the F' tooling (often through `fprime-util new --component`, `fprime-util impl`, and the deployment build) generates typed C++ base files such as `ExampleComponentAc.hpp` and `ExampleComponentAc.cpp`. These generated files provide the base class, port and command plumbing, and framework integration. Developers implement the behavior in the hand-written `Example.hpp` and `Example.cpp` files by filling in the generated handler methods; they do not edit the generated `Ac` files. The topology's FPP definitions then instantiate the component and connect its ports. In this workflow, the SDD tells an implementer what the component must do, the FPP defines the precise machine-checked interface, and the generated C++ files provide the implementation starting point.
+Running the F' tooling (often through `fprime-util new --component`, `fprime-util impl`, and the deployment build) generates typed C++ base files such as `ExampleComponentAc.hpp` and `ExampleComponentAc.cpp`. These generated files handle everything that is boilerplate once the interface is fixed: command opcode dispatch and argument deserialization, port call proxies and connection-time type checking, telemetry channel packing, event formatting and routing to the ground interface, and parameter loading from `PrmDb`. None of that is something a developer writes by hand or needs to design — it falls out automatically once the SDD's tables are captured in FPP.
+
+What's left for the developer is exactly the part the SDD already spells out in its Operational Behavior section: the step-by-step flow for each handler (what to read, what to check, what to emit, what to cache). The hand-written `Example.hpp` and `Example.cpp` files fill in those generated handler stubs with that logic. So the SDD isn't a partial description that implementers have to fill gaps in from experience — it's a complete description split across two things the tooling already understands how to consume: the interface tables (which become FPP, checked by the compiler) and the behavior narrative (which becomes the handler bodies).
+
+This is also why "Inspection" is a valid verification method for most SDD requirements: if a requirement is fully expressed as a port, command, or event in the SDD, verifying it means confirming the FPP declares that port/command/event correctly and the generated code compiles against it — the toolchain itself catches interface mismatches (wrong types, missing connections, unconnected ports) that would otherwise require a review to find.
 
 See the F' [component development process](https://fprime.jpl.nasa.gov/latest/docs/user-manual/overview/development-practice/), [Hello World component tutorial](https://fprime.jpl.nasa.gov/latest/tutorials-hello-world/docs/hello-world), and [autocoded functions reference](https://fprime.jpl.nasa.gov/latest/docs/user-manual/framework/autocoded-functions/) for the complete workflow.
 
