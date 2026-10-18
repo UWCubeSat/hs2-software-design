@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-`CurrentSensorManager` is the Layer 2 hardware manager for the INA3221 triple-channel current/voltage monitor on the PDS (Power Distribution System) board. It owns all bus communication with the INA3221 (resetting, verifying, configuring, and reading the device) and publishes per-rail measurements to `EPSApplication` and emits them as telemetry on each rate group tick.
+`CurrentSensorManager` is the Layer 2 hardware manager for the INA3221 triple-channel current/voltage monitor on the PDS (Power Distribution System) board. It owns all bus communication with the INA3221 (resetting, configuring, and reading the device), serves per-rail measurements to `EPSApplication` on demand through `railStateGet`, and emits them as telemetry on each rate group tick.
 
 The INA3221 monitors three power rails (12 V, 5 V, 3.3 V), reporting bus voltage and current for each. `CurrentSensorManager` has no satellite mode awareness; it runs its startup and read loop unconditionally once initialized, driven entirely by the rate group tick. All bus access goes through the Layer 1 `LinuxI2cDriver`. `CurrentSensorManager` has no direct hardware knowledge beyond register addresses.
 
@@ -14,7 +14,7 @@ The INA3221 monitors three power rails (12 V, 5 V, 3.3 V), reporting bus voltage
 |----|-------------|--------------|
 | HS2-CSM-001 | CurrentSensorManager shall be the sole flight-software owner of the INA3221 over I2C. | Inspection |
 | HS2-CSM-002 | CurrentSensorManager shall read the bus voltage and current of all three rails each rate group tick. | Inspection |
-| HS2-CSM-003 | CurrentSensorManager shall publish the assembled rail measurements on railStateOut to EPSApplication each rate group tick. | Inspection |
+| HS2-CSM-003 | CurrentSensorManager shall return the most recent rail measurements to EPSApplication on railStateGet. | Inspection |
 | HS2-CSM-004 | CurrentSensorManager shall emit telemetry channels for each rail's bus voltage and current. | Inspection |
 | HS2-CSM-005 | CurrentSensorManager shall log a WARNING_HI event and transition to RESET on any I2C bus error. | Inspection |
 
@@ -33,7 +33,7 @@ Queued component with internal flat F' state machine (`Fw::Sm`).
 | `schedIn` | Input | `Svc.Sched` | Rate group tick; drives the SM step |
 | `busWrite` | Output | `Drv.I2c` | Write INA3221 registers (reset, configure) |
 | `busWriteRead` | Output | `Drv.I2cWriteRead` | Write register pointer then read in one repeated-start transaction; channel reads |
-| `railStateGet` | Input | Custom `sync_input` port returning railState struct | Per-rail bus voltage and current |
+| `railStateGet` | Input | Custom `guarded input` port returning railState struct | Per-rail bus voltage and current, cached by the RUN cycle |
 | `cmdIn` | Input | `Fw.Cmd` | Register-access commands via CmdDispatcher |
 | `cmdResponseOut` | Output | `Fw.CmdResponse` | Command completion status |
 | `logOut` | Output | `Fw.Log` | Event logging (state transitions, I2C errors) |
@@ -72,8 +72,9 @@ RESET
   on tick → WAIT_RESET
 
 WAIT_RESET
-  on tick: one-tick settling delay for the reset to complete → CONFIGURE
-           if error → RESET
+  on tick: one-tick settling delay for the reset to complete
+    if reset write OK → CONFIGURE
+    if reset write error → log WARNING_HI → RESET
 
 CONFIGURE
   on tick: write the CONFIGURATION register to set averaging mode and conversion times
@@ -82,13 +83,12 @@ CONFIGURE
 
 RUN
   on tick: read the bus-voltage and shunt/current registers for all three channels
-           assemble railState struct
-           call railStateOut port
+           assemble railState struct and cache it for railStateGet
            emit telemetry channels
            if any busWriteRead error → log WARNING_HI (throttled) → RESET
 ```
 
-**Error self-healing:** any bus error from `CONFIGURE` or `RUN` emits a `WARNING_HI` event and re-enters `RESET`, retrying the full startup sequence on subsequent ticks.
+**Error self-healing:** any bus error from `WAIT_RESET`, `CONFIGURE`, or `RUN` emits a `WARNING_HI` event and re-enters `RESET`, retrying the full startup sequence on subsequent ticks.
 
 **Error recovery:** any of `WAIT_RESET`, `CONFIGURE`, or `RUN` return directly to `RESET` on a bus error.
 
@@ -98,8 +98,8 @@ Reference: [`INA3221Manager` (FeatherCdh)](https://github.com/UWCubeSat), [FPP f
 
 ## 5. Notes
 
-- Current is derived from the INA3221 shunt-voltage registers and the per-channel shunt resistance; exact scaling and shunt values are hardware-team inputs resolved during detailed design.
-- `CurrentSensorManager` is instantiated inside the EPS subtopology. Its `busWrite`/`busWriteRead` ports connect to a `LinuxI2cDriver` instance at the top-level topology; `railStateOut` connects to `EPSApplication`.
+- Current is derived from the INA3221 shunt-voltage registers (40 µV/LSB) and the per-channel shunt resistance: `I_mA = Vshunt_uV / Rshunt_mOhm`, with CH1 = 25 mΩ (12 V), CH2 = 50 mΩ (5 V), CH3 = 36 mΩ (3.3 V).
+- `CurrentSensorManager` is instantiated inside the EPS subtopology. Its `busWrite`/`busWriteRead` ports connect to a `LinuxI2cDriver` instance at the top-level topology; `EPSApplication` calls `railStateGet`.
 - `CurrentSensorManager` is **excluded from health monitoring** (`Svc::Health`). Only `EPSApplication` is health-checked.
 - The INA3221 is PDS-dependent hardware; it is present only in the flight/PDS configuration.
 - In the current hardware, Pin A0 is tied to SCL, meaning that the device I2C address is 0b1000011
