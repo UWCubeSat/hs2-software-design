@@ -14,7 +14,7 @@ Attitude estimation and all control law computation are internal to `AdcsApplica
 |----|-------------|--------------|
 | HS2-ADC-001 | AdcsApplication shall detumble the spacecraft | Inspection |
 | HS2-ADC-002 | AdcsApplication shall point the spacecraft at a commanded target quaternion | Inspection |
-| HS2-ADC-003 | AdcsApplication shall maintain a slew rate under 0.04 degrees per second upon command | Inspection |
+| HS2-ADC-003 | AdcsApplication shall limit the commanded slew rate, on top of the target attitude's own rate, to 0.5 degrees per second | Inspection |
 | HS2-ADC-004 | AdcsApplication shall respond to health pings within the required deadline | Inspection |
 | HS2-ADC-005 | AdcsApplication shall assert WARNING_HI events followed by a FATAL if hardware is unable to recover from errors | Inspection |
 | HS2-ADC-006 | AdcsApplication shall answer IMMUManager's `configureDataRequest` with connection port name, accel, gyro, and magnetometer data rates, and startup wait time | Inspection |
@@ -137,21 +137,21 @@ SUN_POINTING
   ├─ ACQUIRING       (on tick: check cached sun-vector freshness; wait for valid sun vector)
   └─ TRACKING
        on tick: read cached attitude, angular rate, angular acceleration, B-field, sun-vector freshness
-                SlewLimiter(attitude, angularRate, angularAccel, targetQuaternion, bField, 0.04°/s) → momentVector
+                SlewLimiter(attitude, angularRate, angularAccel, targetQuaternion, bField, 0.5°/s) → momentVector
                 send momentVectorOut
 
 ANTENNA_POINTING
   ├─ ACQUIRING       (on tick: compute ground station quaternion via GNSS ephemeris)
   └─ TRACKING
        on tick: read cached attitude, angular rate, angular acceleration, B-field
-                SlewLimiter(attitude, angularRate, angularAccel, targetQuaternion, bField, 0.04°/s) → momentVector
+                SlewLimiter(attitude, angularRate, angularAccel, targetQuaternion, bField, 0.5°/s) → momentVector
                 send momentVectorOut
 
 EARTH_LIMB_POINTING
   ├─ ACQUIRING       (on tick: acquire lit Earth limb target + solar optimization)
   └─ TRACKING
        on tick: read cached attitude, angular rate, angular acceleration, B-field, star-tracker freshness
-                SlewLimiter(attitude, angularRate, angularAccel, targetQuaternion, bField, 0.04°/s) → momentVector
+                SlewLimiter(attitude, angularRate, angularAccel, targetQuaternion, bField, 0.5°/s) → momentVector
                 send momentVectorOut
 
 ATTITUDE_HOLD
