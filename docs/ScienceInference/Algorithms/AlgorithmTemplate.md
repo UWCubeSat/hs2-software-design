@@ -4,7 +4,7 @@
 
 [General description of algorithm]
 
-`Algorithm` receives [at least 3 x.y image points; an image of the stars; an x.y.z.w quaternion; etc.] and outputs a [position; updated position; filtered image; etc.]
+`Algorithm` receives [at least 3 image points; an image of the stars; a quaternion describing the satellite's attitude; etc.] and outputs a [position; updated position; filtered image; etc.]
 
 ## Inputs/Outputs
 
