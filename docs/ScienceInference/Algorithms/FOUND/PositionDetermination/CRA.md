@@ -51,8 +51,10 @@ J. A. Christian, "A Tutorial on Horizon-Based Optical Navigation and Attitude De
 https://ieeexplore.ieee.org/document/9326288
 
 ## Testing
-Images containing conic sections representing Earth are manually generated, then run through `FOUND::SED`. These edge points are then used to test `FOUND::CRA` to ensure ±25km accuracy.\ 
-This algorithm is also tested on analytically calculated edge points from conic sections representing Earth to ensure ±0.5km accuracy.\
+Images containing conic sections representing Earth are manually generated, then run through `FOUND::SED`. These edge points are then used to test `FOUND::CRA` to ensure ±25km accuracy.
+
+This algorithm is also tested on analytically calculated edge points from conic sections representing Earth to ensure ±0.5km accuracy.
+
 More advanced image generation software is being developed to include accurate atmospheric blurring.
 
 
