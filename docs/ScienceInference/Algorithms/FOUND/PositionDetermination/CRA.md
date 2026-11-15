@@ -42,6 +42,7 @@ Instances of `CRA` must be passed the following flags when run from the command 
 
 ## Libraries
 This algorithm uses the Eigen C++ library
+https://libeigen.gitlab.io/
 
 ## References
 This algorithm is based on John A. Christian's work on optical navigation
