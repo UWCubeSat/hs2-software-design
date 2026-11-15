@@ -47,7 +47,7 @@ This algorithm uses the Eigen C++ library
 This algorithm is based on John A. Christian's work on optical navigation
 
 J. A. Christian, "A Tutorial on Horizon-Based Optical Navigation and Attitude Determination With Space Imaging Systems," in IEEE Access, vol. 9, pp. 19819-19853, 2021, doi: 10.1109/ACCESS.2021.3051914.
-keywords: {Cameras;Optical imaging;Space vehicles;Navigation;Lenses;Tutorials;Adaptive optics;Algebraic geometry;attitude determination;computer vision;Earth horizon sensors;optical navigation (OPNAV);space exploration;quadrics;spacecraft navigation},
+https://ieeexplore.ieee.org/document/9326288
 
 
 
