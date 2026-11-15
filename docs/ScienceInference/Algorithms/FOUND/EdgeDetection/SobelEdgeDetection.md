@@ -46,4 +46,4 @@ Instances of `SED` must be passed the following flags when run from the command 
 This algorithm uses the Sobel filter from OpenCV https://docs.opencv.org/5.0/main_modules/imgproc_filter.html#sobel
 
 ## Testing
-This algorithm is tested against manually generated conic sections representing Earth. Edge points are analytically calculated, then compared the SED's output to ensure ±0.5[TBR] pixel accuracy
+This algorithm is tested against manually generated conic sections representing Earth. Edge points are analytically calculated, then compared to `SED`'s output to ensure ±0.5[TBR] pixel accuracy
