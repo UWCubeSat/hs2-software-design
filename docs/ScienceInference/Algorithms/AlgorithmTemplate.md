@@ -11,7 +11,7 @@
 Note: Optional means an algorithm *instance* is allowed to declare it does not accept or output the corresponding thing. Nothing is ever optional once an algorithm instance is specified.
 
 ### Images
-Instances of `Algorithm` may the following images. An algorithm instance may specify which camera to use for each image. \
+Instances of `Algorithm` may require the following images. An algorithm instance may specify which camera to use for each image. \
 Images are required before the algorithm instance is reached in the topology, but not necessarily before the first algorithm in the topology is run.
 For example, the algorithm topology may use one of algorithm1's outputs to specify the orientation of an image that algorithm3 uses.
 
