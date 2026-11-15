@@ -26,7 +26,6 @@ For example, the algorithm topology may use one of algorithm1's outputs to speci
 
 ### Inputs
 Instances of `Algorithm` may require the following input types. \
-Inputs are not necessarily from the immediately previous algorithm. For example, the algorithm topology may specify that algorithm3 receives one of algorithm1's outputs.\
 Note: EVERY input is a flag. The difference between a regular flag and an input is that regular flags may be hardcoded by the algorithm topology.
 
 [Use types from AlgorithmEnums.md]
@@ -53,7 +52,7 @@ Instances of `Algorithm` may be passed the following flags when run from the com
 
 | Index | Name | Format | Description | Optional |
 |-------|------|--------|-------------|----------|
-| 0 | flag1 | `--flag1 [data]` | This flag is a flag | no |
+| 0 | input1 | `--input1 [data]` | This flag specifies input1 | no |
 | 1 | flag2 | ... | ... | yes |
 | 2 | flag3 | ... | ... | yes/no |
 | ... | ... | ... | ... | ... | ... | ... |
