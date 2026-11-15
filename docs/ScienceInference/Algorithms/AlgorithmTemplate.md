@@ -57,3 +57,12 @@ Instances of `Algorithm` may be passed the following flags when run from the com
 | 2 | flag3 | ... | ... | yes/no |
 | ... | ... | ... | ... | ... | ... | ... |
 
+## Libraries
+The libraries used along with links
+
+## References
+Any papers used to develop this algorithm
+
+## Testing
+How this algorithm was or is planned to be tested before launch
+
