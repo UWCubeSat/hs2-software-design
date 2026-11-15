@@ -43,4 +43,4 @@ Instances of `SED` must be passed the following flags when run from the command 
 | 3 | Image | `--imagePath [path]` | The filepath to the image | no |
 
 ## Libraries
-This algorithm uses the Sobel filter from OpenCV
+This algorithm uses the Sobel filter from OpenCV https://docs.opencv.org/5.0/main_modules/imgproc_filter.html#sobel
