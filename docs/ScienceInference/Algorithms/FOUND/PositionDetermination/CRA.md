@@ -40,3 +40,14 @@ Instances of `CRA` must be passed the following flags when run from the command 
 | 5 | Camera Orientation | `--camera-orientation [Quaternion]` | The orientation of the camera in local bodyframe coordinates (LOST cam positive z, FOUND cam positive y) | no |
 | 6 | Artemis Offset | `--earth-radius-offset [Float]` | Pretend the Earth's radius is bigger by this many meters to mitigate the effects of the atmosphere | yes |
 
+## Libraries
+This algorithm uses the Eigen C++ library
+
+## References
+This algorithm is based on John A. Christian's work on optical navigation
+
+J. A. Christian, "A Tutorial on Horizon-Based Optical Navigation and Attitude Determination With Space Imaging Systems," in IEEE Access, vol. 9, pp. 19819-19853, 2021, doi: 10.1109/ACCESS.2021.3051914.
+keywords: {Cameras;Optical imaging;Space vehicles;Navigation;Lenses;Tutorials;Adaptive optics;Algebraic geometry;attitude determination;computer vision;Earth horizon sensors;optical navigation (OPNAV);space exploration;quadrics;spacecraft navigation},
+
+
+
