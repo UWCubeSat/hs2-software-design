@@ -19,7 +19,7 @@ Inputs and outputs are not required to be passed to neighboring algorithm nodes;
 
 ## Image Types
 
-Image subjects that an algorithm can request from a specific camera. Each image type (except ANY) corresponds to a unique orientation algorithm that `DataCollectionApplication` uses to point a camera before taking an image, however an image may satisfy more than one type requirement (i.e. a PRECISE image may also be a HORIZON image, and every image is an ANY image).
+Image subjects that an algorithm can request from a specific camera. Each image type (except ANY) corresponds to a unique orientation algorithm that `DataCollectionApplication` uses to point a camera before taking an image. However an image may satisfy more than one type requirement (i.e. a PRECISE image may also be a HORIZON image, and every image is an ANY image).
 If two images are required simultaneously for an experiment, `DataCollectionApplication` will guarantee both cameras satisfy their ImageType requirement before collecting data.
 
 | Enum | Name | Description | Orientation Algorithm |
