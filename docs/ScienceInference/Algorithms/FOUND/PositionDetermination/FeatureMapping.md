@@ -9,11 +9,12 @@ The details of the algorithm are still going through iteration and refinement. A
 ## Inputs/Outputs
 
 ### Images
-Instances of `Feature Mapping` may require the following images. An algorithm instance may specify which camera to use for each image. 
+Instances of `Feature Mapping` may require the following images. An algorithm instance may specify which camera to use for each image. NOTE: Only one image of a certain index can exist, so if an instance requests COASTLINE, it is not allowed to request LAND or OCEAN.
 
 | Index | ImageType | Name |  Description | Optional |
 |-------|----|---------|-------------|----------|
-| 0 | EARTH | image1 | Picture of the Earth | no 
+| 0 | COASTLINE or LAND or OCEAN | image1 | Picture of the Earth pointing at coastline | no |
+
 
 ### Inputs
 Instances of `Feature Mapping` may require the following input types. \
@@ -21,8 +22,7 @@ Note: EVERY input is a flag. The difference between a regular flag and an input 
 
 | Index | TypeEnum | Name |  Description | Optional | Flag |
 |-------|----------|------|--------------|----------|------|
-| 0 | ImageType::EARTH | image | This is the image of the Earth. | no | `image` |
-| 1 | List | search_prior | Defines a general position or attitude if known. | yes | `search_prior` |
+| 0 | List | search_prior | Defines a general position or attitude if known. | yes | `search_prior` |
 
 // Note: This is subject to change. Feature Mapping is currently exploring the idea of choosing whether it wants an image from the LOST or FOUND camera since these cameras perform differently based on the feature present in the image.
 
