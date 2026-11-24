@@ -13,8 +13,7 @@ Instances of `Feature Mapping` may require the following images. An algorithm in
 
 | Index | ImageType | Name |  Description | Optional |
 |-------|----|---------|-------------|----------|
-| 0 | LOSTEarth | image1 | Picture of the Earth from the LOST camera. | no |
-| 1 | FOUNDEarth | image2 | Picture of the Earth from the FOUND camera. | no |
+| 0 | EARTH | image1 | Picture of the Earth | no 
 
 ### Inputs
 Instances of `Feature Mapping` may require the following input types. \
